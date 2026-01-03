@@ -18,12 +18,17 @@ class HeatmapGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Generate dates
-    final days = endDate.difference(startDate).inDays + 1;
+    // 1. Align Start Date to the previous Monday to ensure Week 0 is full (or padded at start)
+    // Weekday: Mon=1 ... Sun=7.
+    final int daysToSubtract =
+        startDate.weekday - 1; // Mon (1) -> 0. Sun (7) -> 6.
+    final DateTime alignedStart = startDate.subtract(
+      Duration(days: daysToSubtract),
+    );
 
-    // Group by weeks for Column (Week) of Rows (Day)
-    // We want a scrollable horizontal list of weeks
-    // Each week has 7 slots (Mon-Sun or Sun-Sat). Let's start Monday (1).
+    // 2. Calculate Total Days from aligned start
+    final days = endDate.difference(alignedStart).inDays + 1;
+    final int weeks = (days / 7).ceil();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,24 +37,35 @@ class HeatmapGrid extends StatelessWidget {
           height: 140, // 7 days * boxSize + spacing
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            reverse:
-                true, // Show latest week first? Or standard? Usually GitHub is L->R. User might want latest.
-            // Let's do standard L->R but scroll to end maybe? Or just R->L for mobile ease?
-            itemCount: (days / 7).ceil(),
+            reverse: false, // Standard L->R
+            // If we want to show Newest (Right) initially, we might need a scroll controller,
+            // but standard ListView starts at Left. Users can scroll right.
+            itemCount: weeks,
             itemBuilder: (context, weekIndex) {
-              // Week 0 is startDate week
-              final weekStart = startDate.add(Duration(days: weekIndex * 7));
+              final weekStart = alignedStart.add(Duration(days: weekIndex * 7));
 
               return Container(
                 margin: const EdgeInsets.only(right: 4),
                 child: Column(
                   children: List.generate(7, (dayIndex) {
                     final currentDay = weekStart.add(Duration(days: dayIndex));
+
+                    // Don't render future days
                     if (currentDay.isAfter(endDate)) {
                       return const SizedBox(
                         width: 14,
                         height: 14,
-                      ); // Placeholder
+                        child: SizedBox(),
+                      );
+                    }
+
+                    // Don't render days before requested startDate (padding for week alignment)
+                    if (currentDay.isBefore(startDate)) {
+                      return const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: SizedBox(),
+                      );
                     }
 
                     final normalized = DateTime(
@@ -58,8 +74,7 @@ class HeatmapGrid extends StatelessWidget {
                       currentDay.day,
                     );
                     final count = datasets[normalized] ?? 0;
-                    final intensity =
-                        (count > 4 ? 4 : count) / 4.0; // Max 4 for coloring
+                    final intensity = (count > 4 ? 4 : count) / 4.0;
                     final hasData = count > 0;
 
                     return Container(

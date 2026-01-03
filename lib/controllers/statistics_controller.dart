@@ -21,6 +21,9 @@ class StatisticsController extends GetxController {
   // Heatmap Data: DateTime -> Intensity level (0-4) or count
   var overallHeatmap = <DateTime, int>{}.obs;
 
+  // Weekly Performance: List of int for Mon-Sun counts
+  var weeklyPerformance = <int>[].obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -111,6 +114,40 @@ class StatisticsController extends GetxController {
 
     // 3. Process Heatmap Data
     overallHeatmap.value = heatMapCounts;
+
+    // 4. Weekly Performance Data (Last 7 Days)
+    final Map<int, int> weeklyStats = {};
+    final now = DateTime.now();
+
+    // Initialize last 7 days with 0
+    // We want to show "Mon, Tue, Wed..." based on actual days or just previous 7 days
+    // Let's use weekday index (1=Mon, 7=Sun) for aggregation
+    // But for the chart, we specifically want the counts for specific dates.
+    // Let's store as a list of counts ordered by day of week (Mon->Sun) for the "Current Week" view?
+    // Or rolling 7 days? Usually "Performance" implies recent activity.
+    // Let's do: Counts for Mon-Sun of the CURRENT week.
+
+    // Find start of current week (Monday)
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 6));
+
+    // Initialize map for 0-6 (Mon-Sun)
+    for (int i = 0; i < 7; i++) {
+      weeklyStats[i] = 0;
+    }
+
+    for (var log in completedLogs) {
+      final date = DateTime.parse(log['target_date'] as String);
+      // Check if log is within this week
+      if (date.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) &&
+          date.isBefore(endOfWeek.add(const Duration(days: 1)))) {
+        // Normalize weekday to 0-6 index (Mon=1 -> 0)
+        final index = date.weekday - 1;
+        weeklyStats[index] = (weeklyStats[index] ?? 0) + 1;
+      }
+    }
+
+    weeklyPerformance.value = List.generate(7, (i) => weeklyStats[i] ?? 0);
   }
 
   Map<String, int> getStatsForHabit(String habitId) {

@@ -79,46 +79,49 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: 1 + habits.length,
                 itemBuilder: (context, index) {
-                  final isSelected = _currentIndex.value == index;
-                  String label;
-                  if (index == 0) {
-                    label = 'Semua';
-                  } else {
-                    label = habits[index - 1].title;
-                  }
-
-                  return GestureDetector(
-                    onTap: () => _onTabTapped(index),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      margin: const EdgeInsets.only(right: 12),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.grey[900]
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                        border: isSelected
-                            ? null
-                            : Border.all(color: Colors.white12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          label,
-                          style: GoogleFonts.plusJakartaSans(
-                            color: isSelected ? Colors.white : Colors.grey[600],
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
+                  return Obx(() {
+                    final isSelected = _currentIndex.value == index;
+                    String label;
+                    if (index == 0) {
+                      label = 'Semua';
+                    } else {
+                      label = habits[index - 1].title;
+                    }
+                    return GestureDetector(
+                      onTap: () => _onTabTapped(index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        margin: const EdgeInsets.only(right: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.grey[900]
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          border: isSelected
+                              ? null
+                              : Border.all(color: Colors.white12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            label,
+                            style: GoogleFonts.plusJakartaSans(
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.grey[600],
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
+                    );
+                  });
                 },
               ),
             ),
@@ -163,6 +166,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               '$completionCount',
               'Kali',
               AppTheme.primary,
+              description:
+                  'Jumlah total kebiasaan yang udah lo kelarin selama ini. Makin banyak makin GG!',
             ),
             const SizedBox(height: 16),
             _buildStatCard(
@@ -170,11 +175,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               '${completionRate.toStringAsFixed(1)}%',
               'Gacor Abis 🔥',
               AppTheme.secondary,
+              description:
+                  'Tingkat kedisiplinan lo. Kalo 100% berarti lo ga pernah skip, Gacor Abis!',
             ),
             const SizedBox(height: 32),
 
             Text(
-              'Keaktifan (Heatmap)',
+              'Jejak Keaktifan',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -197,7 +204,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
             const SizedBox(height: 32),
             Text(
-              'Performance',
+              'Performa Minggu Ini',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -234,7 +241,28 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     ),
                   ),
                   borderData: FlBorderData(show: false),
-                  barGroups: _generateDummyBarGroups(),
+                  barGroups: _generateWeeklyBarGroups(
+                    _controller.weeklyPerformance,
+                  ),
+                  barTouchData: BarTouchData(
+                    enabled:
+                        false, // Disable touch interaction if using static tooltips or keep enabled for detail
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipColor: (_) => Colors.transparent,
+                      tooltipPadding: EdgeInsets.zero,
+                      tooltipMargin: 4,
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        return BarTooltipItem(
+                          rod.toY.toInt().toString(),
+                          GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -265,6 +293,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     '${stats['total']}',
                     '',
                     AppTheme.primary,
+                    description: 'Berapa kali lo lakuin habit ini.',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -274,6 +303,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     '${stats['streak']}',
                     'Hari',
                     const Color(0xFFFF5757),
+                    description: 'Berturut-turut tanpa putus. Keep fire! 🔥',
                   ),
                 ),
               ],
@@ -281,7 +311,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
             const SizedBox(height: 32),
             Text(
-              'Jejak Rutinitas',
+              'Jejak Keaktifan',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -325,7 +355,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     });
   }
 
-  Widget _buildStatCard(String label, String value, String sub, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    String sub,
+    Color color, {
+    String? description,
+  }) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -336,13 +372,93 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              color: AppTheme.textSecondary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (description != null)
+                GestureDetector(
+                  onTap: () {
+                    Get.dialog(
+                      Dialog(
+                        backgroundColor: AppTheme.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                label,
+                                style: GoogleFonts.spaceGrotesk(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                description,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  onPressed: () => Get.back(),
+                                  child: Text(
+                                    'Paham!',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppTheme.textSecondary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.question_mark_rounded,
+                      size: 14,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
@@ -372,18 +488,36 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
-  List<BarChartGroupData> _generateDummyBarGroups() {
+  List<BarChartGroupData> _generateWeeklyBarGroups(List<int> weeklyData) {
+    if (weeklyData.isEmpty) return [];
+
+    final maxVal = weeklyData.reduce((curr, next) => curr > next ? curr : next);
+    final isAllZero = maxVal == 0;
+
     return List.generate(7, (i) {
+      final val = weeklyData[i];
+      final isMax = !isAllZero && val == maxVal;
+
       return BarChartGroupData(
         x: i,
         barRods: [
           BarChartRodData(
-            toY: (i + 2).toDouble(),
-            color: AppTheme.primary,
-            width: 12,
-            borderRadius: BorderRadius.circular(4),
+            toY: val.toDouble(),
+            color: isMax
+                ? AppTheme.primary
+                : AppTheme.primary.withValues(alpha: 0.3),
+            width: 16,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: (maxVal == 0
+                  ? 5
+                  : maxVal * 1.2), // Dynamic subtle background height
+              color: Colors.white.withValues(alpha: 0.05),
+            ),
           ),
         ],
+        showingTooltipIndicators: val > 0 ? [0] : [],
       );
     });
   }
