@@ -578,7 +578,7 @@ class _SocialScreenState extends State<SocialScreen> {
                                       TextSpan(
                                         text: type == 'habit_log'
                                             ? ' abis bantai '
-                                            : ' ngeposting: ',
+                                            : ' ngepost: ',
                                         style: TextStyle(
                                           color: Colors.grey[400],
                                         ),
@@ -615,6 +615,93 @@ class _SocialScreenState extends State<SocialScreen> {
                               ],
                             ),
                           ),
+                          if (type == 'post' &&
+                              data['user_id'] == currentUser?.id)
+                            IconButton(
+                              icon: const Icon(
+                                Icons.more_horiz,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  backgroundColor: Colors.grey[900],
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(20),
+                                    ),
+                                  ),
+                                  builder: (context) => Container(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Handle Bar
+                                        Container(
+                                          width: 40,
+                                          height: 4,
+                                          margin: const EdgeInsets.only(
+                                            bottom: 24,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[700],
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
+                                          ),
+                                        ),
+                                        // Delete Option
+                                        InkWell(
+                                          onTap: () {
+                                            Navigator.pop(
+                                              context,
+                                            ); // Close sheet
+                                            _controller.deletePost(data['id']);
+                                          },
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 16,
+                                              horizontal: 16,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.withOpacity(
+                                                0.1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.delete_outline,
+                                                  color: Colors.red,
+                                                  size: 24,
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Text(
+                                                  'Hapus Postingan',
+                                                  style:
+                                                      GoogleFonts.plusJakartaSans(
+                                                        color: Colors.red,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                         ],
                       ),
 

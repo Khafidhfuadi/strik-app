@@ -210,6 +210,19 @@ class FriendRepository {
     });
   }
 
+  // Delete a post
+  Future<void> deletePost(String postId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    // Supabase RLS should handle ownership check, but good to be safe
+    await _supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', user.id);
+  }
+
   // Toggle reaction (Fire)
   Future<void> toggleReaction({
     String? postId,

@@ -30,16 +30,27 @@ class FriendController extends GetxController {
     supabase
         .channel('public:posts')
         .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
+          event:
+              PostgresChangeEvent.all, // Listen to ALL events (Insert & Delete)
           schema: 'public',
           table: 'posts',
           callback: (payload) async {
-            final newPostId = payload.newRecord['id'];
-            if (newPostId != null) {
-              final newPost = await _friendRepository.getPostById(newPostId);
-              if (newPost != null) {
-                activityFeed.insert(0, newPost);
-                newFeedCount.value++;
+            if (payload.eventType == PostgresChangeEvent.insert) {
+              final newPostId = payload.newRecord['id'];
+              if (newPostId != null) {
+                final newPost = await _friendRepository.getPostById(newPostId);
+                if (newPost != null) {
+                  activityFeed.insert(0, newPost);
+                  newFeedCount.value++;
+                }
+              }
+            } else if (payload.eventType == PostgresChangeEvent.delete) {
+              final deletedId = payload.oldRecord['id'];
+              if (deletedId != null) {
+                activityFeed.removeWhere(
+                  (item) =>
+                      item['type'] == 'post' && item['data']['id'] == deletedId,
+                );
               }
             }
           },
@@ -326,8 +337,22 @@ class FriendController extends GetxController {
       fetchActivityFeed(); // Refresh feed
     } catch (e) {
       Get.snackbar('Waduh', 'Gagal posting, sinyal aman? 🤯');
-    } finally {
       isCreatingPost.value = false;
+    }
+  }
+
+  Future<void> deletePost(String postId) async {
+    try {
+      // Optimistic update
+      activityFeed.removeWhere(
+        (item) => item['type'] == 'post' && item['data']['id'] == postId,
+      );
+
+      await _friendRepository.deletePost(postId);
+      Get.snackbar('Sip!', 'Postingan udah dihapus! 🗑️');
+    } catch (e) {
+      Get.snackbar('Waduh', 'Gagal hapus postingan, error nih! 😵');
+      fetchActivityFeed(); // Revert
     }
   }
 

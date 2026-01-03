@@ -30,8 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final homeController = Get.find<HomeController>();
     // Initialize PageController based on current tab
     int initialPage = 0;
-    if (homeController.currentTab.value == 'Weekly') initialPage = 1;
-    if (homeController.currentTab.value == 'Overall') initialPage = 2;
+    if (homeController.currentTab.value == 'Mingguan') initialPage = 1;
     _pageController = PageController(initialPage: initialPage);
   }
 
