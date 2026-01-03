@@ -37,11 +37,12 @@ class HeatmapGrid extends StatelessWidget {
           height: 140, // 7 days * boxSize + spacing
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            reverse: false, // Standard L->R
-            // If we want to show Newest (Right) initially, we might need a scroll controller,
-            // but standard ListView starts at Left. Users can scroll right.
+            reverse: true, // Start from the end (Right side for LTR)
+            // This ensures the latest data (Right) is visible immediately without scrolling.
             itemCount: weeks,
-            itemBuilder: (context, weekIndex) {
+            itemBuilder: (context, index) {
+              // Invert index: 0 (Rightmost) -> Last Week (Newest)
+              final weekIndex = weeks - 1 - index;
               final weekStart = alignedStart.add(Duration(days: weekIndex * 7));
 
               return Container(
