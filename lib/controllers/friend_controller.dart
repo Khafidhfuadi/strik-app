@@ -89,4 +89,51 @@ class FriendController extends GetxController {
       Get.snackbar('Error', 'Failed to reject request: $e');
     }
   }
+
+  // --- Engagement Features ---
+
+  var leaderboard = <Map<String, dynamic>>[].obs;
+  var activityFeed = <Map<String, dynamic>>[].obs;
+  var notifications = <Map<String, dynamic>>[].obs;
+  var isLoadingLeaderboard = false.obs;
+  var isLoadingActivity = false.obs;
+
+  Future<void> fetchLeaderboard() async {
+    try {
+      isLoadingLeaderboard.value = true;
+      leaderboard.value = await _friendRepository.getLeaderboard();
+    } catch (e) {
+      print('Error fetching leaderboard: $e');
+    } finally {
+      isLoadingLeaderboard.value = false;
+    }
+  }
+
+  Future<void> fetchActivityFeed() async {
+    try {
+      isLoadingActivity.value = true;
+      activityFeed.value = await _friendRepository.getActivityFeed();
+    } catch (e) {
+      print('Error fetching activity feed: $e');
+    } finally {
+      isLoadingActivity.value = false;
+    }
+  }
+
+  Future<void> fetchNotifications() async {
+    try {
+      notifications.value = await _friendRepository.getNotifications();
+    } catch (e) {
+      print('Error fetching notifications: $e');
+    }
+  }
+
+  Future<void> sendNudge(String userId) async {
+    try {
+      await _friendRepository.sendNudge(userId);
+      Get.snackbar('Sent!', 'Nudge sent successfully!');
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to send nudge: $e');
+    }
+  }
 }
