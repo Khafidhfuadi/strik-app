@@ -19,26 +19,32 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final _habitRepository = HabitRepository();
   List<Habit> _habits = [];
+  Map<String, String> _habitLogs = {}; // habit_id -> status
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchHabits();
+    _fetchHabitsAndLogs();
   }
 
-  Future<void> _fetchHabits() async {
+  Future<void> _fetchHabitsAndLogs() async {
     try {
       final habits = await _habitRepository.getHabits();
-      setState(() {
-        _habits = habits;
-        _isLoading = false;
-      });
+      final logs = await _habitRepository.getHabitLogsForDate(DateTime.now());
+
+      if (mounted) {
+        setState(() {
+          _habits = habits;
+          _habitLogs = logs;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error loading habits: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error loading data: $e')));
         setState(() => _isLoading = false);
       }
     }
@@ -50,8 +56,74 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Handle Swipe logic
+  Future<bool?> _onDismiss(
+    DismissDirection direction,
+    Habit habit,
+    String? currentStatus,
+  ) async {
+    final today = DateTime.now();
+    String? newStatus;
+
+    // Swipe Right -> Complete
+    if (direction == DismissDirection.startToEnd) {
+      if (currentStatus == 'completed') {
+        // Already completed, swipe right again to undo? Or maybe ignore?
+        // User request says "complete/un-complete (swipe right)"
+        newStatus = null; // Un-complete
+      } else {
+        newStatus = 'completed';
+      }
+    }
+    // Swipe Left -> Skip
+    else if (direction == DismissDirection.endToStart) {
+      if (currentStatus == 'skipped') {
+        newStatus = null; // Un-skip
+      } else {
+        newStatus = 'skipped';
+      }
+    }
+
+    try {
+      if (newStatus == null) {
+        await _habitRepository.deleteLog(habit.id!, today);
+        if (mounted) {
+          setState(() {
+            _habitLogs.remove(habit.id!);
+          });
+        }
+      } else {
+        await _habitRepository.logHabit(habit.id!, today, newStatus);
+        if (mounted) {
+          setState(() {
+            _habitLogs[habit.id!] = newStatus!;
+          });
+        }
+      }
+      return false; // Don't remove from list, just update state
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update status: $e')));
+      }
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Sort habits: Incomplete first, then Completed/Skipped
+    final sortedHabits = List<Habit>.from(_habits);
+    sortedHabits.sort((a, b) {
+      final aStatus = _habitLogs[a.id];
+      final bStatus = _habitLogs[b.id];
+
+      if (aStatus == null && bStatus != null) return -1;
+      if (aStatus != null && bStatus == null) return 1;
+      return 0;
+    });
+
     // If index 1, show statistics (placeholder)
     if (_selectedIndex == 1) {
       return Scaffold(
@@ -107,9 +179,70 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : ListView.builder(
               padding: const EdgeInsets.all(20),
-              itemCount: _habits.length,
+              itemCount: sortedHabits.length,
               itemBuilder: (context, index) {
-                return HabitCard(habit: _habits[index]);
+                final habit = sortedHabits[index];
+                final status = _habitLogs[habit.id];
+
+                return Dismissible(
+                  key: Key(habit.id!),
+                  confirmDismiss: (direction) =>
+                      _onDismiss(direction, habit, status),
+                  background: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary, // Greenish for check
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 20),
+                        Icon(
+                          status == 'completed' ? Icons.undo : Icons.check,
+                          color: Colors.black,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          status == 'completed' ? 'un-check' : 'kelarin',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  secondaryBackground: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF5757), // Reddish for skip
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          status == 'skipped' ? 'un-skip' : 'skip dlu',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          status == 'skipped' ? Icons.undo : Icons.close,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 20),
+                      ],
+                    ),
+                  ),
+                  child: HabitCard(habit: habit, status: status),
+                );
               },
             ),
       floatingActionButton: _habits.isNotEmpty
@@ -150,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const CreateHabitScreen()),
     );
-    _fetchHabits();
+    _fetchHabitsAndLogs();
   }
 
   Future<void> _signOut(BuildContext context) async {

@@ -5,25 +5,29 @@ import 'package:strik_app/data/models/habit.dart';
 class HabitCard extends StatelessWidget {
   final Habit habit;
   final VoidCallback? onTap;
+  final String? status; // 'completed', 'skipped', or null
 
-  const HabitCard({super.key, required this.habit, this.onTap});
+  const HabitCard({super.key, required this.habit, this.onTap, this.status});
 
   @override
   Widget build(BuildContext context) {
     // Parse color from string 0x...
     Color habitColor = AppTheme.primary;
-    try {
-      if (habit.color.startsWith('0x')) {
-        habitColor = Color(int.parse(habit.color));
+    if (status == null) {
+      try {
+        if (habit.color.startsWith('0x')) {
+          habitColor = Color(int.parse(habit.color));
+        }
+      } catch (e) {
+        // Fallback
       }
-    } catch (e) {
-      // Fallback
+    } else {
+      // Dim color if completed/skipped
+      habitColor = AppTheme.surface;
     }
 
-    // Improve contrast for text on colored backgrounds
-    // Using a simple luminance check failure safe, or just enforcing black/dark text on these neon colors
-    // Our palette is neon, so black text is usually best.
-    final Color textColor = Colors.black;
+    // Improve contrast for text
+    final Color textColor = status == null ? Colors.black : Colors.white54;
 
     return GestureDetector(
       onTap: onTap,
@@ -33,6 +37,7 @@ class HabitCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: habitColor,
           borderRadius: BorderRadius.circular(16),
+          border: status != null ? Border.all(color: Colors.white12) : null,
         ),
         child: Row(
           children: [
@@ -41,10 +46,19 @@ class HabitCard extends StatelessWidget {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
+                color: status == 'completed'
+                    ? AppTheme.primary
+                    : Colors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
+                border: status == null
+                    ? Border.all(color: Colors.black26)
+                    : null,
               ),
-              child: const Icon(Icons.check, size: 16, color: Colors.white),
+              child: status == 'completed'
+                  ? const Icon(Icons.check, size: 16, color: Colors.black)
+                  : status == 'skipped'
+                  ? const Icon(Icons.close, size: 16, color: Colors.white54)
+                  : null,
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -57,25 +71,21 @@ class HabitCard extends StatelessWidget {
                       color: textColor,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      decoration: status == 'completed'
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
-                  if (habit.description != null &&
-                      habit.description!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      habit.description!,
-                      style: TextStyle(
-                        color: textColor.withOpacity(0.7),
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.black54),
+            if (status != null)
+              Text(
+                status == 'completed' ? 'Completed' : 'Skipped',
+                style: TextStyle(color: textColor, fontSize: 12),
+              )
+            else
+              const Icon(Icons.chevron_right, color: Colors.black54),
           ],
         ),
       ),
