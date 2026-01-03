@@ -199,43 +199,112 @@ class FriendRepository {
     return (res as List).map((e) => e['id'] as String).toList();
   }
 
-  // Get Activity Feed
-  // Shows recent completions from friends
+  // Create a new post
+  Future<void> createPost(String content) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    await _supabase.from('posts').insert({
+      'user_id': user.id,
+      'content': content,
+    });
+  }
+
+  // Toggle reaction (Fire)
+  Future<void> toggleReaction({
+    String? postId,
+    String? habitLogId,
+    String type = 'fire',
+  }) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    // Check if reaction exists
+    final query = _supabase.from('reactions').select().eq('user_id', user.id);
+    dynamic response;
+
+    if (postId != null) {
+      response = await query.eq('post_id', postId).maybeSingle();
+    } else if (habitLogId != null) {
+      response = await query.eq('habit_log_id', habitLogId).maybeSingle();
+    }
+
+    if (response != null) {
+      // Delete existing reaction
+      await _supabase.from('reactions').delete().eq('id', response['id']);
+    } else {
+      // Create new reaction
+      await _supabase.from('reactions').insert({
+        'user_id': user.id,
+        'post_id': postId,
+        'habit_log_id': habitLogId,
+        'type': type,
+      });
+    }
+  }
+
+  // Get Activity Feed (Mixed: Habits + Posts)
   Future<List<Map<String, dynamic>>> getActivityFeed() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return [];
 
-    // 1. Get friend IDs
+    // 1. Get friend IDs + Self ID (to see own posts too)
     final friends = await getFriends();
     final friendIds = friends.map((e) => e.id).toList();
+    friendIds.add(user.id);
 
     if (friendIds.isEmpty) return [];
 
-    // 2. Query logs from these users
-    final response = await _supabase
+    // 2. Fetch completed habits
+    final habitLogsResponse = await _supabase
         .from('habit_logs')
         .select('''
           *,
           habit:habits!inner(
             title,
             user:profiles!inner(*)
-          )
+          ),
+          reactions:reactions(*)
         ''')
         .eq('status', 'completed')
-        .inFilter(
-          'habit.user_id',
-          friendIds,
-        ) // This filter might be tricky with nested relations in Supabase
-        // Alternative: Filter by habit_id where habit.user_id IN friends.
-        // Simpler approach:
-        // Get all habits of friends first? No, too many.
-        // Deep filtering in Supabase is possible.
-        // Let's try to filter by the top-level habit relation if possible, or use a customized query.
-        // Actually, 'habit.user_id' works if using "!inner" join on habits.
+        .inFilter('habit.user_id', friendIds)
         .order('completed_at', ascending: false)
         .limit(20);
 
-    return List<Map<String, dynamic>>.from(response);
+    // 3. Fetch posts
+    final postsResponse = await _supabase
+        .from('posts')
+        .select('''
+          *,
+          user:profiles(*),
+          reactions:reactions(*)
+        ''')
+        .inFilter('user_id', friendIds)
+        .order('created_at', ascending: false)
+        .limit(20);
+
+    // 4. Merge and Sort
+    final mixedFeed = <Map<String, dynamic>>[];
+
+    for (var log in habitLogsResponse) {
+      mixedFeed.add({
+        'type': 'habit_log',
+        'data': log,
+        'timestamp': DateTime.parse(log['completed_at']),
+      });
+    }
+
+    for (var post in postsResponse) {
+      mixedFeed.add({
+        'type': 'post',
+        'data': post,
+        'timestamp': DateTime.parse(post['created_at']),
+      });
+    }
+
+    mixedFeed.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+
+    return mixedFeed.take(50).toList();
   }
 
   // Search users by username

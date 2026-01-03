@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:timeago/timeago.dart' as timeago;
+
 import 'package:strik_app/controllers/friend_controller.dart';
+import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/screens/add_friend_screen.dart';
 import 'package:strik_app/screens/notifications_screen.dart';
-import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 class SocialScreen extends StatefulWidget {
   final Widget? bottomNavigationBar;
@@ -423,88 +426,267 @@ class _SocialScreenState extends State<SocialScreen> {
 
   Widget _buildActivityFeedTab() {
     _controller.fetchActivityFeed();
+    final currentUser = Supabase.instance.client.auth.currentUser;
 
-    return Obx(() {
-      if (_controller.isLoadingActivity.value) {
-        return const Center(child: CustomLoadingIndicator());
-      }
-
-      if (_controller.activityFeed.isEmpty) {
-        return const Center(
-          child: Text(
-            'Masih sepi nih, belum ada yang pamer! 🦗',
-            style: TextStyle(color: Colors.white54),
+    return Column(
+      children: [
+        // Create Post Input
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[800]!),
           ),
-        );
-      }
-
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _controller.activityFeed.length,
-        itemBuilder: (context, index) {
-          final log = _controller.activityFeed[index];
-          final habit = log['habit'];
-          final user = habit['user'];
-          final date = DateTime.parse(log['completed_at']);
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  child: Text(user['username'][0].toUpperCase()),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppTheme.primary.withOpacity(0.2),
+                child: const Icon(
+                  Icons.edit,
+                  size: 16,
+                  color: AppTheme.primary,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Spill kegiatan lo hari ini...',
+                    hintStyle: GoogleFonts.plusJakartaSans(
+                      color: Colors.grey[600],
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                  onSubmitted: (value) {
+                    _controller.createPost(value);
+                  },
+                ),
+              ),
+              Obx(
+                () => _controller.isCreatingPost.value
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+
+        // Feed List
+        Expanded(
+          child: Obx(() {
+            if (_controller.isLoadingActivity.value) {
+              return const Center(child: CustomLoadingIndicator());
+            }
+
+            if (_controller.activityFeed.isEmpty) {
+              return Center(
+                child: Text(
+                  'Masih sepi nih, belum ada yang pamer! 🦗',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _controller.activityFeed.length,
+              itemBuilder: (context, index) {
+                final item = _controller.activityFeed[index];
+                final type = item['type'];
+                final data = item['data'];
+                final date = item['timestamp'] as DateTime;
+
+                // Map data based on type
+                String titleText = '';
+                String username = '';
+                String? avatarUrl;
+                List reactions = data['reactions'] ?? [];
+
+                // Helper to check my reaction
+                bool hasReacted = false;
+                if (currentUser != null) {
+                  hasReacted = reactions.any(
+                    (r) => r['user_id'] == currentUser.id,
+                  );
+                }
+
+                if (type == 'habit_log') {
+                  // Habit Log
+                  final habit = data['habit'];
+                  final user = habit['user'];
+                  username = user['username'] ?? 'User';
+                  avatarUrl = user['avatar_url'];
+                  titleText = habit['title'];
+                } else {
+                  // Post
+                  final user = data['user'];
+                  username = user['username'] ?? 'User';
+                  avatarUrl = user['avatar_url'];
+                  titleText = data['content'];
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900]!.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      RichText(
-                        text: TextSpan(
-                          style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
-                            fontSize: 14,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundImage: avatarUrl != null
+                                ? NetworkImage(avatarUrl)
+                                : null,
+                            child: avatarUrl == null
+                                ? Text(username[0].toUpperCase())
+                                : null,
                           ),
-                          children: [
-                            TextSpan(
-                              text: user['username'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: username,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: type == 'habit_log'
+                                            ? ' abis bantai '
+                                            : ' ngeposting: ',
+                                        style: TextStyle(
+                                          color: Colors.grey[400],
+                                        ),
+                                      ),
+                                      if (type == 'habit_log')
+                                        TextSpan(
+                                          text: titleText,
+                                          style: const TextStyle(
+                                            color: AppTheme.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (type == 'post') ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    titleText,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  timeago.format(date),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
-                            TextSpan(
-                              text: ' abis bantai ',
-                              style: TextStyle(color: Colors.grey[400]),
-                            ),
-                            TextSpan(
-                              text: habit['title'],
-                              style: const TextStyle(
-                                color: AppTheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        timeago.format(date),
-                        style: GoogleFonts.plusJakartaSans(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+
+                      // Reaction Button
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              if (type == 'habit_log') {
+                                _controller.toggleReaction(
+                                  habitLogId: data['id'],
+                                );
+                              } else {
+                                _controller.toggleReaction(postId: data['id']);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: hasReacted
+                                    ? const Color(0xFFFF5757).withOpacity(0.2)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: hasReacted
+                                      ? const Color(0xFFFF5757)
+                                      : Colors.grey[800]!,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Fire Icon (Lottie or Static)
+                                  SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Lottie.asset(
+                                      'assets/src/strik-logo.json',
+                                      animate: hasReacted,
+                                      repeat: false,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${reactions.length}',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      color: hasReacted
+                                          ? const Color(0xFFFF5757)
+                                          : Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    });
+                );
+              },
+            );
+          }),
+        ),
+      ],
+    );
   }
 
   Widget _buildFriendsTab() {

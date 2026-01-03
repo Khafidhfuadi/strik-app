@@ -121,6 +121,8 @@ class FriendController extends GetxController {
     }
   }
 
+  var isCreatingPost = false.obs;
+
   Future<void> fetchActivityFeed() async {
     try {
       isLoadingActivity.value = true;
@@ -131,7 +133,8 @@ class FriendController extends GetxController {
         newFeedCount.value = activityFeed.length;
       } else {
         newFeedCount.value = activityFeed.where((item) {
-          final date = DateTime.parse(item['completed_at']);
+          // Repository now returns 'timestamp' as DateTime object in the map
+          final date = item['timestamp'] as DateTime;
           return date.isAfter(_lastViewedFeedTime!);
         }).length;
       }
@@ -139,6 +142,35 @@ class FriendController extends GetxController {
       print('Error fetching activity feed: $e');
     } finally {
       isLoadingActivity.value = false;
+    }
+  }
+
+  Future<void> createPost(String content) async {
+    if (content.trim().isEmpty) return;
+
+    try {
+      isCreatingPost.value = true;
+      await _friendRepository.createPost(content);
+      Get.snackbar('Mantap!', 'Postingan udah naik nih! 🔥');
+      fetchActivityFeed(); // Refresh feed
+    } catch (e) {
+      Get.snackbar('Waduh', 'Gagal posting, sinyal aman? 🤯');
+    } finally {
+      isCreatingPost.value = false;
+    }
+  }
+
+  Future<void> toggleReaction({String? postId, String? habitLogId}) async {
+    try {
+      // Optimistic update could go here, but for MVP we just call API
+      await _friendRepository.toggleReaction(
+        postId: postId,
+        habitLogId: habitLogId,
+      );
+      // Silent refresh or optimistic? Let's silent refresh for now to see count update
+      fetchActivityFeed();
+    } catch (e) {
+      print('Error reacting: $e');
     }
   }
 
