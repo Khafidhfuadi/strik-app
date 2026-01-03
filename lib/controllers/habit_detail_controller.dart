@@ -49,8 +49,9 @@ class HabitDetailController extends GetxController {
   Future<void> toggleLog(DateTime date) async {
     final today = DateTime.now();
     final targetDate = DateTime(date.year, date.month, date.day);
-    if (targetDate.isAfter(DateTime(today.year, today.month, today.day)))
+    if (targetDate.isAfter(DateTime(today.year, today.month, today.day))) {
       return; // Can't log future
+    }
 
     final dateStr = targetDate.toIso8601String().split('T')[0];
 

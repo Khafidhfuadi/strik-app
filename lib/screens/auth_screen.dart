@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/main.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 import 'package:strik_app/widgets/custom_text_field.dart';
+import 'package:strik_app/screens/registration_success_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -31,10 +32,13 @@ class _AuthScreenState extends State<AuthScreen> {
           emailRedirectTo: 'strikapp://auth/callback',
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Akun jadi! Login gih.')),
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => RegistrationSuccessScreen(email: email),
+            ),
           );
-          setState(() => _isSignUp = false);
+          // Don't flip _isSignUp since we want to stay in sign-up mode if they come back,
+          // or we just navigated away anyway.
         }
       } else {
         await supabase.auth.signInWithPassword(
@@ -86,7 +90,7 @@ class _AuthScreenState extends State<AuthScreen> {
               const SizedBox(height: 16),
               CustomTextField(
                 controller: _passwordController,
-                label: 'Kata Sandi Rahasia',
+                label: 'Sandi',
                 obscureText: true,
               ),
               const SizedBox(height: 24),

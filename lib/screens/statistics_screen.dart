@@ -399,7 +399,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
-                    child: Container(
+                    child: SizedBox(
                       width: chartWidth,
                       child: BarChart(
                         BarChartData(
@@ -846,7 +846,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(child: _buildRankCard(top3[1], 2, Colors.grey[400]!)),
               const SizedBox(width: 12),
               // Rank 1
-              if (top3.length >= 1)
+              if (top3.isNotEmpty)
                 Expanded(child: _buildRankCard(top3[0], 1, Colors.amber)),
               const SizedBox(width: 12),
               // Rank 3
