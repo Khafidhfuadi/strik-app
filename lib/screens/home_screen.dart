@@ -5,7 +5,7 @@ import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/screens/create_habit_screen.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
-import 'package:strik_app/screens/friends_screen.dart';
+import 'package:strik_app/screens/social_screen.dart';
 
 import 'package:strik_app/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -67,10 +67,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final HomeController homeController = Get.find();
 
     return Obx(() {
+      final navBar = _buildBottomNavigationBar(homeController);
+
       if (homeController.selectedIndex.value == 1) {
+        return SocialScreen(bottomNavigationBar: navBar);
+      }
+
+      if (homeController.selectedIndex.value == 2) {
         return Scaffold(
           body: const StatisticsScreen(),
-          bottomNavigationBar: _buildBottomNavigationBar(homeController),
+          bottomNavigationBar: navBar,
         );
       }
 
@@ -102,10 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () => _navigateAndRefresh(context),
-            ),
-            IconButton(
-              icon: const Icon(Icons.people_alt_rounded, color: Colors.white),
-              onPressed: () => Get.to(() => const FriendsScreen()),
             ),
             IconButton(
               icon: const Icon(Icons.logout_rounded, color: Colors.white),
@@ -147,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-        bottomNavigationBar: _buildBottomNavigationBar(homeController),
+        bottomNavigationBar: navBar,
       );
     });
   }
@@ -333,6 +335,10 @@ class _HomeScreenState extends State<HomeScreen> {
         BottomNavigationBarItem(
           icon: Icon(Icons.grid_view_rounded),
           label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.people_alt_rounded),
+          label: 'Social',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.bar_chart_rounded),

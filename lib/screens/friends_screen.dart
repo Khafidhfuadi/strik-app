@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:strik_app/controllers/friend_controller.dart';
 import 'package:strik_app/screens/add_friend_screen.dart';
 import 'package:strik_app/screens/notifications_screen.dart';
+import 'package:strik_app/widgets/custom_loading_indicator.dart';
 
 class FriendsScreen extends StatelessWidget {
   const FriendsScreen({super.key});
@@ -127,7 +128,7 @@ class FriendsScreen extends StatelessWidget {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
+                  child: CustomLoadingIndicator(),
                 ),
               );
             }
@@ -172,7 +173,7 @@ class FriendsScreen extends StatelessWidget {
 
     return Obx(() {
       if (controller.isLoadingLeaderboard.value) {
-        return const Center(child: CircularProgressIndicator());
+        return const Center(child: CustomLoadingIndicator());
       }
 
       if (controller.leaderboard.isEmpty) {
@@ -209,7 +210,7 @@ class FriendsScreen extends StatelessWidget {
 
     return Obx(() {
       if (controller.isLoadingActivity.value) {
-        return const Center(child: CircularProgressIndicator());
+        return const Center(child: CustomLoadingIndicator());
       }
 
       if (controller.activityFeed.isEmpty) {

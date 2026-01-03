@@ -3,6 +3,8 @@ import 'package:strik_app/data/models/user_model.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:strik_app/main.dart'; // Access global supabase client
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 class FriendController extends GetxController {
   final FriendRepository _friendRepository = FriendRepository(supabase);
 
@@ -53,7 +55,7 @@ class FriendController extends GetxController {
       isSearching.value = true;
       searchResults.value = await _friendRepository.searchUsers(query);
     } catch (e) {
-      Get.snackbar('Error', 'Failed to search users: $e');
+      Get.snackbar('Waduh!', 'Gagal nyari bestie nih, coba lagi ya! 🧐');
     } finally {
       isSearching.value = false;
     }
@@ -62,31 +64,36 @@ class FriendController extends GetxController {
   Future<void> sendFriendRequest(String userId) async {
     try {
       await _friendRepository.sendRequest(userId);
-      Get.snackbar('Success', 'Friend request sent!');
+      Get.snackbar('Yeay!', 'Request sent! Tungguin di-acc ya bestie!');
       // Update search result UI state if needed to show "Sent"
     } catch (e) {
-      Get.snackbar('Error', 'Failed to send request: $e');
+      if (e is PostgrestException && e.code == '23505') {
+        Get.snackbar('Eits!', 'Udah pernah request atau udah temenan kok! 😅');
+      } else {
+        print(e);
+        Get.snackbar('Yah...', 'Gagal ngirim request, sinyal aman? 🥺');
+      }
     }
   }
 
   Future<void> acceptRequest(String friendshipId) async {
     try {
       await _friendRepository.acceptRequest(friendshipId);
-      Get.snackbar('Success', 'Friend request accepted!');
+      Get.snackbar('Gas!', 'Udah temenan nih! Yuk, compete! 🤩');
       fetchPendingRequests();
       fetchFriends();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to accept request: $e');
+      Get.snackbar('Ups...', 'Gagal nerima request, coba lagi dong! 😢');
     }
   }
 
   Future<void> rejectRequest(String friendshipId) async {
     try {
       await _friendRepository.rejectRequest(friendshipId);
-      Get.snackbar('Success', 'Friend request rejected');
+      Get.snackbar('Oke deh', 'Request ditolak. Gapapa, cari bestie lain! 👋');
       fetchPendingRequests();
     } catch (e) {
-      Get.snackbar('Error', 'Failed to reject request: $e');
+      Get.snackbar('Waduh', 'Gagal nolak request, error nih! 😵');
     }
   }
 
@@ -131,9 +138,9 @@ class FriendController extends GetxController {
   Future<void> sendNudge(String userId) async {
     try {
       await _friendRepository.sendNudge(userId);
-      Get.snackbar('Sent!', 'Nudge sent successfully!');
+      Get.snackbar('Terciduk!', 'Udah dicolek! Semoga dia peka ya! 🫣');
     } catch (e) {
-      Get.snackbar('Error', 'Failed to send nudge: $e');
+      Get.snackbar('Yah...', 'Gagal nyolek, dia lagi sibuk kali ya? 😔');
     }
   }
 }

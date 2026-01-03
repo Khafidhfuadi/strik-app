@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/controllers/friend_controller.dart';
+import 'package:strik_app/widgets/custom_loading_indicator.dart';
 import 'package:strik_app/widgets/custom_text_field.dart';
 
 class AddFriendScreen extends StatelessWidget {
@@ -40,7 +41,7 @@ class AddFriendScreen extends StatelessWidget {
             Expanded(
               child: Obx(() {
                 if (controller.isSearching.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CustomLoadingIndicator());
                 }
 
                 if (controller.searchResults.isEmpty) {
