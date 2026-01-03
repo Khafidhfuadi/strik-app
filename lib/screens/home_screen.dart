@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: Text(
-            'Habits',
+            'Strik',
             style: GoogleFonts.spaceGrotesk(
               fontWeight: FontWeight.bold,
               fontSize: 28,
@@ -209,30 +209,32 @@ class _HomeScreenState extends State<HomeScreen> {
       itemCount: habits.length,
       itemBuilder: (context, index) {
         final habit = habits[index];
-        final status = controller.todayLogs[habit.id];
 
-        return Dismissible(
-          key: Key(habit.id!),
-          confirmDismiss: (direction) async {
-            await controller.toggleHabitStatus(habit, status, direction);
-            return false; // Toggle handled in controller
-          },
-          background: _buildSwipeBackground(
-            Alignment.centerLeft,
-            status == 'completed' ? Icons.undo : Icons.check,
-            status == 'completed' ? 'un-check' : 'kelarin',
-            AppTheme.primary,
-            Colors.black,
-          ),
-          secondaryBackground: _buildSwipeBackground(
-            Alignment.centerRight,
-            status == 'skipped' ? Icons.undo : Icons.close,
-            status == 'skipped' ? 'un-skip' : 'skip dlu',
-            const Color(0xFFFF5757),
-            Colors.white,
-          ),
-          child: HabitCard(habit: habit, status: status),
-        );
+        return Obx(() {
+          final status = controller.todayLogs[habit.id];
+          return Dismissible(
+            key: Key(habit.id!),
+            confirmDismiss: (direction) async {
+              await controller.toggleHabitStatus(habit, status, direction);
+              return false; // Toggle handled in controller
+            },
+            background: _buildSwipeBackground(
+              Alignment.centerLeft,
+              status == 'completed' ? Icons.undo : Icons.check,
+              status == 'completed' ? 'un-check' : 'kelarin',
+              AppTheme.primary,
+              Colors.black,
+            ),
+            secondaryBackground: _buildSwipeBackground(
+              Alignment.centerRight,
+              status == 'skipped' ? Icons.undo : Icons.close,
+              status == 'skipped' ? 'un-skip' : 'skip dlu',
+              const Color(0xFFFF5757),
+              Colors.white,
+            ),
+            child: HabitCard(habit: habit, status: status),
+          );
+        });
       },
     );
   }
@@ -289,12 +291,14 @@ class _HomeScreenState extends State<HomeScreen> {
       itemCount: controller.habits.length,
       itemBuilder: (context, index) {
         final habit = controller.habits[index];
-        final logs = controller.weeklyLogs[habit.id] ?? {};
-        return WeeklyHabitCard(
-          habit: habit,
-          weeklyLogs: logs,
-          weekStart: weekStart,
-        );
+        return Obx(() {
+          final logs = controller.weeklyLogs[habit.id] ?? {};
+          return WeeklyHabitCard(
+            habit: habit,
+            weeklyLogs: logs,
+            weekStart: weekStart,
+          );
+        });
       },
     );
   }
