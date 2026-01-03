@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:strik_app/main.dart';
+import 'package:strik_app/screens/create_habit_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -20,7 +21,21 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: const Center(child: Text('Your Habits will appear here')),
+      body: const Center(
+        child: Text(
+          'Kebiasaan lo bakal muncul di sini nih',
+          style: TextStyle(color: Colors.white70),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateHabitScreen()),
+          );
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }

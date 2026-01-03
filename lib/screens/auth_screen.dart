@@ -32,7 +32,7 @@ class _AuthScreenState extends State<AuthScreen> {
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account created! Please sign in.')),
+            const SnackBar(content: Text('Akun jadi! Login gih.')),
           );
           setState(() => _isSignUp = false);
         }
@@ -53,9 +53,9 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('An unexpected error occurred')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Yah, ada error nih...')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -73,25 +73,25 @@ class _AuthScreenState extends State<AuthScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                _isSignUp ? 'Join Strik' : 'Welcome Back',
+                _isSignUp ? 'Gabung Strik, Yuk!' : 'Welcome Back, Bestie!',
                 style: Theme.of(context).textTheme.displaySmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
               CustomTextField(
                 controller: _emailController,
-                label: 'Email',
+                label: 'Email Lo',
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               CustomTextField(
                 controller: _passwordController,
-                label: 'Password',
+                label: 'Kata Sandi Rahasia',
                 obscureText: true,
               ),
               const SizedBox(height: 24),
               PrimaryButton(
-                text: _isSignUp ? 'Sign Up' : 'Sign In',
+                text: _isSignUp ? 'Daftar Kuy' : 'Masuk Sini',
                 isLoading: _isLoading,
                 onPressed: _submit,
               ),
@@ -100,8 +100,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 onPressed: () => setState(() => _isSignUp = !_isSignUp),
                 child: Text(
                   _isSignUp
-                      ? 'Already have an account? Sign In'
-                      : 'New to Strik? Sign Up',
+                      ? 'Udah punya akun? Masuk dong'
+                      : 'Belum punya akun? Bikin dulu lahh',
                 ),
               ),
             ],

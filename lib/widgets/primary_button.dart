@@ -15,6 +15,7 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
+      width: double.infinity,
       height: 56,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
@@ -29,7 +30,7 @@ class PrimaryButton extends StatelessWidget {
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
-                  color: Colors.white,
+                  color: Colors.black,
                   strokeWidth: 2,
                 ),
               )
@@ -38,7 +39,7 @@ class PrimaryButton extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Colors.black,
                 ),
               ),
       ),
