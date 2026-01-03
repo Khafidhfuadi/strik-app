@@ -3,6 +3,8 @@ import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
+import 'package:strik_app/controllers/habit_controller.dart';
 
 class WeeklyHabitCard extends StatelessWidget {
   final Habit habit;
@@ -36,6 +38,7 @@ class WeeklyHabitCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: habitColor,
         borderRadius: BorderRadius.circular(24),
+        // No border for the main card as it is filled
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,18 +50,28 @@ class WeeklyHabitCard extends StatelessWidget {
                 child: Text(
                   habit.title,
                   style: GoogleFonts.plusJakartaSans(
-                    color: Colors.black, // Dark text on colored card
+                    color: Colors.white, // Dark text on colored card
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              Text(
-                _getFrequencyText(habit), // e.g. "Everyday" or "Mo-Th, Sa"
-                style: GoogleFonts.plusJakartaSans(
-                  color: Colors.black54,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2), // Subtle dark badge
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _getFrequencyText(habit),
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -69,44 +82,73 @@ class WeeklyHabitCard extends StatelessWidget {
             children: days.map((date) {
               final dateStr = date.toIso8601String().split('T')[0];
               final status = weeklyLogs[dateStr];
-              final isToday = _isSameDay(date, DateTime.now());
+              final now = DateTime.now();
+              final today = DateTime(now.year, now.month, now.day);
+              final itemDate = DateTime(date.year, date.month, date.day);
 
-              return Column(
-                children: [
-                  Text(
-                    DateFormat('E').format(date).substring(0, 3), // Mon, Tue...
-                    style: GoogleFonts.plusJakartaSans(
-                      color: Colors.black54,
-                      fontSize: 10,
-                    ),
+              final isToday = itemDate.isAtSameMomentAs(today);
+              final isFuture = itemDate.isAfter(today);
+
+              return GestureDetector(
+                onTap: isFuture
+                    ? null
+                    : () {
+                        Get.find<HabitController>().toggleHabitCompletion(
+                          habit,
+                          date,
+                        );
+                      },
+                child: Opacity(
+                  opacity: isFuture ? 0.3 : 1.0,
+                  child: Column(
+                    children: [
+                      Text(
+                        DateFormat('E').format(date).substring(0, 1),
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white.withOpacity(isToday ? 1.0 : 0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: status == 'completed'
+                              ? Colors.white.withOpacity(0.25)
+                              : (isToday
+                                    ? Colors.white.withOpacity(0.1)
+                                    : Colors.transparent),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: status == 'completed'
+                                ? Colors.transparent
+                                : Colors.white.withOpacity(
+                                    0.2,
+                                  ), // Subtle border
+                            width: 1.5,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: status == 'completed'
+                            ? const Icon(
+                                Icons.check,
+                                size: 18,
+                                color:
+                                    Colors.white, // Colored checkmark on black
+                              )
+                            : status == 'skipped'
+                            ? Icon(
+                                Icons.close,
+                                size: 18,
+                                color: Colors.white.withOpacity(0.5),
+                              )
+                            : null,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: isToday
-                          ? Colors.black.withOpacity(0.1) // Highlight today
-                          : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black12, width: 1),
-                    ),
-                    alignment: Alignment.center,
-                    child: status == 'completed'
-                        ? const Icon(
-                            Icons.check,
-                            size: 20,
-                            color: Colors.black,
-                          ) // Checkmark
-                        : status == 'skipped'
-                        ? const Icon(
-                            Icons.close,
-                            size: 20,
-                            color: Colors.black38,
-                          )
-                        : null, // Empty for not done
-                  ),
-                ],
+                ),
               );
             }).toList(),
           ),
@@ -120,9 +162,5 @@ class WeeklyHabitCard extends StatelessWidget {
     if (habit.frequency == 'daily') return 'Everyday';
     // Add logic for specific days if needed
     return 'Custom';
-  }
-
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }

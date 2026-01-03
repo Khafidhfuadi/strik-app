@@ -11,30 +11,57 @@ import 'package:strik_app/widgets/weekly_habit_card.dart';
 import 'package:strik_app/screens/statistics_screen.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    final homeController = Get.find<HomeController>();
+    // Initialize PageController based on current tab
+    int initialPage = 0;
+    if (homeController.currentTab.value == 'Weekly') initialPage = 1;
+    if (homeController.currentTab.value == 'Overall') initialPage = 2;
+    _pageController = PageController(initialPage: initialPage);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged(int index) {
+    // Sync tab change from PageView
+    final homeController = Get.find<HomeController>();
+    final tabs = ['Today', 'Weekly', 'Overall'];
+    if (index >= 0 && index < tabs.length) {
+      homeController.currentTab.value = tabs[index];
+    }
+  }
+
+  void _onTabTapped(int index) {
+    // Sync PageView from tab tap
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+    // State update happens via PageView listener or manually if needed,
+    // but PageView's onPageChanged will fire and update controller.
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Inject the controller
     final HabitController controller = Get.find();
     final HomeController homeController = Get.find();
-    // Check if we need to manage local state for tabs.
-    // Since it's UI state, we can use a local Rx or a simple wrapper content.
-    // Let's use Rx for tab index and current tab string within this build scope is fine,
-    // or better, make a small controller or just use Obx with local variables if minimal.
-    // For simplicity, let's keep the tab state locally in a GetxController or just variables in a wrapper?
-    // Actually, `HomeScreen` is top level, let's just add tab state to HabitController
-    // or create a `HomeController`? HabitController is about data.
-    // Let's use Rx variables inside `build`? No, that resets on rebuild.
-    // Let's create a minimal controller for Home UI state or add to HabitController.
-    // Re-reading implementation plan: "Convert to StatelessWidget".
-    // I will add a _selectedIndex and _currentTab to a local Rx variable or use a micro-controller.
-    // Let's use a nested Obx or ValueBuilder?
-    // Easiest is to add UI state to HabitController OR just make a small HomeStateController.
-    // I'll add UI state to a simple HomeStateController defined in this file for now to keep it clean.
-
-    // HomeController is obtained via Get.find() from initialBinding
 
     return Obx(() {
       if (homeController.selectedIndex.value == 1) {
@@ -76,55 +103,34 @@ class HomeScreen extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        _buildTabChip('Today', homeController),
+                        _buildTabChip('Today', 0, homeController),
                         const SizedBox(width: 12),
-                        _buildTabChip('Weekly', homeController),
+                        _buildTabChip('Weekly', 1, homeController),
                         const SizedBox(width: 12),
-                        _buildTabChip('Overall', homeController),
+                        _buildTabChip('Overall', 2, homeController),
                       ],
                     ),
                   ),
 
-                  // Progress Bar
-                  if (homeController.currentTab.value == 'Today')
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          LinearProgressIndicator(
-                            value: controller.todayProgress,
-                            backgroundColor: Colors.grey[800],
-                            color: const Color(0xFFFF5757),
-                            minHeight: 8,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${controller.todayLogs.values.where((s) => s == 'completed').length} completed • ${controller.todayLogs.values.where((s) => s == 'skipped').length} skipped',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: Colors.grey[500],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
+                  // Content Area with PageView
                   Expanded(
-                    child: homeController.currentTab.value == 'Today'
-                        ? _buildTodayList(controller)
-                        : homeController.currentTab.value == 'Weekly'
-                        ? _buildWeeklyList(controller)
-                        : const Center(
-                            child: Text(
-                              'Overall Coming Soon',
-                              style: TextStyle(color: Colors.white),
-                            ),
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: _onTabChanged,
+                      children: [
+                        // Today Page
+                        _buildTodayPage(controller),
+                        // Weekly Page
+                        _buildWeeklyList(controller),
+                        // Overall Page
+                        const Center(
+                          child: Text(
+                            'Overall Coming Soon',
+                            style: TextStyle(color: Colors.white),
                           ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -133,12 +139,14 @@ class HomeScreen extends StatelessWidget {
     });
   }
 
-  Widget _buildTabChip(String label, HomeController homeController) {
+  Widget _buildTabChip(String label, int index, HomeController homeController) {
     return GestureDetector(
-      onTap: () => homeController.currentTab.value = label,
+      onTap: () => _onTabTapped(index),
       child: Obx(() {
         final isActive = homeController.currentTab.value == label;
-        return Container(
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
             color: isActive ? Colors.grey[900] : Colors.transparent,
@@ -156,6 +164,37 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildTodayPage(HabitController controller) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LinearProgressIndicator(
+                value: controller.todayProgress,
+                backgroundColor: Colors.grey[800],
+                color: const Color(0xFFFF5757),
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${controller.todayLogs.values.where((s) => s == 'completed').length} completed • ${controller.todayLogs.values.where((s) => s == 'skipped').length} skipped',
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.grey[500],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(child: _buildTodayList(controller)),
+      ],
+    );
+  }
+
   Widget _buildTodayList(HabitController controller) {
     if (controller.habits.isEmpty) {
       return const Center(
@@ -170,10 +209,6 @@ class HomeScreen extends StatelessWidget {
       itemCount: habits.length,
       itemBuilder: (context, index) {
         final habit = habits[index];
-        // Must observe individual log changes if using Obx above,
-        // but since we are inside Obx(build), any change to .value of logs maps triggers rebuild.
-        // Actually Obx checks observables accessed.
-        // accessing controller.todayLogs[id] is reactive if the map itself notifies or if we use RxMap properly.
         final status = controller.todayLogs[habit.id];
 
         return Dismissible(
@@ -245,8 +280,6 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildWeeklyList(HabitController controller) {
-    // Current week logic is inside controller for data but UI needs range?
-    // The WeeklyHabitCard just takes the logs map.
     final now = DateTime.now();
     final currentWeekday = now.weekday;
     final weekStart = now.subtract(Duration(days: currentWeekday - 1));
@@ -289,13 +322,6 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _navigateAndRefresh(BuildContext context) async {
-    // With Get, we can use Get.to
-    // But since main.dart isn't updated yet, Get.to might fail if GetMaterialApp isn't modifying navigator key?
-    // Actually Get.to works if GetMaterialApp is used.
-    // I will assume I'll update appropriate main.dart soon.
-    // If NOT using GetMaterialApp, standard Navigator works but we want to refactor.
-    // I will use Get.to().
-
     await Get.to(() => const CreateHabitScreen());
     Get.find<HabitController>().fetchHabitsAndLogs();
   }
