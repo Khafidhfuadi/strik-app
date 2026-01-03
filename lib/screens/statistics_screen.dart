@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
@@ -1107,92 +1108,65 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
             margin: const EdgeInsets.only(bottom: 24),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              gradient: isGenerating
-                  ? SweepGradient(
-                      center: Alignment.center,
-                      startAngle: 0.0,
-                      endAngle: 3.14 * 2,
-                      colors: const [
-                        Color(0xFF4285F4), // Google Blue
-                        Color(0xFFDB4437), // Google Red
-                        Color(0xFFF4B400), // Google Yellow
-                        Color(0xFF0F9D58), // Google Green
-                        Color(0xFF4285F4), // Back to Blue
-                      ],
-                      transform: GradientRotation(
-                        _rainbowController.value * 6.28,
-                      ),
-                    )
-                  : LinearGradient(
-                      colors: [
-                        AppTheme.primary.withValues(alpha: 0.3),
-                        Colors.purple.withValues(alpha: 0.2),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              boxShadow: isGenerating
-                  ? [
-                      BoxShadow(
-                        color: Colors.blue.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 1,
-                      ),
-                      BoxShadow(
-                        color: Colors.purple.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: -5,
-                      ),
-                    ]
-                  : [],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(2), // Border width
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(
-                    alpha: 0.85,
-                  ), // Inner card color
-                  borderRadius: BorderRadius.circular(
-                    22,
-                  ), // slightly smaller radius
+              color: Colors.black, // Dark base
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  spreadRadius: 1,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(22),
-                  child: Stack(
-                    children: [
-                      // Subtle Moving Gradient Background
-                      if (isGenerating)
-                        Positioned.fill(
-                          child: Opacity(
-                            opacity: 0.15,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: const [
-                                    Color(0xFF4285F4),
-                                    Color(0xFFDB4437),
-                                    Color(0xFF0F9D58),
-                                  ],
-                                  begin: Alignment(
-                                    -1.0 + 2 * _rainbowController.value,
-                                    -1.0,
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                children: [
+                  // LIQUID GRADIENT BACKGROUND (Custom Painter)
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: LiquidGradientPainter(
+                        animationValue: _rainbowController.value,
+                      ),
+                    ),
+                  ),
+
+                  // Inner Container handling Content & Padding
+                  Padding(
+                    padding: const EdgeInsets.all(2), // Border width
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(
+                          alpha: 0.9,
+                        ), // Inner card color
+                        borderRadius: BorderRadius.circular(
+                          22,
+                        ), // slightly smaller radius
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: Stack(
+                          children: [
+                            // Subtle Moving Gradient Background OVERLAY (Inner)
+                            Positioned.fill(
+                              child: Opacity(
+                                opacity: 0.3, // Visible but subtle
+                                child: CustomPaint(
+                                  painter: LiquidGradientPainter(
+                                    animationValue:
+                                        _rainbowController.value +
+                                        0.5, // Offset animation
                                   ),
-                                  end: Alignment(
-                                    1.0 + 2 * _rainbowController.value,
-                                    1.0,
-                                  ),
-                                  tileMode: TileMode.mirror,
                                 ),
                               ),
                             ),
-                          ),
+                            // Existing Content Logic...
+                            child!,
+                          ],
                         ),
-                      // Existing Content Logic...
-                      child!,
-                    ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           );
@@ -1356,5 +1330,64 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
       key: const ValueKey('content'),
       text: TextSpan(children: spans),
     );
+  }
+}
+
+class LiquidGradientPainter extends CustomPainter {
+  final double animationValue;
+
+  LiquidGradientPainter({required this.animationValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+    final Paint paint = Paint()..blendMode = BlendMode.srcOver;
+
+    void drawBlob(
+      Color color,
+      double offsetX,
+      double offsetY,
+      double radiusScale,
+    ) {
+      // Calculate animated position based on Lissajous-like curves
+      // Using prime number multipliers for frequencies to avoid repetition
+      double x =
+          size.width *
+          (0.5 +
+              0.4 * offsetX * math.cos(animationValue * 2 * math.pi + offsetX));
+      double y =
+          size.height *
+          (0.5 +
+              0.4 *
+                  offsetY *
+                  math.sin(animationValue * 2 * math.pi * 0.7 + offsetY));
+
+      paint.shader =
+          RadialGradient(
+            colors: [
+              color.withValues(alpha: 0.8),
+              color.withValues(alpha: 0.0),
+            ],
+            stops: const [0.0, 1.0],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(x, y),
+              radius: size.width * radiusScale,
+            ),
+          );
+
+      canvas.drawRect(rect, paint);
+    }
+
+    // Draw 4 moving blobs
+    drawBlob(const Color(0xFF4285F4), 1.0, 0.5, 0.8); // Blue
+    drawBlob(const Color(0xFFDB4437), -0.8, -0.6, 0.9); // Red
+    drawBlob(const Color(0xFFF4B400), 0.7, -0.9, 0.7); // Yellow
+    drawBlob(const Color(0xFF0F9D58), -0.6, 0.8, 1.0); // Green
+  }
+
+  @override
+  bool shouldRepaint(covariant LiquidGradientPainter oldDelegate) {
+    return oldDelegate.animationValue != animationValue;
   }
 }
