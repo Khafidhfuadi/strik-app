@@ -5,6 +5,7 @@ import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/screens/create_habit_screen.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
+import 'package:strik_app/screens/friends_screen.dart';
 
 import 'package:strik_app/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -101,6 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () => _navigateAndRefresh(context),
+            ),
+            IconButton(
+              icon: const Icon(Icons.people_alt_rounded, color: Colors.white),
+              onPressed: () => Get.to(() => const FriendsScreen()),
             ),
             IconButton(
               icon: const Icon(Icons.logout_rounded, color: Colors.white),

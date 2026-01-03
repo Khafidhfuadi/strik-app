@@ -6,12 +6,19 @@ class CustomTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool obscureText;
 
+  final String? hintText;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+
   const CustomTextField({
     super.key,
     required this.controller,
     required this.label,
     this.keyboardType,
     this.obscureText = false,
+    this.hintText,
+    this.onChanged,
+    this.onSubmitted,
   });
 
   @override
@@ -20,9 +27,13 @@ class CustomTextField extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.white38),
         labelStyle: const TextStyle(color: Colors.white70),
         filled: true,
         fillColor: Theme.of(context).cardColor,
