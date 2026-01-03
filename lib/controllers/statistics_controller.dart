@@ -376,15 +376,26 @@ class StatisticsController extends GetxController {
     chartData.value = points;
   }
 
-  Map<String, int> getStatsForHabit(String habitId) {
-    if (!habitLogsMap.containsKey(habitId)) return {'total': 0, 'streak': 0};
+  Map<String, dynamic> getStatsForHabit(String habitId) {
+    // 1. Total for filtered period
+    final filteredLogs = habitLogsMap[habitId] ?? [];
+    final filteredCompleted = filteredLogs
+        .where((l) => l['status'] == 'completed')
+        .toList();
 
-    final logs = habitLogsMap[habitId]!;
-    final completed = logs.where((l) => l['status'] == 'completed').toList();
+    // 2. Streaks (from all logs, unfiltered)
+    final habitAllLogs = allLogs
+        .where((l) => l['habit_id'] == habitId && l['status'] == 'completed')
+        .toList();
 
-    int streak = _calculateStreak(completed);
+    final currentStreak = _calculateStreak(habitAllLogs);
+    final bestStreak = _calculateBestStreak(habitAllLogs);
 
-    return {'total': completed.length, 'streak': streak};
+    return {
+      'total': filteredCompleted.length,
+      'currentStreak': currentStreak,
+      'bestStreak': bestStreak,
+    };
   }
 
   Map<DateTime, int> getHeatmapForHabit(String habitId) {

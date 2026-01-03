@@ -115,7 +115,6 @@ class HabitController extends GetxController {
         'Failed to update status: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
-      print(e);
     }
   }
 

@@ -432,20 +432,30 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     '${stats['total']}',
                     '',
                     AppTheme.primary,
-                    description: 'Berapa kali lo lakuin habit ini.',
+                    description:
+                        'Berapa kali lo lakuin habit ini di periode ini.',
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildStatCard(
-                    'Streak',
-                    '${stats['streak']}',
+                    'Streak Aktif',
+                    '${stats['currentStreak']}',
                     'Hari',
                     const Color(0xFFFF5757),
-                    description: 'Berturut-turut tanpa putus. Keep fire! 🔥',
+                    description:
+                        'Streak lo yang lagi jalan sekarang. Gas terooos! 🔥',
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              'Rekor Terpanjang',
+              '${stats['bestStreak']}',
+              'Hari',
+              Colors.amber,
+              description: 'Streak paling lama yang pernah lo capai. Legend!',
             ),
 
             const SizedBox(height: 32),
