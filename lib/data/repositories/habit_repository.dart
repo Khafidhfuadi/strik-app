@@ -45,13 +45,13 @@ class HabitRepository {
     try {
       final formattedDate = date.toIso8601String().split('T')[0];
 
-      // Upsert: valid status are 'completed', 'skipped', 'failed' based on DB check
+      // Upsert with conflict handling to avoid duplicate key errors on (habit_id, target_date)
       await supabase.from('habit_logs').upsert({
         'habit_id': habitId,
         'target_date': formattedDate,
         'status': status,
         'completed_at': DateTime.now().toIso8601String(),
-      });
+      }, onConflict: 'habit_id,target_date');
     } catch (e) {
       throw Exception('Failed to log habit: $e');
     }

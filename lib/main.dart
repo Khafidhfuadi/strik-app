@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/core/theme.dart';
+import 'package:get/get.dart';
 import 'package:strik_app/core/auth_gate.dart';
+import 'package:strik_app/controllers/habit_controller.dart';
+import 'package:strik_app/controllers/home_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,11 +27,16 @@ class StrikApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Strik Habit Tracker',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const AuthGate(),
+      // Ensure controllers are available globally
+      initialBinding: BindingsBuilder(() {
+        Get.put(HabitController());
+        Get.put(HomeController());
+      }),
     );
   }
 }
