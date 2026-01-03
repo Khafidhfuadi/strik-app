@@ -307,6 +307,51 @@ class FriendRepository {
     return mixedFeed.take(50).toList();
   }
 
+  // Get Single Post (for Realtime)
+  Future<Map<String, dynamic>?> getPostById(String postId) async {
+    final response = await _supabase
+        .from('posts')
+        .select('''
+          *,
+          user:profiles(*),
+          reactions:reactions(*)
+        ''')
+        .eq('id', postId)
+        .maybeSingle();
+
+    if (response == null) return null;
+
+    return {
+      'type': 'post',
+      'data': response,
+      'timestamp': DateTime.parse(response['created_at']),
+    };
+  }
+
+  // Get Single Habit Log (for Realtime)
+  Future<Map<String, dynamic>?> getHabitLogById(String habitLogId) async {
+    final response = await _supabase
+        .from('habit_logs')
+        .select('''
+          *,
+          habit:habits!inner(
+            title,
+            user:profiles!inner(*)
+          ),
+          reactions:reactions(*)
+        ''')
+        .eq('id', habitLogId)
+        .maybeSingle();
+
+    if (response == null) return null;
+
+    return {
+      'type': 'habit_log',
+      'data': response,
+      'timestamp': DateTime.parse(response['completed_at']),
+    };
+  }
+
   // Search users by username
   Future<List<UserModel>> searchUsers(String query) async {
     final user = _supabase.auth.currentUser;

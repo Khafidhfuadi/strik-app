@@ -22,6 +22,163 @@ class FriendController extends GetxController {
     super.onInit();
     fetchFriends();
     fetchPendingRequests();
+    _subscribeToRealtime();
+  }
+
+  void _subscribeToRealtime() {
+    // Subscribe to public.posts
+    supabase
+        .channel('public:posts')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'posts',
+          callback: (payload) async {
+            final newPostId = payload.newRecord['id'];
+            if (newPostId != null) {
+              final newPost = await _friendRepository.getPostById(newPostId);
+              if (newPost != null) {
+                activityFeed.insert(0, newPost);
+                newFeedCount.value++;
+              }
+            }
+          },
+        )
+        .subscribe();
+
+    // Subscribe to public.habit_logs
+    supabase
+        .channel('public:habit_logs')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'habit_logs',
+          callback: (payload) async {
+            // Only care about completed logs
+            if (payload.newRecord['status'] == 'completed') {
+              final newLogId = payload.newRecord['id'];
+              if (newLogId != null) {
+                final newLog = await _friendRepository.getHabitLogById(
+                  newLogId,
+                );
+                if (newLog != null) {
+                  activityFeed.insert(0, newLog);
+                  newFeedCount.value++;
+                }
+              }
+            }
+          },
+        )
+        .subscribe();
+
+    // Subscribe to public.reactions
+    supabase
+        .channel('public:reactions')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'reactions',
+          callback: (payload) {
+            if (payload.eventType == PostgresChangeEvent.insert) {
+              _handleNewReaction(payload.newRecord);
+            } else if (payload.eventType == PostgresChangeEvent.delete) {
+              _handleDeletedReaction(payload.oldRecord);
+            }
+          },
+        )
+        .subscribe();
+
+    // Subscribe to public.notifications (for user)
+    // Assuming RLS allows us to receive our own notifications or we filter client side?
+    // Realtime usually broadcasts all unless set up otherwise, but RLS on SELECT applies to initial fetch,
+    // Realtime RLS is separate config. Assuming "broadcast" is enabled for table.
+    // We will just filter by recipient_id here to be safe/simple for now.
+    final myId = supabase.auth.currentUser?.id;
+    if (myId != null) {
+      supabase
+          .channel('public:notifications')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'notifications',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'recipient_id',
+              value: myId,
+            ),
+            callback: (payload) {
+              Get.snackbar(
+                payload.newRecord['title'] ?? 'Notif',
+                payload.newRecord['body'] ?? 'Punya update baru nih!',
+                snackPosition: SnackPosition.TOP,
+              );
+              // Refresh notifications list if we had one
+              // fetchNotifications();
+            },
+          )
+          .subscribe();
+    }
+  }
+
+  void _handleNewReaction(Map<String, dynamic> reaction) {
+    // Find item in feed
+    final postId = reaction['post_id'];
+    final habitLogId = reaction['habit_log_id'];
+
+    int index = -1;
+    if (postId != null) {
+      index = activityFeed.indexWhere(
+        (item) => item['type'] == 'post' && item['data']['id'] == postId,
+      );
+    } else if (habitLogId != null) {
+      index = activityFeed.indexWhere(
+        (item) =>
+            item['type'] == 'habit_log' && item['data']['id'] == habitLogId,
+      );
+    }
+
+    if (index != -1) {
+      // Update local state without refresh
+      final item = activityFeed[index]; // Map is mutable?
+      // Need to clone to trigger update properly or use refresh
+      final updatedData = Map<String, dynamic>.from(item['data']);
+      final reactions = List<dynamic>.from(updatedData['reactions'] ?? []);
+      reactions.add(reaction);
+      updatedData['reactions'] = reactions;
+
+      item['data'] = updatedData;
+      activityFeed[index] = item; // Trigger Obx
+    }
+  }
+
+  void _handleDeletedReaction(Map<String, dynamic> oldRecord) {
+    // Delete event might only contain ID depending on replica identity.
+    // If we have ID, we have to search ALL reactions... which is slow.
+    // Or we just fetchFeed again? Seamless is better.
+    // Assuming we have ID.
+    final id = oldRecord['id'];
+    if (id == null) return;
+
+    // Iterate to find where this reaction lives
+    for (int i = 0; i < activityFeed.length; i++) {
+      final item = activityFeed[i];
+      final data = item['data'];
+      final reactions = data['reactions'] as List?;
+      if (reactions != null) {
+        final rIndex = reactions.indexWhere((r) => r['id'] == id);
+        if (rIndex != -1) {
+          // Found it! Remove it.
+          final updatedData = Map<String, dynamic>.from(data);
+          final newReactions = List<dynamic>.from(reactions);
+          newReactions.removeAt(rIndex);
+          updatedData['reactions'] = newReactions;
+
+          item['data'] = updatedData;
+          activityFeed[i] = item;
+          return;
+        }
+      }
+    }
   }
 
   Future<void> fetchFriends() async {
@@ -162,15 +319,65 @@ class FriendController extends GetxController {
 
   Future<void> toggleReaction({String? postId, String? habitLogId}) async {
     try {
-      // Optimistic update could go here, but for MVP we just call API
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) return;
+
+      // 1. Find item index
+      int index = -1;
+      if (postId != null) {
+        index = activityFeed.indexWhere(
+          (item) => item['type'] == 'post' && item['data']['id'] == postId,
+        );
+      } else if (habitLogId != null) {
+        index = activityFeed.indexWhere(
+          (item) =>
+              item['type'] == 'habit_log' && item['data']['id'] == habitLogId,
+        );
+      }
+
+      if (index == -1) return;
+
+      // 2. Determine action (Add or Remove) based on current state
+      final item = activityFeed[index];
+      final data = item['data'];
+      final reactions = List<dynamic>.from(data['reactions'] ?? []);
+      final myReactionIndex = reactions.indexWhere(
+        (r) => r['user_id'] == currentUser.id,
+      );
+
+      // 3. Optimistic Update
+      final updatedData = Map<String, dynamic>.from(data);
+      final updatedReactions = List<dynamic>.from(reactions);
+
+      if (myReactionIndex != -1) {
+        // Remove reaction
+        updatedReactions.removeAt(myReactionIndex);
+      } else {
+        // Add fake reaction (ID will be replaced by Realtime)
+        updatedReactions.add({
+          'id': 'optimistic_${DateTime.now().millisecondsSinceEpoch}',
+          'user_id': currentUser.id,
+          'post_id': postId,
+          'habit_log_id': habitLogId,
+          'type': 'fire',
+        });
+      }
+
+      updatedData['reactions'] = updatedReactions;
+      item['data'] = updatedData;
+      activityFeed[index] = item; // Trigger UI update via Obx
+
+      // 4. API Call
       await _friendRepository.toggleReaction(
         postId: postId,
         habitLogId: habitLogId,
       );
-      // Silent refresh or optimistic? Let's silent refresh for now to see count update
-      fetchActivityFeed();
+
+      // No fetchActivityFeed()! Realtime will conform the state.
     } catch (e) {
       print('Error reacting: $e');
+      // Ideally revert optimistic update here
+      Get.snackbar('Waduh', 'Gagal ngasih reaction! 😢');
     }
   }
 
