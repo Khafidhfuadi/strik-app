@@ -116,4 +116,26 @@ class HabitRepository {
       throw Exception('Failed to fetch habit logs: $e');
     }
   }
+
+  Future<List<Map<String, dynamic>>> getAllLogs() async {
+    try {
+      final response = await supabase
+          .from('habit_logs')
+          .select('habit_id, target_date, status')
+          .order('target_date', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      throw Exception('Failed to fetch all logs: $e');
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> subscribeToHabitLogs() {
+    return supabase
+        .from('habit_logs')
+        .stream(
+          primaryKey: ['id'],
+        ) // Assuming 'id' is PK, or use logical key if supported by stream
+        .order('target_date', ascending: false);
+  }
 }
