@@ -1237,17 +1237,7 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
                                 ),
                               ],
                             )
-                          : Text(
-                              insight.isEmpty
-                                  ? "Yuk perbanyak log biar coach bisa kasih saran!"
-                                  : insight,
-                              key: const ValueKey('content'),
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white.withValues(alpha: 0.95),
-                                fontSize: 15,
-                                height: 1.6,
-                              ),
-                            ),
+                          : _buildStyledText(insight),
                     ),
                   ],
                 ),
@@ -1257,5 +1247,74 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
         ),
       );
     });
+  }
+
+  Widget _buildStyledText(String text) {
+    if (text.isEmpty) {
+      return Text(
+        "Yuk perbanyak log biar coach bisa kasih saran!",
+        style: GoogleFonts.plusJakartaSans(
+          color: Colors.white.withValues(alpha: 0.95),
+          fontSize: 15,
+          height: 1.6,
+        ),
+      );
+    }
+
+    final List<TextSpan> spans = [];
+    // Regex to match **bold** or *bold*
+    final RegExp exp = RegExp(r'(\*{1,2})(.*?)(\1)');
+    final matches = exp.allMatches(text);
+
+    int lastIndex = 0;
+    for (final match in matches) {
+      // Add text before the match
+      if (match.start > lastIndex) {
+        spans.add(
+          TextSpan(
+            text: text.substring(lastIndex, match.start),
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white.withValues(alpha: 0.95),
+              fontSize: 15,
+              height: 1.6,
+            ),
+          ),
+        );
+      }
+
+      // Add the bold text (without asterisks)
+      spans.add(
+        TextSpan(
+          text: match.group(2), // The content inside the asterisks
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white, // Pure white for bold
+            fontSize: 15,
+            fontWeight: FontWeight.bold, // BOLD
+            height: 1.6,
+          ),
+        ),
+      );
+
+      lastIndex = match.end;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      spans.add(
+        TextSpan(
+          text: text.substring(lastIndex),
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white.withValues(alpha: 0.95),
+            fontSize: 15,
+            height: 1.6,
+          ),
+        ),
+      );
+    }
+
+    return RichText(
+      key: const ValueKey('content'),
+      text: TextSpan(children: spans),
+    );
   }
 }

@@ -234,8 +234,8 @@ class StatisticsController extends GetxController {
     }
 
     // Try Gemini First
-    // Try AIML API First
-    final apiKey = dotenv.env['AIML_API_KEY'];
+    // Try OpenRouter AI First
+    final apiKey = dotenv.env['OPENROUTER_API_KEY'];
     if (apiKey != null && apiKey.isNotEmpty) {
       _fetchGeminiInsight(completedLogs, totalActioned).catchError((e) {
         // Fallback to local if error
@@ -281,6 +281,18 @@ class StatisticsController extends GetxController {
         }
       }
 
+      String vibeInstruction;
+      if (rate >= 80) {
+        vibeInstruction =
+            "Praise them like a proud bestie. Use words like 'Gacor', 'Menyala', etc.";
+      } else if (rate >= 50) {
+        vibeInstruction =
+            "Give a gentle encouragement. Tell them they are doing okay but can do better.";
+      } else {
+        vibeInstruction =
+            "Give a gentle roast + motivation. Tell them to wake up and grind more.";
+      }
+
       final prompt =
           '''
       You are "Coach Strik", a Gen-Z motivational habit coach (Bahasa Indonesia).
@@ -294,24 +306,26 @@ class StatisticsController extends GetxController {
       INSTRUCTION:
       - Give a short, punchy comment (max 2 sentences).
       - Style: Jaksel slang, emojis, energetic.
-      - If rate > 80%: Praise them like a proud bestie.
-      - If rate < 50%: Gentle roast + motivation.
+      - GOAL: $vibeInstruction
       - NO lists. NO "Here is your insight". NO quotes around the response. NO reasoning output. just the final response text.
       - Speak DIRECTLY to the user.
       ''';
 
-      final apiKey = dotenv.env['AIML_API_KEY'];
-      if (apiKey == null) throw Exception('No AIML_API_KEY found');
+      final apiKey = dotenv.env['OPENROUTER_API_KEY'];
+      if (apiKey == null) throw Exception('No OPENROUTER_API_KEY found');
 
-      final url = Uri.parse('https://api.aimlapi.com/v1/chat/completions');
+      final url = Uri.parse('https://openrouter.ai/api/v1/chat/completions');
       final response = await http.post(
         url,
         headers: {
           'Authorization': 'Bearer $apiKey',
           'Content-Type': 'application/json',
+          'HTTP-Referer':
+              'https://github.com/Khafidhfuadi/strik-app', // Optional: Your site URL
+          'X-Title': 'Strik App', // Optional: Your site name
         },
         body: jsonEncode({
-          "model": "google/gemini-2.5-flash",
+          "model": "google/gemma-3n-e2b-it:free",
           "messages": [
             {"role": "user", "content": prompt},
           ],
@@ -335,11 +349,11 @@ class StatisticsController extends GetxController {
           _generateLocalInsight(completedLogs, totalActioned);
         }
       } else {
-        print("AIML API Error: ${response.body}");
+        print("OpenRouter API Error: ${response.body}");
         _generateLocalInsight(completedLogs, totalActioned);
       }
     } catch (e) {
-      print("AIML Critical Error: $e");
+      print("OpenRouter Critical Error: $e");
       _generateLocalInsight(completedLogs, totalActioned);
     } finally {
       isGeneratingAI.value = false;
