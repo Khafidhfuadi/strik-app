@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/widgets/habit_card.dart';
 import 'package:strik_app/widgets/weekly_habit_card.dart';
 import 'package:strik_app/screens/statistics_screen.dart';
+import 'package:strik_app/widgets/custom_loading_indicator.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -64,9 +65,7 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         body: controller.isLoading.value
-            ? const Center(
-                child: CircularProgressIndicator(color: AppTheme.primary),
-              )
+            ? const Center(child: CustomLoadingIndicator())
             : Column(
                 children: [
                   // Tab Bar

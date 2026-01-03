@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:strik_app/widgets/three_dot_loading.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String text;
@@ -26,14 +27,7 @@ class PrimaryButton extends StatelessWidget {
           backgroundColor: Theme.of(context).primaryColor,
         ),
         child: isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: Colors.black,
-                  strokeWidth: 2,
-                ),
-              )
+            ? const ThreeDotLoading(color: Colors.black, size: 10)
             : Text(
                 text,
                 style: const TextStyle(

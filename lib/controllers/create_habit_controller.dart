@@ -24,13 +24,13 @@ class CreateHabitController extends GetxController {
   var reminderTime = Rxn<TimeOfDay>();
 
   final List<Color> colors = [
-    const Color(0xFF14B8A6), // Teal
-    const Color(0xFF3B82F6), // Blue
-    const Color(0xFFEF4444), // Red
-    const Color(0xFFF59E0B), // Amber
-    const Color(0xFFEC4899), // Pink
-    const Color(0xFF8B5CF6), // Purple
-    const Color(0xFF10B981), // Emerald
+    const Color(0xFF5EEAD4), // Pastel Teal
+    const Color(0xFF93C5FD), // Pastel Blue
+    const Color(0xFFFCA5A5), // Pastel Red
+    const Color(0xFFFCD34D), // Pastel Amber
+    const Color(0xFFF9A8D4), // Pastel Pink
+    const Color(0xFFC4B5FD), // Pastel Purple
+    const Color(0xFF6EE7B7), // Pastel Emerald
   ];
   var selectedColorIndex = 0.obs;
 

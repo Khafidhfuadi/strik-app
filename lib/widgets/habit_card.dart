@@ -51,7 +51,7 @@ class HabitCard extends StatelessWidget {
                     : Colors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
                 border: status == null
-                    ? Border.all(color: Colors.black26)
+                    ? Border.all(color: Colors.black12)
                     : null,
               ),
               child: status == 'completed'
@@ -68,7 +68,7 @@ class HabitCard extends StatelessWidget {
                   Text(
                     habit.title,
                     style: TextStyle(
-                      color: Colors.black, // Always black for high contrast
+                      color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       decoration: status == 'completed'
@@ -83,9 +83,7 @@ class HabitCard extends StatelessWidget {
               Text(
                 status == 'completed' ? 'Completed' : 'Skipped',
                 style: TextStyle(color: textColor, fontSize: 12),
-              )
-            else
-              const Icon(Icons.chevron_right, color: Colors.black54),
+              ),
           ],
         ),
       ),

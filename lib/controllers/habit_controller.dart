@@ -131,6 +131,60 @@ class HabitController extends GetxController {
     return sorted;
   }
 
+  Future<void> toggleHabitCompletion(Habit habit, DateTime date) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
+
+    if (targetDate.isAfter(today)) {
+      // Cannot check future dates
+      return;
+    }
+
+    final dateStr = targetDate.toIso8601String().split('T')[0];
+    final currentStatus = weeklyLogs[habit.id]?[dateStr];
+
+    // Toggle logic
+    String? newStatus;
+    if (currentStatus == 'completed') {
+      newStatus = null;
+    } else {
+      newStatus = 'completed';
+    }
+
+    // Optimistic UI updates
+    final currentMap = Map<String, String>.from(weeklyLogs[habit.id] ?? {});
+    if (newStatus == null) {
+      currentMap.remove(dateStr);
+    } else {
+      currentMap[dateStr] = newStatus;
+    }
+    weeklyLogs[habit.id!] = currentMap;
+
+    // Sync specific logs if needed (e.g. todayLogs)
+    if (targetDate.isAtSameMomentAs(today)) {
+      if (newStatus == null) {
+        todayLogs.remove(habit.id);
+      } else {
+        todayLogs[habit.id!] = newStatus;
+      }
+    }
+
+    try {
+      if (newStatus == null) {
+        await _habitRepository.deleteLog(habit.id!, targetDate);
+      } else {
+        await _habitRepository.logHabit(habit.id!, targetDate, newStatus);
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to update status: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
   double get todayProgress {
     int completedCount = todayLogs.values.where((s) => s == 'completed').length;
     int totalCount = habits.length;
