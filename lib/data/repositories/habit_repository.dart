@@ -69,4 +69,37 @@ class HabitRepository {
       throw Exception('Failed to delete log: $e');
     }
   }
+
+  /// Returns a map: habit_id -> (date_string -> status)
+  Future<Map<String, Map<String, String>>> getHabitLogsForRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final startFormatted = start.toIso8601String().split('T')[0];
+      final endFormatted = end.toIso8601String().split('T')[0];
+
+      final response = await supabase
+          .from('habit_logs')
+          .select('habit_id, target_date, status')
+          .gte('target_date', startFormatted)
+          .lte('target_date', endFormatted);
+
+      final Map<String, Map<String, String>> logs = {};
+
+      for (var log in (response as List)) {
+        final habitId = log['habit_id'] as String;
+        final date = log['target_date'] as String; // YYYY-MM-DD
+        final status = log['status'] as String;
+
+        if (!logs.containsKey(habitId)) {
+          logs[habitId] = {};
+        }
+        logs[habitId]![date] = status;
+      }
+      return logs;
+    } catch (e) {
+      throw Exception('Failed to fetch range logs: $e');
+    }
+  }
 }
