@@ -50,16 +50,24 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(
-          'Statistik',
-          style: GoogleFonts.spaceGrotesk(
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-            color: AppTheme.textPrimary,
+        title: Obx(
+          () => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _getDynamicTitle(),
+                style: GoogleFonts.spaceGrotesk(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
           ),
         ),
         backgroundColor: AppTheme.background,
         elevation: 0,
+        actions: [_buildFilterButton(), const SizedBox(width: 16)],
       ),
       body: Obx(() {
         if (_controller.isLoading.value) {
@@ -67,7 +75,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         }
 
         final habits = _controller.habits;
-        // Tabs: 'Semua' + habits
 
         return Column(
           children: [
@@ -145,16 +152,104 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
+  Widget _buildFilterButton() {
+    return PopupMenuButton<StatsFilter>(
+      icon: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: const Icon(
+          Icons.filter_list_rounded,
+          size: 20,
+          color: Colors.white,
+        ),
+      ),
+      color: AppTheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      onSelected: (filter) async {
+        if (filter == StatsFilter.custom) {
+          final picked = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime(2020),
+            lastDate: DateTime.now(),
+            builder: (context, child) {
+              return Theme(
+                data: ThemeData.dark().copyWith(
+                  colorScheme: const ColorScheme.dark(
+                    primary: AppTheme.primary,
+                    surface: AppTheme.surface,
+                  ),
+                ),
+                child: child!,
+              );
+            },
+          );
+          if (picked != null) {
+            _controller.setCustomRange(picked);
+          }
+        } else {
+          _controller.setFilter(filter);
+        }
+      },
+      itemBuilder: (context) => [
+        _buildPopupItem(StatsFilter.weekly, 'Mingguan'),
+        _buildPopupItem(StatsFilter.monthly, 'Bulanan'),
+        _buildPopupItem(StatsFilter.yearly, 'Tahunan'),
+        _buildPopupItem(StatsFilter.allTime, 'Sepanjang Masa'),
+        _buildPopupItem(StatsFilter.custom, 'Custom Range'),
+      ],
+    );
+  }
+
+  PopupMenuItem<StatsFilter> _buildPopupItem(StatsFilter value, String text) {
+    return PopupMenuItem(
+      value: value,
+      child: Obx(
+        () => Row(
+          children: [
+            Text(text, style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+            const Spacer(),
+            if (_controller.selectedFilter.value == value)
+              const Icon(Icons.check, color: AppTheme.primary, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOverallTab() {
     return Obx(() {
       final completionCount = _controller.globalCompletionCount.value;
       final completionRate = _controller.globalCompletionRate.value;
       final heatmapData = _controller.overallHeatmap;
 
-      // Heatmap dates
-      // Show last 3 months (approx 12 weeks)
-      final end = DateTime.now();
-      final start = end.subtract(const Duration(days: 90));
+      final filter = _controller.selectedFilter.value;
+      DateTime end = DateTime.now();
+      DateTime start;
+      switch (filter) {
+        case StatsFilter.weekly:
+          start = end.subtract(Duration(days: end.weekday - 1));
+          break;
+        case StatsFilter.monthly:
+          start = DateTime(end.year, end.month, 1);
+          break;
+        case StatsFilter.yearly:
+          start = DateTime(end.year, 1, 1);
+          break;
+        case StatsFilter.custom:
+          start =
+              _controller.customRange.value?.start ??
+              end.subtract(const Duration(days: 7));
+          end = _controller.customRange.value?.end ?? end;
+          break;
+        case StatsFilter.allTime:
+          // Show last 1 year for Heatmap View:
+          start = end.subtract(const Duration(days: 365));
+          break;
+      }
 
       return SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -167,7 +262,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               'Kali',
               AppTheme.primary,
               description:
-                  'Jumlah total kebiasaan yang udah lo kelarin selama ini. Makin banyak makin GG!',
+                  'Jumlah total kebiasaan yang udah lo kelarin di periode ini. Makin banyak makin GG!',
             ),
             const SizedBox(height: 16),
             _buildStatCard(
@@ -204,7 +299,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
             const SizedBox(height: 32),
             Text(
-              'Performa Minggu Ini',
+              _getChartTitle(filter),
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -213,54 +308,57 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
             const SizedBox(height: 16),
             Container(
-              height: 200,
+              height: 250,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: BarChart(
-                BarChartData(
-                  gridData: const FlGridData(show: false),
-                  titlesData: FlTitlesData(
-                    leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: _bottomTitles,
-                        reservedSize: 30,
-                      ),
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barGroups: _generateWeeklyBarGroups(
-                    _controller.weeklyPerformance,
-                  ),
-                  barTouchData: BarTouchData(
-                    enabled:
-                        false, // Disable touch interaction if using static tooltips or keep enabled for detail
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (_) => Colors.transparent,
-                      tooltipPadding: EdgeInsets.zero,
-                      tooltipMargin: 4,
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        return BarTooltipItem(
-                          rod.toY.toInt().toString(),
-                          GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Container(
+                  width: _calculateChartWidth(_controller.chartData.length),
+                  child: BarChart(
+                    BarChartData(
+                      gridData: const FlGridData(show: false),
+                      titlesData: FlTitlesData(
+                        leftTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (val, meta) =>
+                                _bottomTitles(val, meta, _controller.chartData),
+                            reservedSize: 30,
                           ),
-                        );
-                      },
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      barGroups: _generateChartGroups(_controller.chartData),
+                      barTouchData: BarTouchData(
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipColor: (_) => Colors.transparent,
+                          tooltipPadding: EdgeInsets.zero,
+                          tooltipMargin: 4,
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            return BarTooltipItem(
+                              rod.toY.toInt().toString(),
+                              GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -275,10 +373,31 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget _buildHabitTab(Habit habit) {
     return Obx(() {
       final stats = _controller.getStatsForHabit(habit.id!);
-      // Need specific heatmap
       final heatmapData = _controller.getHeatmapForHabit(habit.id!);
-      final end = DateTime.now();
-      final start = end.subtract(const Duration(days: 90));
+
+      final filter = _controller.selectedFilter.value;
+      DateTime end = DateTime.now();
+      DateTime start;
+      switch (filter) {
+        case StatsFilter.weekly:
+          start = end.subtract(Duration(days: end.weekday - 1));
+          break;
+        case StatsFilter.monthly:
+          start = DateTime(end.year, end.month, 1);
+          break;
+        case StatsFilter.yearly:
+          start = DateTime(end.year, 1, 1);
+          break;
+        case StatsFilter.custom:
+          start =
+              _controller.customRange.value?.start ??
+              end.subtract(const Duration(days: 7));
+          end = _controller.customRange.value?.end ?? end;
+          break;
+        case StatsFilter.allTime:
+          start = end.subtract(const Duration(days: 365));
+          break;
+      }
 
       return SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -344,7 +463,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ),
               child: Center(
                 child: Text(
-                  'Grafik ${habit.title} Coming Soon',
+                  'Grafik coming soon',
                   style: GoogleFonts.plusJakartaSans(color: Colors.white54),
                 ),
               ),
@@ -488,21 +607,45 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
-  List<BarChartGroupData> _generateWeeklyBarGroups(List<int> weeklyData) {
-    if (weeklyData.isEmpty) return [];
+  String _getChartTitle(StatsFilter filter) {
+    switch (filter) {
+      case StatsFilter.weekly:
+        return 'Performa Minggu Ini';
+      case StatsFilter.monthly:
+        return 'Performa Bulan Ini';
+      case StatsFilter.yearly:
+        return 'Performa Tahun Ini';
+      case StatsFilter.allTime:
+        return 'Performa Sepanjang Masa';
+      case StatsFilter.custom:
+        return 'Performa Periode Ini';
+    }
+  }
 
-    final maxVal = weeklyData.reduce((curr, next) => curr > next ? curr : next);
+  double _calculateChartWidth(int dataCount) {
+    if (dataCount <= 7) return double.maxFinite;
+    return dataCount * 40.0;
+  }
+
+  List<BarChartGroupData> _generateChartGroups(List<ChartDataPoint> data) {
+    if (data.isEmpty) return [];
+
+    final maxVal = data
+        .map((e) => e.y)
+        .reduce((curr, next) => curr > next ? curr : next);
     final isAllZero = maxVal == 0;
 
-    return List.generate(7, (i) {
-      final val = weeklyData[i];
+    return data.asMap().entries.map((entry) {
+      final i = entry.key;
+      final point = entry.value;
+      final val = point.y;
       final isMax = !isAllZero && val == maxVal;
 
       return BarChartGroupData(
         x: i,
         barRods: [
           BarChartRodData(
-            toY: val.toDouble(),
+            toY: val,
             color: isMax
                 ? AppTheme.primary
                 : AppTheme.primary.withValues(alpha: 0.3),
@@ -510,54 +653,89 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
             backDrawRodData: BackgroundBarChartRodData(
               show: true,
-              toY: (maxVal == 0
-                  ? 5
-                  : maxVal * 1.2), // Dynamic subtle background height
+              toY: (maxVal == 0 ? 5 : maxVal * 1.2),
               color: Colors.white.withValues(alpha: 0.05),
             ),
           ),
         ],
         showingTooltipIndicators: val > 0 ? [0] : [],
       );
-    });
+    }).toList();
   }
-}
 
-Widget _bottomTitles(double value, TitleMeta meta) {
-  const style = TextStyle(
-    color: Colors.grey,
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-  );
-  String text;
-  switch (value.toInt()) {
-    case 0:
-      text = 'Mn';
-      break;
-    case 1:
-      text = 'Sn';
-      break;
-    case 2:
-      text = 'Sl';
-      break;
-    case 3:
-      text = 'Rb';
-      break;
-    case 4:
-      text = 'Km';
-      break;
-    case 5:
-      text = 'Jm';
-      break;
-    case 6:
-      text = 'Sb';
-      break;
-    default:
-      text = '';
+  Widget _bottomTitles(
+    double value,
+    TitleMeta meta,
+    List<ChartDataPoint> data,
+  ) {
+    const style = TextStyle(
+      color: Colors.grey,
+      fontSize: 10,
+      fontWeight: FontWeight.bold,
+    );
+
+    final index = value.toInt();
+    if (index < 0 || index >= data.length) return const SizedBox();
+
+    // Safety check mostly for hot reload
+
+    return SideTitleWidget(
+      meta: meta,
+      space: 4,
+      child: Text(data[index].label, style: style),
+    );
   }
-  return SideTitleWidget(
-    meta: meta,
-    space: 4,
-    child: Text(text, style: style),
-  );
+
+  String _getDynamicTitle() {
+    final filter = _controller.selectedFilter.value;
+    final start = _controller.displayedStart.value;
+    final end = _controller.displayedEnd.value;
+
+    final months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
+    final shortMonths = [
+      'jan',
+      'feb',
+      'mar',
+      'apr',
+      'mei',
+      'jun',
+      'jul',
+      'agu',
+      'sep',
+      'okt',
+      'nov',
+      'des',
+    ];
+
+    switch (filter) {
+      case StatsFilter.weekly:
+        if (start.month == end.month) {
+          return 'Statistik Mingguan (${start.day}-${end.day} ${shortMonths[start.month - 1]})';
+        } else {
+          return 'Statistik Mingguan (${start.day} ${shortMonths[start.month - 1]} - ${end.day} ${shortMonths[end.month - 1]})';
+        }
+      case StatsFilter.monthly:
+        return 'Statistik Bulan ${months[start.month - 1]} (1-${end.day})';
+      case StatsFilter.yearly:
+        return 'Statistik Tahun ${start.year} (1 ${shortMonths[0]}-hari ini)';
+      case StatsFilter.allTime:
+        return 'Statistik Sepanjang Masaa~';
+      case StatsFilter.custom:
+        return 'Statistik ${start.day} ${shortMonths[start.month - 1]} - ${end.day} ${shortMonths[end.month - 1]}';
+    }
+  }
 }
