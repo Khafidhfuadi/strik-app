@@ -102,4 +102,18 @@ class HabitRepository {
       throw Exception('Failed to fetch range logs: $e');
     }
   }
+
+  Future<List<Map<String, dynamic>>> getLogsForHabit(String habitId) async {
+    try {
+      final response = await supabase
+          .from('habit_logs')
+          .select('target_date, status')
+          .eq('habit_id', habitId)
+          .order('target_date', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      throw Exception('Failed to fetch habit logs: $e');
+    }
+  }
 }

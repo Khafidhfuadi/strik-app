@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/screens/create_habit_screen.dart';
+import 'package:strik_app/screens/habit_detail_screen.dart';
 
 import 'package:strik_app/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -232,7 +233,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const Color(0xFFFF5757),
               Colors.white,
             ),
-            child: HabitCard(habit: habit, status: status),
+            child: HabitCard(
+              habit: habit,
+              status: status,
+              onTap: () => Get.to(() => HabitDetailScreen(habit: habit)),
+            ),
           );
         });
       },
