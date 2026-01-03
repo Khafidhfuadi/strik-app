@@ -276,8 +276,39 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               description:
                   'Tingkat kedisiplinan lo. Kalo 100% berarti lo ga pernah skip, Gacor Abis!',
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
+            // Global Insights
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      'Jam Emas',
+                      _controller.goldenHour.value,
+                      '',
+                      Colors.purpleAccent,
+                      description:
+                          'Jam dimana lo paling sering nyelesain habit. Waktu produktif lo banget nih!',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      'Hari Gacor',
+                      _controller.bestDay.value,
+                      '',
+                      Colors.blueAccent,
+                      description:
+                          'Hari dimana lo paling rajin sikat habis semua habit.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
             _buildRankingSection(),
             const SizedBox(height: 32),
 
@@ -624,27 +655,31 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: GoogleFonts.spaceGrotesk(
-                  color: color,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  value,
+                  style: GoogleFonts.spaceGrotesk(
+                    color: color,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                sub,
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.textSecondary,
-                  fontSize: 14,
+                const SizedBox(width: 4),
+                Text(
+                  sub,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppTheme.textSecondary,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

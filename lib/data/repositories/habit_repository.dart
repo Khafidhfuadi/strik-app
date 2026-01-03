@@ -121,7 +121,7 @@ class HabitRepository {
     try {
       final response = await supabase
           .from('habit_logs')
-          .select('habit_id, target_date, status')
+          .select('habit_id, target_date, status, completed_at')
           .order('target_date', ascending: false);
 
       return List<Map<String, dynamic>>.from(response as List);

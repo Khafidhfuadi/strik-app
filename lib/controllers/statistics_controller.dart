@@ -35,7 +35,12 @@ class StatisticsController extends GetxController {
   // Chart Data: X (index) -> Value
   // We need metadata for labels (e.g., 'Mon', 'Jan').
   var chartData = <ChartDataPoint>[].obs;
+
   var topStreaks = <Map<String, dynamic>>[].obs;
+
+  // New Insights (Filtered)
+  var goldenHour = 'Belum ada data'.obs;
+  var bestDay = 'Belum ada data'.obs;
 
   @override
   void onInit() {
@@ -205,6 +210,79 @@ class StatisticsController extends GetxController {
 
     // 7. Top 3 Best Streaks Ranking (All-time context)
     _updateTopStreaks();
+
+    // 8. Global Insights (Golden Hour & Best Day)
+    _calculateGlobalInsights(filteredLogs);
+  }
+
+  void _calculateGlobalInsights(List<Map<String, dynamic>> filteredLogs) {
+    if (filteredLogs.isEmpty) {
+      goldenHour.value = 'Belum ada data';
+      bestDay.value = 'Belum ada data';
+      return;
+    }
+
+    // 1. Golden Hour (Based on completed_at)
+    final completedWithTime = filteredLogs
+        .where((l) => l['status'] == 'completed' && l['completed_at'] != null)
+        .toList();
+
+    if (completedWithTime.isNotEmpty) {
+      final hourCounts = <int, int>{};
+      for (var log in completedWithTime) {
+        final dt = DateTime.parse(log['completed_at']);
+        final hour = dt.hour;
+        hourCounts[hour] = (hourCounts[hour] ?? 0) + 1;
+      }
+
+      var maxHour = 0;
+      var maxCount = 0;
+      hourCounts.forEach((hour, count) {
+        if (count > maxCount) {
+          maxCount = count;
+          maxHour = hour;
+        }
+      });
+
+      final hourStr = maxHour.toString().padLeft(2, '0');
+      final nextHourStr = ((maxHour + 1) % 24).toString().padLeft(2, '0');
+      goldenHour.value = '$hourStr:00 - $nextHourStr:00';
+    } else {
+      goldenHour.value = '-';
+    }
+
+    // 2. Best Day (Based on target_date)
+    final completedLogs = filteredLogs.where((l) => l['status'] == 'completed');
+    if (completedLogs.isNotEmpty) {
+      final dayCounts = <int, int>{}; // 1 (Mon) - 7 (Sun)
+      for (var log in completedLogs) {
+        final dt = DateTime.parse(log['target_date']);
+        final day = dt.weekday;
+        dayCounts[day] = (dayCounts[day] ?? 0) + 1;
+      }
+
+      var maxDay = 1;
+      var maxDayCount = 0;
+      dayCounts.forEach((day, count) {
+        if (count > maxDayCount) {
+          maxDayCount = count;
+          maxDay = day;
+        }
+      });
+
+      const days = [
+        'Senin',
+        'Selasa',
+        'Rabu',
+        'Kamis',
+        'Jumat',
+        'Sabtu',
+        'Minggu',
+      ];
+      bestDay.value = days[maxDay - 1];
+    } else {
+      bestDay.value = '-';
+    }
   }
 
   void _updateTopStreaks() {
