@@ -35,6 +35,7 @@ class StatisticsController extends GetxController {
   // Chart Data: X (index) -> Value
   // We need metadata for labels (e.g., 'Mon', 'Jan').
   var chartData = <ChartDataPoint>[].obs;
+  var topStreaks = <Map<String, dynamic>>[].obs;
 
   @override
   void onInit() {
@@ -201,6 +202,58 @@ class StatisticsController extends GetxController {
 
     // 6. Chart Data Generation
     _generateChartData(start, end, completedLogs);
+
+    // 7. Top 3 Best Streaks Ranking (All-time context)
+    _updateTopStreaks();
+  }
+
+  void _updateTopStreaks() {
+    List<Map<String, dynamic>> rankings = [];
+
+    for (var habit in habits) {
+      final habitLogs = allLogs
+          .where((l) => l['habit_id'] == habit.id && l['status'] == 'completed')
+          .toList();
+
+      final bestStreak = _calculateBestStreak(habitLogs);
+      if (bestStreak > 0) {
+        rankings.add({'habit': habit, 'streak': bestStreak});
+      }
+    }
+
+    rankings.sort((a, b) => (b['streak'] as int).compareTo(a['streak'] as int));
+    topStreaks.value = rankings.take(3).toList();
+  }
+
+  int _calculateBestStreak(List<Map<String, dynamic>> completedLogs) {
+    if (completedLogs.isEmpty) return 0;
+
+    final dates =
+        completedLogs
+            .map((l) => DateTime.parse(l['target_date']))
+            .map((d) => DateTime(d.year, d.month, d.day))
+            .toSet()
+            .toList()
+          ..sort((a, b) => a.compareTo(b));
+
+    int maxStreak = 0;
+    int currentStreak = 0;
+
+    for (int i = 0; i < dates.length; i++) {
+      if (i == 0) {
+        currentStreak = 1;
+      } else {
+        if (dates[i].difference(dates[i - 1]).inDays == 1) {
+          currentStreak++;
+        } else {
+          if (currentStreak > maxStreak) maxStreak = currentStreak;
+          currentStreak = 1;
+        }
+      }
+    }
+    if (currentStreak > maxStreak) maxStreak = currentStreak;
+
+    return maxStreak;
   }
 
   void _generateChartData(

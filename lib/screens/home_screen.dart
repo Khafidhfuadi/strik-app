@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/screens/create_habit_screen.dart';
@@ -42,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onTabChanged(int index) {
     // Sync tab change from PageView
     final homeController = Get.find<HomeController>();
-    final tabs = ['Today', 'Weekly', 'Overall'];
+    final tabs = ['Harian', 'Mingguan'];
     if (index >= 0 && index < tabs.length) {
       homeController.currentTab.value = tabs[index];
     }
@@ -75,13 +76,24 @@ class _HomeScreenState extends State<HomeScreen> {
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: Text(
-            'Strik',
-            style: GoogleFonts.spaceGrotesk(
-              fontWeight: FontWeight.bold,
-              fontSize: 28,
-              color: Colors.white,
-            ),
+          title: Row(
+            children: [
+              Text(
+                'Strik',
+                style: GoogleFonts.spaceGrotesk(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Lottie.asset(
+                'assets/src/strik-logo.json',
+                width: 35,
+                height: 35,
+                repeat: false,
+              ),
+            ],
           ),
           backgroundColor: AppTheme.background,
           elevation: 0,
@@ -104,11 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Row(
                       children: [
-                        _buildTabChip('Today', 0, homeController),
+                        _buildTabChip('Harian', 0, homeController),
                         const SizedBox(width: 12),
-                        _buildTabChip('Weekly', 1, homeController),
-                        const SizedBox(width: 12),
-                        _buildTabChip('Overall', 2, homeController),
+                        _buildTabChip('Mingguan', 1, homeController),
                       ],
                     ),
                   ),
@@ -123,13 +133,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         _buildTodayPage(controller),
                         // Weekly Page
                         _buildWeeklyList(controller),
-                        // Overall Page
-                        const Center(
-                          child: Text(
-                            'Overall Coming Soon',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -182,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '${controller.todayLogs.values.where((s) => s == 'completed').length} completed • ${controller.todayLogs.values.where((s) => s == 'skipped').length} skipped',
+                '${controller.todayLogs.values.where((s) => s == 'completed').length} selesai • ${controller.todayLogs.values.where((s) => s == 'skipped').length} lewat',
                 style: GoogleFonts.plusJakartaSans(
                   color: Colors.grey[500],
                   fontSize: 14,

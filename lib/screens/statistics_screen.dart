@@ -275,6 +275,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
             const SizedBox(height: 32),
 
+            _buildRankingSection(),
+            const SizedBox(height: 32),
+
             Text(
               'Jejak Keaktifan',
               style: GoogleFonts.spaceGrotesk(
@@ -309,59 +312,76 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             const SizedBox(height: 16),
             Container(
               height: 250,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               decoration: BoxDecoration(
                 color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Container(
-                  width: _calculateChartWidth(_controller.chartData.length),
-                  child: BarChart(
-                    BarChartData(
-                      gridData: const FlGridData(show: false),
-                      titlesData: FlTitlesData(
-                        leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (val, meta) =>
-                                _bottomTitles(val, meta, _controller.chartData),
-                            reservedSize: 30,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final dataCount = _controller.chartData.length;
+                  final chartWidth = _calculateChartWidth(
+                    dataCount,
+                    constraints.maxWidth,
+                  );
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Container(
+                      width: chartWidth,
+                      child: BarChart(
+                        BarChartData(
+                          gridData: const FlGridData(show: false),
+                          titlesData: FlTitlesData(
+                            leftTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (val, meta) => _bottomTitles(
+                                  val,
+                                  meta,
+                                  _controller.chartData,
+                                ),
+                                reservedSize: 30,
+                              ),
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          barGroups: _generateChartGroups(
+                            _controller.chartData,
+                          ),
+                          barTouchData: BarTouchData(
+                            touchTooltipData: BarTouchTooltipData(
+                              getTooltipColor: (_) => Colors.transparent,
+                              tooltipPadding: EdgeInsets.zero,
+                              tooltipMargin: 4,
+                              getTooltipItem:
+                                  (group, groupIndex, rod, rodIndex) {
+                                    return BarTooltipItem(
+                                      rod.toY.toInt().toString(),
+                                      GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    );
+                                  },
+                            ),
                           ),
                         ),
                       ),
-                      borderData: FlBorderData(show: false),
-                      barGroups: _generateChartGroups(_controller.chartData),
-                      barTouchData: BarTouchData(
-                        touchTooltipData: BarTouchTooltipData(
-                          getTooltipColor: (_) => Colors.transparent,
-                          tooltipPadding: EdgeInsets.zero,
-                          tooltipMargin: 4,
-                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                            return BarTooltipItem(
-                              rod.toY.toInt().toString(),
-                              GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],
@@ -622,9 +642,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
   }
 
-  double _calculateChartWidth(int dataCount) {
-    if (dataCount <= 7) return double.maxFinite;
-    return dataCount * 40.0;
+  double _calculateChartWidth(int dataCount, double maxWidth) {
+    if (dataCount <= 7) return maxWidth;
+    return (dataCount * 45.0).clamp(maxWidth, 2000.0);
   }
 
   List<BarChartGroupData> _generateChartGroups(List<ChartDataPoint> data) {
@@ -683,6 +703,144 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       meta: meta,
       space: 4,
       child: Text(data[index].label, style: style),
+    );
+  }
+
+  Widget _buildRankingSection() {
+    return Obx(() {
+      final top3 = _controller.topStreaks;
+      if (top3.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Jawara Strik',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.emoji_events_rounded,
+                color: Colors.amber,
+                size: 20,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Rank 2
+              if (top3.length >= 2)
+                Expanded(child: _buildRankCard(top3[1], 2, Colors.grey[400]!)),
+              const SizedBox(width: 12),
+              // Rank 1
+              if (top3.length >= 1)
+                Expanded(child: _buildRankCard(top3[0], 1, Colors.amber)),
+              const SizedBox(width: 12),
+              // Rank 3
+              if (top3.length >= 3)
+                Expanded(
+                  child: _buildRankCard(top3[2], 3, Colors.orange[800]!),
+                ),
+              if (top3.length < 3) const Expanded(child: SizedBox()),
+            ],
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildRankCard(Map<String, dynamic> data, int rank, Color rankColor) {
+    final Habit habit = data['habit'];
+    final int streak = data['streak'];
+    final bool isFirst = rank == 1;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isFirst
+              ? rankColor.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.05),
+          width: isFirst ? 2 : 1,
+        ),
+        boxShadow: isFirst
+            ? [
+                BoxShadow(
+                  color: rankColor.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: rankColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '#$rank',
+              style: GoogleFonts.spaceGrotesk(
+                fontWeight: FontWeight.bold,
+                color: rankColor,
+                fontSize: isFirst ? 16 : 14,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            habit.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$streak',
+                style: GoogleFonts.spaceGrotesk(
+                  color: AppTheme.primary,
+                  fontSize: isFirst ? 24 : 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                Icons.local_fire_department_rounded,
+                color: AppTheme.primary,
+                size: isFirst ? 20 : 16,
+              ),
+            ],
+          ),
+          Text(
+            'Hari',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white30,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
