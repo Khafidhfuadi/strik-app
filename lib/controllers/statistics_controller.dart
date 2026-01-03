@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum StatsFilter { weekly, monthly, yearly, allTime, custom }
 
@@ -41,6 +44,7 @@ class StatisticsController extends GetxController {
   // New Insights (Filtered)
   var goldenHour = 'Belum ada data'.obs;
   var bestDay = 'Belum ada data'.obs;
+  var aiInsight = ''.obs;
 
   @override
   void onInit() {
@@ -213,6 +217,192 @@ class StatisticsController extends GetxController {
 
     // 8. Global Insights (Golden Hour & Best Day)
     _calculateGlobalInsights(filteredLogs);
+
+    // 9. AI Advisor Logic
+    _generateAIInsight(completedLogs, totalActioned);
+  }
+
+  void _generateAIInsight(
+    List<Map<String, dynamic>> completedLogs,
+    int totalActioned,
+  ) {
+    if (habits.isEmpty) {
+      aiInsight.value =
+          "Yuk mulai bikin habit dulu biar gue bisa kasih saran kece! 🌱";
+      return;
+    }
+
+    // Try Gemini First
+    // Try AIML API First
+    final apiKey = dotenv.env['AIML_API_KEY'];
+    if (apiKey != null && apiKey.isNotEmpty) {
+      _fetchGeminiInsight(completedLogs, totalActioned).catchError((e) {
+        // Fallback to local if error
+        _generateLocalInsight(completedLogs, totalActioned);
+      });
+    } else {
+      // Fallback if no key
+      _generateLocalInsight(completedLogs, totalActioned);
+    }
+  }
+
+  Future<void> _fetchGeminiInsight(
+    List<Map<String, dynamic>> completedLogs,
+    int totalActioned,
+  ) async {
+    try {
+      aiInsight.value = "Lagi nanya Coach Strik... 🤖💭";
+
+      final rate = globalCompletionRate.value;
+
+      // Prepare Data Summary
+      Map<String, int> habitCounts = {};
+      for (var log in completedLogs) {
+        habitCounts[log['habit_id']] = (habitCounts[log['habit_id']] ?? 0) + 1;
+      }
+
+      String topHabit = "-";
+      String worstHabit = "-";
+      int maxCount = -1;
+      int minCount = 999999;
+
+      for (var habit in habits) {
+        int count = habitCounts[habit.id] ?? 0;
+        if (count > maxCount) {
+          maxCount = count;
+          topHabit = habit.title;
+        }
+        if (count < minCount) {
+          minCount = count;
+          worstHabit = habit.title;
+        }
+      }
+
+      final prompt =
+          '''
+      You are "Coach Strik", a Gen-Z motivational habit coach (Bahasa Indonesia).
+      
+      STATS:
+      - Rate: ${rate.toStringAsFixed(1)}%
+      - Top: $topHabit
+      - Worst: $worstHabit
+      - Golden Hour: ${goldenHour.value}
+      
+      INSTRUCTION:
+      - Give a short, punchy comment (max 2 sentences).
+      - Style: Jaksel slang, emojis, energetic.
+      - If rate > 80%: Praise them like a proud bestie.
+      - If rate < 50%: Gentle roast + motivation.
+      - NO lists. NO "Here is your insight". NO quotes around the response. NO reasoning output. just the final response text.
+      - Speak DIRECTLY to the user.
+      ''';
+
+      final apiKey = dotenv.env['AIML_API_KEY'];
+      if (apiKey == null) throw Exception('No AIML_API_KEY found');
+
+      final url = Uri.parse('https://api.aimlapi.com/v1/chat/completions');
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "model": "google/gemini-2.5-flash",
+          "messages": [
+            {"role": "user", "content": prompt},
+          ],
+          "max_tokens": 512,
+          "stream": false,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        String? content = data['choices'][0]['message']['content'];
+        if (content != null && content.isNotEmpty) {
+          // Cleanup potential garbage formatting
+          content = content.trim();
+          // Remove wrapping quotes if present
+          if (content.startsWith('"') && content.endsWith('"')) {
+            content = content.substring(1, content.length - 1);
+          }
+          aiInsight.value = content;
+        } else {
+          _generateLocalInsight(completedLogs, totalActioned);
+        }
+      } else {
+        print("AIML API Error: ${response.body}");
+        _generateLocalInsight(completedLogs, totalActioned);
+      }
+    } catch (e) {
+      print("AIML Critical Error: $e");
+      _generateLocalInsight(completedLogs, totalActioned);
+    }
+  }
+
+  void _generateLocalInsight(
+    List<Map<String, dynamic>> completedLogs,
+    int totalActioned,
+  ) {
+    if (totalActioned == 0) return;
+
+    final rate = globalCompletionRate.value;
+    String vibe;
+    String tip = "";
+
+    // 1. Determine Vibe
+    if (rate >= 80) {
+      vibe = "Gokil! Performa lo lagi di puncak gunung nih (Top Global)! 🏔️🔥";
+    } else if (rate >= 50) {
+      vibe = "Not bad lah, tapi masih bisa digas lagi biar makin menyala! 🔥";
+    } else {
+      vibe = "Waduh, grafik lo agak turun nih bestie. Yuk bangkit lagi! 💪";
+    }
+
+    // 2. Find Top & Worst Habit
+    Map<String, int> habitCounts = {};
+    for (var log in completedLogs) {
+      habitCounts[log['habit_id']] = (habitCounts[log['habit_id']] ?? 0) + 1;
+    }
+
+    String? topHabitName;
+    String? worstHabitName;
+    int maxCount = -1;
+    int minCount = 999999;
+
+    for (var habit in habits) {
+      int count = habitCounts[habit.id] ?? 0;
+      if (count > maxCount) {
+        maxCount = count;
+        topHabitName = habit.title;
+      }
+      if (count < minCount) {
+        minCount = count;
+        worstHabitName = habit.title;
+      }
+    }
+
+    // 3. Construct Advice
+    if (topHabitName != null && maxCount > 0) {
+      tip += " Lo rajin banget di '$topHabitName', pertahanin!";
+    }
+
+    if (worstHabitName != null &&
+        worstHabitName != topHabitName &&
+        minCount < maxCount) {
+      tip += " Tapi jangan lupa '$worstHabitName' juga butuh kasih sayang.";
+    }
+
+    // 4. Add Golden Hour Tip if available
+    if (goldenHour.value != '-' &&
+        goldenHour.value != 'Belum ada data' &&
+        rate < 80) {
+      tip +=
+          " Coba manfaatin jam ${goldenHour.value} buat ngejar ketertinggalan!";
+    }
+
+    aiInsight.value = "$vibe$tip Gas terus! 🚀";
   }
 
   void _calculateGlobalInsights(List<Map<String, dynamic>> filteredLogs) {
