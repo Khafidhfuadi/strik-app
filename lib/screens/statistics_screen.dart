@@ -1064,10 +1064,10 @@ class AIAdvisorCard extends StatefulWidget {
 }
 
 class _AIAdvisorCardState extends State<AIAdvisorCard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _pulseController;
+  late AnimationController _rainbowController;
   late Animation<double> _pulseAnimation;
-  late Animation<Color?> _glowColorAnimation;
 
   @override
   void initState() {
@@ -1077,19 +1077,20 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
+    _rainbowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-
-    _glowColorAnimation = ColorTween(
-      begin: AppTheme.primary.withValues(alpha: 0.1),
-      end: Colors.purple.withValues(alpha: 0.3),
-    ).animate(_pulseController);
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _rainbowController.dispose();
     super.dispose();
   }
 
@@ -1099,148 +1100,187 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
       final isGenerating = widget.controller.isGeneratingAI.value;
       final insight = widget.controller.aiInsight.value;
 
-      return AnimatedContainer(
-        duration: const Duration(milliseconds: 500),
-        margin: const EdgeInsets.only(bottom: 24),
-        decoration: BoxDecoration(
-          // Glassmorphism background
-          color: Colors.black.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isGenerating
-                ? AppTheme.primary.withValues(alpha: 0.8)
-                : AppTheme.primary.withValues(alpha: 0.3),
-            width: isGenerating ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isGenerating
-                  ? AppTheme.primary.withValues(alpha: 0.4)
-                  : Colors.transparent,
-              blurRadius: 20,
-              spreadRadius: isGenerating ? 2 : 0,
+      return AnimatedBuilder(
+        animation: Listenable.merge([_rainbowController, _pulseController]),
+        builder: (context, child) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: isGenerating
+                  ? SweepGradient(
+                      center: Alignment.center,
+                      startAngle: 0.0,
+                      endAngle: 3.14 * 2,
+                      colors: const [
+                        Color(0xFF4285F4), // Google Blue
+                        Color(0xFFDB4437), // Google Red
+                        Color(0xFFF4B400), // Google Yellow
+                        Color(0xFF0F9D58), // Google Green
+                        Color(0xFF4285F4), // Back to Blue
+                      ],
+                      transform: GradientRotation(
+                        _rainbowController.value * 6.28,
+                      ),
+                    )
+                  : LinearGradient(
+                      colors: [
+                        AppTheme.primary.withValues(alpha: 0.3),
+                        Colors.purple.withValues(alpha: 0.2),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+              boxShadow: isGenerating
+                  ? [
+                      BoxShadow(
+                        color: Colors.blue.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        spreadRadius: 1,
+                      ),
+                      BoxShadow(
+                        color: Colors.purple.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        spreadRadius: -5,
+                      ),
+                    ]
+                  : [],
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
+            child: Padding(
+              padding: const EdgeInsets.all(2), // Border width
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(
+                    alpha: 0.85,
+                  ), // Inner card color
+                  borderRadius: BorderRadius.circular(
+                    22,
+                  ), // slightly smaller radius
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Stack(
+                    children: [
+                      // Subtle Moving Gradient Background
+                      if (isGenerating)
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: 0.15,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: const [
+                                    Color(0xFF4285F4),
+                                    Color(0xFFDB4437),
+                                    Color(0xFF0F9D58),
+                                  ],
+                                  begin: Alignment(
+                                    -1.0 + 2 * _rainbowController.value,
+                                    -1.0,
+                                  ),
+                                  end: Alignment(
+                                    1.0 + 2 * _rainbowController.value,
+                                    1.0,
+                                  ),
+                                  tileMode: TileMode.mirror,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Existing Content Logic...
+                      child!,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Animated Background Gradient
-              if (isGenerating)
-                Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: _glowColorAnimation,
+              Row(
+                children: [
+                  // Animated Icon
+                  AnimatedBuilder(
+                    animation: _pulseAnimation,
                     builder: (context, child) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              _glowColorAnimation.value ?? Colors.transparent,
-                              Colors.transparent,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      return Transform.scale(
+                        scale: isGenerating ? _pulseAnimation.value : 1.0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                            boxShadow: isGenerating
+                                ? [
+                                    BoxShadow(
+                                      color: AppTheme.primary.withValues(
+                                        alpha: 0.5,
+                                      ),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: Icon(
+                            isGenerating
+                                ? Icons.hourglass_top_rounded
+                                : Icons.auto_awesome_rounded,
+                            color: AppTheme.primary,
+                            size: 20,
                           ),
                         ),
                       );
                     },
                   ),
-                ),
-
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        // Animated Icon
-                        AnimatedBuilder(
-                          animation: _pulseAnimation,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: isGenerating ? _pulseAnimation.value : 1.0,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  shape: BoxShape.circle,
-                                  boxShadow: isGenerating
-                                      ? [
-                                          BoxShadow(
-                                            color: AppTheme.primary.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                            blurRadius: 10,
-                                            spreadRadius: 2,
-                                          ),
-                                        ]
-                                      : [],
-                                ),
-                                child: Icon(
-                                  isGenerating
-                                      ? Icons.hourglass_top_rounded
-                                      : Icons.auto_awesome_rounded,
-                                  color: AppTheme.primary,
-                                  size: 20,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Coach Strik AI',
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        if (isGenerating) ...[
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                  const SizedBox(width: 12),
+                  Text(
+                    'Coach Strik AI',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (isGenerating) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 16),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+                child: isGenerating
+                    ? Row(
+                        key: const ValueKey('loading'),
+                        children: [
+                          Text(
+                            "Lagi meracik strategi... 🧠⚡",
+                            style: GoogleFonts.plusJakartaSans(
                               color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 14,
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 500),
-                      transitionBuilder:
-                          (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            );
-                          },
-                      child: isGenerating
-                          ? Row(
-                              key: const ValueKey('loading'),
-                              children: [
-                                Text(
-                                  "Lagi meracik strategi... 🧠⚡",
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: Colors.white.withValues(alpha: 0.7),
-                                    fontSize: 14,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ],
-                            )
-                          : _buildStyledText(insight),
-                    ),
-                  ],
-                ),
+                      )
+                    : _buildStyledText(insight),
               ),
             ],
           ),
