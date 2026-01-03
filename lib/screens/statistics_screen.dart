@@ -259,68 +259,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // AI Advisor Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              margin: const EdgeInsets.only(bottom: 24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.primary.withValues(alpha: 0.15),
-                    Colors.purple.withValues(alpha: 0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: AppTheme.primary.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome_rounded,
-                          color: AppTheme.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Coach Strik AI Said...',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Obx(
-                    () => Text(
-                      _controller.aiInsight.value.isEmpty
-                          ? "Lagi mikir keras... 🧠"
-                          : _controller.aiInsight.value,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 14,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // AI Advisor Card (Animated)
+            AIAdvisorCard(controller: _controller),
             _buildStatCard(
               'Totalan Kelar',
               '$completionCount',
@@ -1111,5 +1051,211 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     if (rate >= 40) return 'Gas Teruss! 🚀';
     if (rate > 0) return 'Yuu Bisa Yukk! 💪';
     return 'Mulai Aja Dulu 🌱';
+  }
+}
+
+class AIAdvisorCard extends StatefulWidget {
+  final StatisticsController controller;
+
+  const AIAdvisorCard({super.key, required this.controller});
+
+  @override
+  State<AIAdvisorCard> createState() => _AIAdvisorCardState();
+}
+
+class _AIAdvisorCardState extends State<AIAdvisorCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  late Animation<Color?> _glowColorAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _glowColorAnimation = ColorTween(
+      begin: AppTheme.primary.withValues(alpha: 0.1),
+      end: Colors.purple.withValues(alpha: 0.3),
+    ).animate(_pulseController);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final isGenerating = widget.controller.isGeneratingAI.value;
+      final insight = widget.controller.aiInsight.value;
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 500),
+        margin: const EdgeInsets.only(bottom: 24),
+        decoration: BoxDecoration(
+          // Glassmorphism background
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isGenerating
+                ? AppTheme.primary.withValues(alpha: 0.8)
+                : AppTheme.primary.withValues(alpha: 0.3),
+            width: isGenerating ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isGenerating
+                  ? AppTheme.primary.withValues(alpha: 0.4)
+                  : Colors.transparent,
+              blurRadius: 20,
+              spreadRadius: isGenerating ? 2 : 0,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Animated Background Gradient
+              if (isGenerating)
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _glowColorAnimation,
+                    builder: (context, child) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              _glowColorAnimation.value ?? Colors.transparent,
+                              Colors.transparent,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        // Animated Icon
+                        AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: isGenerating ? _pulseAnimation.value : 1.0,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                  shape: BoxShape.circle,
+                                  boxShadow: isGenerating
+                                      ? [
+                                          BoxShadow(
+                                            color: AppTheme.primary.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                            blurRadius: 10,
+                                            spreadRadius: 2,
+                                          ),
+                                        ]
+                                      : [],
+                                ),
+                                child: Icon(
+                                  isGenerating
+                                      ? Icons.hourglass_top_rounded
+                                      : Icons.auto_awesome_rounded,
+                                  color: AppTheme.primary,
+                                  size: 20,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Coach Strik AI',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        if (isGenerating) ...[
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            );
+                          },
+                      child: isGenerating
+                          ? Row(
+                              key: const ValueKey('loading'),
+                              children: [
+                                Text(
+                                  "Lagi meracik strategi... 🧠⚡",
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    fontSize: 14,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              insight.isEmpty
+                                  ? "Yuk perbanyak log biar coach bisa kasih saran!"
+                                  : insight,
+                              key: const ValueKey('content'),
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white.withValues(alpha: 0.95),
+                                fontSize: 15,
+                                height: 1.6,
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 }

@@ -16,6 +16,7 @@ class StatisticsController extends GetxController {
   var habits = <Habit>[].obs;
   var allLogs = <Map<String, dynamic>>[].obs;
   var isLoading = true.obs;
+  var isGeneratingAI = false.obs;
 
   // Filter State
   var selectedFilter = StatsFilter.weekly.obs;
@@ -251,7 +252,9 @@ class StatisticsController extends GetxController {
     int totalActioned,
   ) async {
     try {
-      aiInsight.value = "Lagi nanya Coach Strik... 🤖💭";
+      aiInsight.value = "";
+      isGeneratingAI.value = true;
+      // aiInsight.value = "Lagi nanya Coach Strik... 🤖💭"; // Removed, handled by UI state
 
       final rate = globalCompletionRate.value;
 
@@ -338,6 +341,8 @@ class StatisticsController extends GetxController {
     } catch (e) {
       print("AIML Critical Error: $e");
       _generateLocalInsight(completedLogs, totalActioned);
+    } finally {
+      isGeneratingAI.value = false;
     }
   }
 
