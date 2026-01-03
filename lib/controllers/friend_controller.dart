@@ -10,6 +10,7 @@ class FriendController extends GetxController {
 
   var friends = <UserModel>[].obs;
   var pendingRequests = <Map<String, dynamic>>[].obs;
+  var sentRequests = <Map<String, dynamic>>[].obs;
   var searchResults = <UserModel>[].obs;
 
   var isLoadingFriends = true.obs;
@@ -38,6 +39,7 @@ class FriendController extends GetxController {
     try {
       isLoadingRequests.value = true;
       pendingRequests.value = await _friendRepository.getPendingRequests();
+      sentRequests.value = await _friendRepository.getSentRequests();
     } catch (e) {
       print('Error fetching requests: $e');
     } finally {

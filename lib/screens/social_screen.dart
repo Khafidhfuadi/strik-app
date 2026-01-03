@@ -453,10 +453,14 @@ class _SocialScreenState extends State<SocialScreen> {
   }
 
   Widget _buildFriendsTab() {
+    // Auto-refresh when building this tab
+    _controller.fetchPendingRequests();
+    if (_controller.friends.isEmpty) _controller.fetchFriends();
+
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Pending Requests
+          // Pending Requests (Incoming)
           Obx(() {
             if (_controller.pendingRequests.isNotEmpty) {
               return Container(
@@ -466,7 +470,7 @@ class _SocialScreenState extends State<SocialScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Requests (${_controller.pendingRequests.length})',
+                      'Request Masuk (${_controller.pendingRequests.length})',
                       style: const TextStyle(
                         color: Colors.amber,
                         fontWeight: FontWeight.bold,
@@ -507,6 +511,50 @@ class _SocialScreenState extends State<SocialScreen> {
             return const SizedBox.shrink();
           }),
 
+          // Sent Requests (Outgoing)
+          Obx(() {
+            if (_controller.sentRequests.isNotEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.blue.withOpacity(0.1),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Request Terkirim (${_controller.sentRequests.length})',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ..._controller.sentRequests.map((req) {
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          child: Text(
+                            req['receiver']['username']?[0].toUpperCase() ??
+                                '?',
+                          ),
+                        ),
+                        title: Text(
+                          req['receiver']['username'] ?? 'User',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        subtitle: const Text(
+                          'Menunggu konfirmasi...',
+                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+
           // Friends List
           Obx(() {
             if (_controller.friends.isEmpty) {
@@ -514,7 +562,7 @@ class _SocialScreenState extends State<SocialScreen> {
                 padding: const EdgeInsets.all(32),
                 child: Center(
                   child: Text(
-                    'No friends yet 😔\nTap + to add some!',
+                    'Belum ada bestie nih 😔\nTap + buat nambah temen!',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(color: Colors.grey),
                   ),
@@ -558,7 +606,7 @@ class _SocialScreenState extends State<SocialScreen> {
                       IconButton(
                         onPressed: () => _controller.sendNudge(friend.id),
                         icon: const Text('👋', style: TextStyle(fontSize: 24)),
-                        tooltip: 'Poke',
+                        tooltip: 'Colek',
                       ),
                     ],
                   ),

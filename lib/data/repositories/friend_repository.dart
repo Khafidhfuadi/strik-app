@@ -74,8 +74,6 @@ class FriendRepository {
     final user = _supabase.auth.currentUser;
     if (user == null) return [];
 
-    // Fetch pending requests where user is the receiver
-    // We also want the profile of the requester
     final response = await _supabase
         .from('friendships')
         .select('''
@@ -83,6 +81,23 @@ class FriendRepository {
       sender:profiles!requester_id(*)
     ''')
         .eq('receiver_id', user.id)
+        .eq('status', 'pending');
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // Get pending friend requests SENT by currentUser
+  Future<List<Map<String, dynamic>>> getSentRequests() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return [];
+
+    final response = await _supabase
+        .from('friendships')
+        .select('''
+      *,
+      receiver:profiles!receiver_id(*)
+    ''')
+        .eq('requester_id', user.id)
         .eq('status', 'pending');
 
     return List<Map<String, dynamic>>.from(response);
