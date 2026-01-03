@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '${controller.todayLogs.values.where((s) => s == 'completed').length} selesai • ${controller.todayLogs.values.where((s) => s == 'skipped').length} lewat',
+                '${controller.todayLogs.values.where((s) => s == 'completed').length} kelar • ${controller.todayLogs.values.where((s) => s == 'skipped').length} skip',
                 style: GoogleFonts.plusJakartaSans(
                   color: Colors.grey[500],
                   fontSize: 14,
@@ -212,7 +212,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTodayList(HabitController controller) {
     if (controller.habits.isEmpty) {
       return const Center(
-        child: Text('No habits yet', style: TextStyle(color: Colors.white54)),
+        child: Text(
+          'Belum ada habit nih, gass bikin!',
+          style: TextStyle(color: Colors.white54),
+        ),
       );
     }
     // Use sorted habits from controller
@@ -235,14 +238,14 @@ class _HomeScreenState extends State<HomeScreen> {
             background: _buildSwipeBackground(
               Alignment.centerLeft,
               status == 'completed' ? Icons.undo : Icons.check,
-              status == 'completed' ? 'un-check' : 'kelarin',
+              status == 'completed' ? 'batalin' : 'sikat',
               AppTheme.primary,
               Colors.black,
             ),
             secondaryBackground: _buildSwipeBackground(
               Alignment.centerRight,
               status == 'skipped' ? Icons.undo : Icons.close,
-              status == 'skipped' ? 'un-skip' : 'skip dlu',
+              status == 'skipped' ? 'gajadi' : 'skip dlu',
               const Color(0xFFFF5757),
               Colors.white,
             ),
