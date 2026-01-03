@@ -6,6 +6,7 @@ import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/statistics_controller.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
+import 'package:strik_app/widgets/custom_loading_indicator.dart';
 import 'package:strik_app/widgets/heatmap_grid.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
 
@@ -73,7 +74,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       ),
       body: Obx(() {
         if (_controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CustomLoadingIndicator());
         }
 
         final habits = _controller.habits;
@@ -433,7 +434,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildStatCard(
-                    'Streak Aktif',
+                    'Streak Aktif ',
                     '${stats['currentStreak']}',
                     'Hari',
                     const Color(0xFFFF5757),
