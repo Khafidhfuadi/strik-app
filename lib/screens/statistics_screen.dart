@@ -22,6 +22,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   late StatisticsController _controller;
   late PageController _pageController;
   final RxInt _currentIndex = 0.obs;
+  bool _isAiCardVisible = true;
 
   @override
   void initState() {
@@ -260,8 +261,49 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // AI Advisor Card (Animated)
-            AIAdvisorCard(controller: _controller),
+            // AI Advisor Section Header & Toggle
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Coach Strik AI",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _isAiCardVisible = !_isAiCardVisible;
+                    });
+                  },
+                  icon: Icon(
+                    _isAiCardVisible
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white70,
+                  ),
+                  tooltip: _isAiCardVisible ? "Sembunyikan" : "Tampilkan",
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // AI Advisor Card (Animated Visibility)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.fastOutSlowIn,
+              child: _isAiCardVisible
+                  ? Column(
+                      children: [
+                        AIAdvisorCard(controller: _controller),
+                        const SizedBox(height: 8), // Extra spacing when visible
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
             _buildStatCard(
               'Totalan Kelar',
               '$completionCount',
@@ -1232,8 +1274,24 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
                       ),
                     ),
                   ],
+                  const Spacer(),
+                  if (!isGenerating && insight.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                      tooltip: "Tanya lagi",
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        widget.controller.generateManualInsight();
+                      },
+                    ),
                 ],
               ),
+
               const SizedBox(height: 16),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 500),
@@ -1254,6 +1312,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
                           ),
                         ],
                       )
+                    : insight.isEmpty
+                    ? _buildAskButton()
                     : _buildStyledText(insight),
               ),
             ],
@@ -1265,14 +1325,7 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
 
   Widget _buildStyledText(String text) {
     if (text.isEmpty) {
-      return Text(
-        "Yuk perbanyak log biar coach bisa kasih saran!",
-        style: GoogleFonts.plusJakartaSans(
-          color: Colors.white.withValues(alpha: 0.95),
-          fontSize: 15,
-          height: 1.6,
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     final List<TextSpan> spans = [];
@@ -1329,6 +1382,49 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
     return RichText(
       key: const ValueKey('content'),
       text: TextSpan(children: spans),
+    );
+  }
+
+  Widget _buildAskButton() {
+    return Center(
+      child: GestureDetector(
+        onTap: () {
+          widget.controller.generateManualInsight();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [AppTheme.primary, Colors.purple]),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withValues(alpha: 0.4),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "Tanya Coach Strik",
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

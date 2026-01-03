@@ -219,7 +219,28 @@ class StatisticsController extends GetxController {
     // 8. Global Insights (Golden Hour & Best Day)
     _calculateGlobalInsights(filteredLogs);
 
-    // 9. AI Advisor Logic
+    // 9. AI Advisor Logic (Manual Trigger Only)
+    // _generateAIInsight(completedLogs, totalActioned);
+  }
+
+  void generateManualInsight() {
+    final start = displayedStart.value;
+    final end = displayedEnd.value;
+
+    final filteredLogs = allLogs.where((log) {
+      final date = DateTime.parse(log['target_date'] as String);
+      return date.isAfter(start.subtract(const Duration(seconds: 1))) &&
+          date.isBefore(end.add(const Duration(seconds: 1)));
+    }).toList();
+
+    final completedLogs = filteredLogs
+        .where((l) => l['status'] == 'completed')
+        .toList();
+    final skippedLogs = filteredLogs
+        .where((l) => l['status'] == 'skipped')
+        .toList();
+    final totalActioned = completedLogs.length + skippedLogs.length;
+
     _generateAIInsight(completedLogs, totalActioned);
   }
 
@@ -284,7 +305,7 @@ class StatisticsController extends GetxController {
       String vibeInstruction;
       if (rate >= 80) {
         vibeInstruction =
-            "Praise them like a proud bestie. Use words like 'Gacor', 'Menyala', etc.";
+            "Praise them like a proud bestie. Use words like 'Gacor', 'Gokil', 'Gila', etc.";
       } else if (rate >= 50) {
         vibeInstruction =
             "Give a gentle encouragement. Tell them they are doing okay but can do better.";
