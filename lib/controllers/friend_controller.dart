@@ -138,16 +138,30 @@ class FriendController extends GetxController {
     }
 
     if (index != -1) {
-      // Update local state without refresh
-      final item = activityFeed[index]; // Map is mutable?
-      // Need to clone to trigger update properly or use refresh
+      final item = activityFeed[index];
       final updatedData = Map<String, dynamic>.from(item['data']);
       final reactions = List<dynamic>.from(updatedData['reactions'] ?? []);
-      reactions.add(reaction);
-      updatedData['reactions'] = reactions;
 
+      // Check if reaction from this user already exists
+      final existingIndex = reactions.indexWhere(
+        (r) => r['user_id'] == reaction['user_id'],
+      );
+
+      if (existingIndex != -1) {
+        // If existing is optimistic, replace it with real one
+        final existing = reactions[existingIndex];
+        if (existing['id'].toString().startsWith('optimistic_')) {
+          reactions[existingIndex] = reaction;
+        }
+        // If it's real (duplicate event?), do nothing
+      } else {
+        // No existing reaction, add it
+        reactions.add(reaction);
+      }
+
+      updatedData['reactions'] = reactions;
       item['data'] = updatedData;
-      activityFeed[index] = item; // Trigger Obx
+      activityFeed[index] = item;
     }
   }
 
