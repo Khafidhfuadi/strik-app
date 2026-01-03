@@ -2,10 +2,12 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/statistics_controller.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/widgets/heatmap_grid.dart';
+import 'package:strik_app/screens/habit_detail_screen.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -268,7 +270,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             _buildStatCard(
               'Persentase',
               '${completionRate.toStringAsFixed(1)}%',
-              'Gacor Abis 🔥',
+              _getPercentageLabel(completionRate),
               AppTheme.secondary,
               description:
                   'Tingkat kedisiplinan lo. Kalo 100% berarti lo ga pernah skip, Gacor Abis!',
@@ -278,13 +280,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             _buildRankingSection(),
             const SizedBox(height: 32),
 
-            Text(
+            _buildSectionTitleWithHelp(
               'Jejak Keaktifan',
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              'Visualisasi seberapa rajin lo setiap harinya. Kotak yang berwarna nunjukin kalo lo ada progress di hari itu. Makin terang warnanya, makin rajin lo! 🔥',
             ),
             const SizedBox(height: 16),
             Container(
@@ -301,13 +299,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
 
             const SizedBox(height: 32),
-            Text(
+            _buildSectionTitleWithHelp(
               _getChartTitle(filter),
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              'Grafik batang ini nunjukin performa lo dari waktu ke waktu. Lo bisa liat tren naik turun produktivitas lo disini. 📊',
             ),
             const SizedBox(height: 16),
             Container(
@@ -430,7 +424,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   child: _buildStatCard(
                     'Totalan',
                     '${stats['total']}',
-                    '',
+                    'Kali',
                     AppTheme.primary,
                     description:
                         'Berapa kali lo lakuin habit ini di periode ini.',
@@ -459,13 +453,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
 
             const SizedBox(height: 32),
-            Text(
+            _buildSectionTitleWithHelp(
               'Jejak Keaktifan',
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              'Rekam jejak konsistensi lo buat habit ini. Liat seberapa sering lo lakuin habit ini dalam rentang waktu tertentu. 📅',
             ),
             const SizedBox(height: 16),
             Container(
@@ -493,8 +483,31 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ),
               child: Center(
                 child: Text(
-                  'Grafik coming soon',
+                  'grafik lain coming soon...',
                   style: GoogleFonts.plusJakartaSans(color: Colors.white54),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.surface,
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: () => Get.to(() => HabitDetailScreen(habit: habit)),
+                child: Text(
+                  'Lihat Detail Kebiasaan',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -735,10 +748,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
-                Icons.emoji_events_rounded,
-                color: Colors.amber,
-                size: 20,
+              Lottie.asset(
+                'assets/src/strik-logo.json',
+                width: 20,
+                height: 20,
+                repeat: false,
               ),
             ],
           ),
@@ -854,6 +868,91 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     );
   }
 
+  Widget _buildSectionTitleWithHelp(String title, String description) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: () {
+            Get.dialog(
+              Dialog(
+                backgroundColor: AppTheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        description,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => Get.back(),
+                          child: Text(
+                            'Paham!',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white24, width: 1),
+            ),
+            child: const Icon(
+              Icons.question_mark_rounded,
+              size: 12,
+              color: Colors.white54,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   String _getDynamicTitle() {
     final filter = _controller.selectedFilter.value;
     final start = _controller.displayedStart.value;
@@ -905,5 +1004,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       case StatsFilter.custom:
         return 'Statistik ${start.day} ${shortMonths[start.month - 1]} - ${end.day} ${shortMonths[end.month - 1]}';
     }
+  }
+
+  String _getPercentageLabel(double rate) {
+    if (rate >= 100) return 'Perfectoo! 💯';
+    if (rate >= 80) return 'Gacor Abiss! 🔥';
+    if (rate >= 60) return 'Mantapp! 👍';
+    if (rate >= 40) return 'Gas Teruss! 🚀';
+    if (rate > 0) return 'Yuu Bisa Yukk! 💪';
+    return 'Mulai Aja Dulu 🌱';
   }
 }
