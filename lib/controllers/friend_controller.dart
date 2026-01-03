@@ -107,6 +107,9 @@ class FriendController extends GetxController {
   var isLoadingLeaderboard = false.obs;
   var isLoadingActivity = false.obs;
 
+  var newFeedCount = 0.obs;
+  DateTime? _lastViewedFeedTime;
+
   Future<void> fetchLeaderboard() async {
     try {
       isLoadingLeaderboard.value = true;
@@ -122,11 +125,26 @@ class FriendController extends GetxController {
     try {
       isLoadingActivity.value = true;
       activityFeed.value = await _friendRepository.getActivityFeed();
+
+      // Calculate new feed count
+      if (_lastViewedFeedTime == null) {
+        newFeedCount.value = activityFeed.length;
+      } else {
+        newFeedCount.value = activityFeed.where((item) {
+          final date = DateTime.parse(item['completed_at']);
+          return date.isAfter(_lastViewedFeedTime!);
+        }).length;
+      }
     } catch (e) {
       print('Error fetching activity feed: $e');
     } finally {
       isLoadingActivity.value = false;
     }
+  }
+
+  void markFeedAsViewed() {
+    newFeedCount.value = 0;
+    _lastViewedFeedTime = DateTime.now();
   }
 
   Future<void> fetchNotifications() async {

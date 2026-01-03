@@ -43,6 +43,11 @@ class _SocialScreenState extends State<SocialScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+
+    // Mark feed as viewed when Feed tab is tapped
+    if (index == 1) {
+      _controller.markFeedAsViewed();
+    }
   }
 
   @override
@@ -85,42 +90,92 @@ class _SocialScreenState extends State<SocialScreen> {
               ),
             ),
 
-            // Custom Tab Chips (Matching Home Style)
+            // Custom Tab Chips (Matching Home Style) with Badges
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: _tabs.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final label = entry.value;
-                  final isActive = _selectedIndex == index;
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _tabs.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final label = entry.value;
+                    final isActive = _selectedIndex == index;
 
-                  return GestureDetector(
-                    onTap: () => _onTabTapped(index),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      margin: const EdgeInsets.only(right: 12),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isActive ? Colors.grey[900] : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        label,
-                        style: GoogleFonts.plusJakartaSans(
-                          color: isActive ? Colors.white : Colors.grey[600],
-                          fontWeight: isActive
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          fontSize: 14,
+                    return GestureDetector(
+                      onTap: () => _onTabTapped(index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        margin: const EdgeInsets.only(right: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Colors.grey[900]
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              label,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: isActive
+                                    ? Colors.white
+                                    : Colors.grey[600],
+                                fontWeight: isActive
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                fontSize: 14,
+                              ),
+                            ),
+                            // Badges
+                            if (index != 0)
+                              Obx(() {
+                                int count = 0;
+                                if (index == 1) {
+                                  // Feed Tab
+                                  count = _controller.newFeedCount.value;
+                                } else if (index == 2) {
+                                  // Friends Tab
+                                  count = _controller.friends.length;
+                                }
+
+                                if (count > 0) {
+                                  return Container(
+                                    margin: const EdgeInsets.only(left: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: index == 1 && count > 0
+                                          ? Colors.red
+                                          : (isActive
+                                                ? Colors.white24
+                                                : Colors.grey[800]),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      count > 99 ? '99+' : '$count',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              }),
+                          ],
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
 
@@ -165,7 +220,7 @@ class _SocialScreenState extends State<SocialScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'No scores yet!',
+                'Belum ada suhu nih! 🥶',
                 style: GoogleFonts.plusJakartaSans(color: Colors.grey),
               ),
             ],
@@ -377,7 +432,7 @@ class _SocialScreenState extends State<SocialScreen> {
       if (_controller.activityFeed.isEmpty) {
         return const Center(
           child: Text(
-            'No activity yet. Be the first!',
+            'Masih sepi nih, belum ada yang pamer! 🦗',
             style: TextStyle(color: Colors.white54),
           ),
         );
@@ -420,7 +475,7 @@ class _SocialScreenState extends State<SocialScreen> {
                               ),
                             ),
                             TextSpan(
-                              text: ' just crushed ',
+                              text: ' abis bantai ',
                               style: TextStyle(color: Colors.grey[400]),
                             ),
                             TextSpan(
@@ -543,7 +598,7 @@ class _SocialScreenState extends State<SocialScreen> {
                           style: const TextStyle(color: Colors.white),
                         ),
                         subtitle: const Text(
-                          'Menunggu konfirmasi...',
+                          'Lagi digantung... 👻',
                           style: TextStyle(color: Colors.white54, fontSize: 12),
                         ),
                       );
