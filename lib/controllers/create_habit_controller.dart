@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:strik_app/services/notification_service.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/widgets/primary_button.dart';
@@ -249,6 +250,16 @@ class CreateHabitController extends GetxController {
       );
 
       await _habitRepository.createHabit(habit);
+
+      if (isReminder.value && reminderTime.value != null) {
+        await NotificationService().scheduleDailyNotification(
+          id: habit.hashCode, // Simple ID generation for now
+          title: 'Waktunya ${titleController.text}!',
+          body: 'Yuk semangat! Jangan lupa ${titleController.text} ya bestie!',
+          time: reminderTime.value!,
+        );
+      }
+
       Get.back(); // Navigate back
     } catch (e) {
       Get.snackbar(

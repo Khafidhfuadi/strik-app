@@ -6,11 +6,13 @@ import 'package:get/get.dart';
 import 'package:strik_app/core/auth_gate.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
+import 'package:strik_app/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
+  await NotificationService().init();
 
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
