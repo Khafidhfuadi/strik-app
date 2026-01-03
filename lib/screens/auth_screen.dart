@@ -28,6 +28,7 @@ class _AuthScreenState extends State<AuthScreen> {
           email: email,
           password: password,
           data: {'full_name': email.split('@')[0]}, // Simple default name
+          emailRedirectTo: 'strikapp://auth/callback',
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
