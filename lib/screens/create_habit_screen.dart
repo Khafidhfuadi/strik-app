@@ -56,7 +56,7 @@ class CreateHabitScreen extends StatelessWidget {
               maxLines: 3,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: 'Detailnya, Bestie?',
+                labelText: 'Detailnya, Coy?',
                 labelStyle: const TextStyle(color: Colors.white54),
                 filled: true,
                 fillColor: AppTheme.surface,

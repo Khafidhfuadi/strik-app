@@ -73,7 +73,7 @@ class _AuthScreenState extends State<AuthScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                _isSignUp ? 'Gabung Strik, Yuk!' : 'Welcome Back, Bestie!',
+                _isSignUp ? 'Gabung Strik, Yuk!' : 'Welcome Back, Coy!',
                 style: Theme.of(context).textTheme.displaySmall,
                 textAlign: TextAlign.center,
               ),

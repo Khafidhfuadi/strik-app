@@ -198,7 +198,7 @@ class CreateHabitController extends GetxController {
     if (titleController.text.isEmpty) {
       Get.snackbar(
         'Oops',
-        'Isi nama kebiasaannya dulu dong bestie!',
+        'Isi nama kebiasaannya dulu dong coy!',
         snackPosition: SnackPosition.BOTTOM,
       );
       return;
@@ -255,7 +255,7 @@ class CreateHabitController extends GetxController {
         await NotificationService().scheduleDailyNotification(
           id: habit.hashCode, // Simple ID generation for now
           title: 'Waktunya ${titleController.text}!',
-          body: 'Yuk semangat! Jangan lupa ${titleController.text} ya bestie!',
+          body: 'Yuk semangat! Jangan lupa ${titleController.text} ya coy!',
           time: reminderTime.value!,
         );
       }

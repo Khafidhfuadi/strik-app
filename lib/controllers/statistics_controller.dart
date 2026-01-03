@@ -305,7 +305,7 @@ class StatisticsController extends GetxController {
       String vibeInstruction;
       if (rate >= 80) {
         vibeInstruction =
-            "Praise them like a proud bestie. Use words like 'Gacor', 'Gokil', 'Gila', etc.";
+            "Praise them like a proud coy. Use words like 'Gacor', 'Gokil', 'Gila', etc.";
       } else if (rate >= 50) {
         vibeInstruction =
             "Give a gentle encouragement. Tell them they are doing okay but can do better.";
@@ -397,7 +397,7 @@ class StatisticsController extends GetxController {
     } else if (rate >= 50) {
       vibe = "Not bad lah, tapi masih bisa digas lagi biar makin menyala! 🔥";
     } else {
-      vibe = "Waduh, grafik lo agak turun nih bestie. Yuk bangkit lagi! 💪";
+      vibe = "Waduh, grafik lo agak turun nih coy. Yuk bangkit lagi! 💪";
     }
 
     // 2. Find Top & Worst Habit

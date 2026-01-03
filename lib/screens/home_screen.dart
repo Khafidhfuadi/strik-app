@@ -102,6 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () => _navigateAndRefresh(context),
             ),
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Colors.white),
+              onPressed: () => homeController.logout(),
+            ),
           ],
         ),
         body: controller.isLoading.value
