@@ -3,6 +3,10 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:strik_app/core/theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:strik_app/widgets/primary_button.dart';
 
 class CreateHabitController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
@@ -59,11 +63,105 @@ class CreateHabitController extends GetxController {
     }
   }
 
-  void setReminder(bool value) {
-    isReminder.value = value;
-    if (value && reminderTime.value == null) {
-      reminderTime.value = const TimeOfDay(hour: 9, minute: 0);
+  Future<void> setReminder(bool value) async {
+    if (value) {
+      final status = await Permission.notification.status;
+      if (status.isGranted || status.isProvisional) {
+        isReminder.value = true;
+        if (reminderTime.value == null) {
+          reminderTime.value = const TimeOfDay(hour: 9, minute: 0);
+        }
+      } else if (status.isDenied || status.isPermanentlyDenied) {
+        // Show bottom sheet to ask for permission
+        isReminder.value = false;
+        _showPermissionBottomSheet();
+      }
+    } else {
+      isReminder.value = false;
     }
+  }
+
+  void _showPermissionBottomSheet() {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Izin Notifikasi Dulu Dong! \u{1F514}',
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Supaya Striks bisa ingetin kamu buat ngerjain habit, aktifin dulu ya izin notifikasinya.',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.white70,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              text: 'Boleh, Aktifin!',
+              onPressed: () async {
+                Get.back(); // Close bottom sheet
+                final status = await Permission.notification.request();
+                if (status.isGranted) {
+                  setReminder(true);
+                } else if (status.isPermanentlyDenied) {
+                  // Optional: Guide user to settings if permanently denied
+                  openAppSettings();
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Get.back(),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Nanti Aja Deh',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white54,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   Future<void> pickTime(BuildContext context) async {
