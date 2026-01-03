@@ -119,7 +119,32 @@ class HabitController extends GetxController {
   }
 
   List<Habit> get sortedHabits {
-    final sorted = List<Habit>.from(habits);
+    final today = DateTime.now();
+    final currentDayIndex = today.weekday - 1; // 0 (Mon) - 6 (Sun)
+
+    // Filter habits relevant for today
+    final relevantHabits = habits.where((habit) {
+      if (habit.frequency == 'daily') {
+        // Check specific days if set, otherwise assume all days (though usually it's set)
+        if (habit.daysOfWeek != null && habit.daysOfWeek!.isNotEmpty) {
+          return habit.daysOfWeek!.contains(currentDayIndex);
+        }
+        return true; // Default to daily if no days specified
+      } else if (habit.frequency == 'weekly') {
+        // ALWAYS show weekly habits until completed? Or just show them every day?
+        // Usually weekly habits should be visible every day to allow completion.
+        return true;
+      } else if (habit.frequency == 'monthly') {
+        // Check if today matches any selected date
+        if (habit.daysOfWeek != null && habit.daysOfWeek!.isNotEmpty) {
+          return habit.daysOfWeek!.contains(today.day);
+        }
+        return false;
+      }
+      return true;
+    }).toList();
+
+    final sorted = List<Habit>.from(relevantHabits);
     sorted.sort((a, b) {
       final aStatus = todayLogs[a.id];
       final bStatus = todayLogs[b.id];
