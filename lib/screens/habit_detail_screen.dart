@@ -784,7 +784,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: () {
                       Get.back(); // close sheet
-                      _confirmDeleteJournal(journal!);
+                      _confirmDeleteJournal(journal);
                     },
                   ),
               ],

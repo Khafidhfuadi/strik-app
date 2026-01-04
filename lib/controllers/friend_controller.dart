@@ -23,6 +23,9 @@ class FriendController extends GetxController {
   var isLoadingRequests = true.obs;
   var isSearching = false.obs;
 
+  // Leaderboard Transition Logic
+  var isTransitionPeriod = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -483,7 +486,23 @@ class FriendController extends GetxController {
   Future<void> fetchLeaderboard() async {
     try {
       isLoadingLeaderboard.value = true;
-      leaderboard.value = await _friendRepository.getLeaderboard();
+
+      final now = DateTime.now();
+      // Check if it's Monday between 08:00 and 12:00
+      // SIMULATION MODE: Force true
+      if (true ||
+          (now.weekday == DateTime.monday && now.hour >= 8 && now.hour < 12)) {
+        isTransitionPeriod.value = true;
+        // Fetch data for the previous week
+        // Subtract 7 days to get a date in the previous week
+        final lastWeekDate = now.subtract(const Duration(days: 7));
+        leaderboard.value = await _friendRepository.getLeaderboard(
+          referenceDate: lastWeekDate,
+        );
+      } else {
+        isTransitionPeriod.value = false;
+        leaderboard.value = await _friendRepository.getLeaderboard();
+      }
     } catch (e) {
       print('Error fetching leaderboard: $e');
     } finally {

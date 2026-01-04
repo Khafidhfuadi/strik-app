@@ -195,7 +195,9 @@ class FriendRepository {
 
   // Get leaderboard data (Friends + Self) with fair scoring
   // Score = (Completion Rate × 100) + (Total Completed × 0.5)
-  Future<List<Map<String, dynamic>>> getLeaderboard() async {
+  Future<List<Map<String, dynamic>>> getLeaderboard({
+    DateTime? referenceDate,
+  }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return [];
 
@@ -213,7 +215,7 @@ class FriendRepository {
     final allUsers = [...friends, selfUser];
 
     // 3. Calculate start of week (Monday)
-    final now = DateTime.now();
+    final now = referenceDate ?? DateTime.now();
     final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
     final startOfWeek = DateTime(
       currentWeekStart.year,
