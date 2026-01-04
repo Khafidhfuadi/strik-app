@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
+import 'package:strik_app/data/repositories/friend_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HabitController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
@@ -86,9 +88,73 @@ class HabitController extends GetxController {
 
     try {
       if (newStatus == null) {
+        // User is uncompleting/unskipping - check if there's an associated post to delete
+        final formattedDate = today.toIso8601String().split('T')[0];
+        final existingLog = await Supabase.instance.client
+            .from('habit_logs')
+            .select('post_id')
+            .eq('habit_id', habit.id!)
+            .eq('target_date', formattedDate)
+            .maybeSingle();
+
+        final postIdToDelete = existingLog?['post_id'] as String?;
+
+        // Delete the log
         await _habitRepository.deleteLog(habit.id!, today);
+
+        // Delete associated post if exists
+        if (postIdToDelete != null) {
+          try {
+            final friendRepo = FriendRepository(Supabase.instance.client);
+            await friendRepo.deletePost(postIdToDelete);
+          } catch (e) {
+            print('Failed to delete associated post: $e');
+          }
+        }
       } else {
-        await _habitRepository.logHabit(habit.id!, today, newStatus);
+        // User is completing/skipping
+        String? postId;
+
+        // Only create post if completing a public habit
+        if (newStatus == 'completed' && habit.isPublic) {
+          // Check if log already exists with a post_id
+          final formattedDate = today.toIso8601String().split('T')[0];
+          final existingLog = await Supabase.instance.client
+              .from('habit_logs')
+              .select('post_id')
+              .eq('habit_id', habit.id!)
+              .eq('target_date', formattedDate)
+              .maybeSingle();
+
+          final existingPostId = existingLog?['post_id'] as String?;
+
+          // Only create post if one doesn't exist yet
+          if (existingPostId == null) {
+            try {
+              // Create post and get its ID
+              final createdPost = await Supabase.instance.client
+                  .from('posts')
+                  .insert({
+                    'user_id': Supabase.instance.client.auth.currentUser!.id,
+                    'content': 'abis bantai "${habit.title}", nih! 💪',
+                  })
+                  .select('id')
+                  .single();
+
+              postId = createdPost['id'] as String;
+            } catch (e) {
+              print('Failed to create auto-post: $e');
+            }
+          }
+        }
+
+        // Log habit with post_id (if created)
+        await _habitRepository.logHabit(
+          habit.id!,
+          today,
+          newStatus,
+          postId: postId,
+        );
       }
       // Also update weekly logs locally to reflect the change immediately in weekly view if visible
       // Only simpler way is to re-fetch or manuall update the map.

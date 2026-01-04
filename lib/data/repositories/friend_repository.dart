@@ -334,25 +334,7 @@ class FriendRepository {
     final cursorDate = beforeDate ?? DateTime.now();
     final cursorIso = cursorDate.toUtc().toIso8601String();
 
-    // 2. Fetch completed habits
-    final habitLogsResponse = await _supabase
-        .from('habit_logs')
-        .select('''
-          *,
-          habit:habits!inner(
-            title,
-            is_public,
-            user:profiles!inner(*)
-          ),
-          reactions:reactions(*)
-        ''')
-        .eq('status', 'completed')
-        .inFilter('habit.user_id', friendIds)
-        .lt('completed_at', cursorIso) // Cursor filter
-        .order('completed_at', ascending: false)
-        .limit(limit);
-
-    // 3. Fetch posts
+    // Fetch posts only (habit_logs removed - auto-posts are created instead)
     final postsResponse = await _supabase
         .from('posts')
         .select('''
@@ -365,16 +347,8 @@ class FriendRepository {
         .order('created_at', ascending: false)
         .limit(limit);
 
-    // 4. Merge and Sort
+    // Convert posts to feed format
     final mixedFeed = <Map<String, dynamic>>[];
-
-    for (var log in habitLogsResponse) {
-      mixedFeed.add({
-        'type': 'habit_log',
-        'data': log,
-        'timestamp': DateTime.parse(log['completed_at']),
-      });
-    }
 
     for (var post in postsResponse) {
       mixedFeed.add({
@@ -435,25 +409,31 @@ class FriendRepository {
     };
   }
 
-  // Search users by username
   // Send Notification
   Future<void> sendNotification({
     required String recipientId,
     required String type,
     required String title,
     required String body,
+    String? postId,
+    String? habitLogId,
   }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 
     try {
-      await _supabase.from('notifications').insert({
+      final notificationData = {
         'recipient_id': recipientId,
         'sender_id': user.id,
         'type': type,
         'title': title,
         'body': body,
-      });
+      };
+
+      if (postId != null) notificationData['post_id'] = postId;
+      if (habitLogId != null) notificationData['habit_log_id'] = habitLogId;
+
+      await _supabase.from('notifications').insert(notificationData);
     } catch (e) {
       print('Error sending notification: $e');
     }

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
+import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:strik_app/services/notification_service.dart';
 import 'package:strik_app/core/theme.dart';
@@ -252,6 +253,19 @@ class CreateHabitController extends GetxController {
       );
 
       await _habitRepository.createHabit(habit);
+
+      // Auto-create post if habit is public
+      if (isPublic.value) {
+        try {
+          final friendRepo = FriendRepository(Supabase.instance.client);
+          await friendRepo.createPost(
+            'gue baru aja buat habit "${titleController.text}", nih! 😎',
+          );
+        } catch (e) {
+          print('Failed to create auto-post: $e');
+          // Don't block habit creation if post fails
+        }
+      }
 
       if (isReminder.value && reminderTime.value != null) {
         await NotificationService().scheduleDailyNotification(

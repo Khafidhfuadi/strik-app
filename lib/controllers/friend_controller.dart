@@ -610,6 +610,8 @@ class FriendController extends GetxController {
             type: 'reaction',
             title: 'Strik!',
             body: '$senderUsername baru nge-strik feed lo, nih! 🔥',
+            postId: postId,
+            habitLogId: habitLogId,
           );
         }
         // -------------------------------------------

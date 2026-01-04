@@ -29,33 +29,66 @@ class HabitRepository {
 
   Future<Map<String, String>> getHabitLogsForDate(DateTime date) async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return {};
+
       final formattedDate = date.toIso8601String().split('T')[0];
+
+      // Use JOIN to only get logs for current user's habits
       final response = await supabase
           .from('habit_logs')
-          .select('habit_id, status')
+          .select('habit_id, status, habit:habits!inner(user_id)')
+          .eq('habit.user_id', userId)
           .eq('target_date', formattedDate);
 
       final Map<String, String> logs = {};
-      for (var log in (response as List)) {
+      for (var log in response) {
         logs[log['habit_id']] = log['status'];
       }
       return logs;
     } catch (e) {
-      throw Exception('Failed to fetch habit logs: $e');
+      throw Exception('Failed to fetch logs for date: $e');
     }
   }
 
-  Future<void> logHabit(String habitId, DateTime date, String status) async {
+  Future<String?> logHabit(
+    String habitId,
+    DateTime date,
+    String status, {
+    String? postId,
+  }) async {
     try {
       final formattedDate = date.toIso8601String().split('T')[0];
 
+      // Check if log already exists and has a post_id
+      final existing = await supabase
+          .from('habit_logs')
+          .select('post_id')
+          .eq('habit_id', habitId)
+          .eq('target_date', formattedDate)
+          .maybeSingle();
+
+      final existingPostId = existing?['post_id'] as String?;
+
       // Upsert with conflict handling to avoid duplicate key errors on (habit_id, target_date)
-      await supabase.from('habit_logs').upsert({
+      final upsertData = {
         'habit_id': habitId,
         'target_date': formattedDate,
         'status': status,
         'completed_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'habit_id,target_date');
+      };
+
+      // Only update post_id if provided (when creating new post)
+      if (postId != null) {
+        upsertData['post_id'] = postId;
+      }
+
+      await supabase
+          .from('habit_logs')
+          .upsert(upsertData, onConflict: 'habit_id,target_date');
+
+      // Return the post_id (existing or newly set)
+      return postId ?? existingPostId;
     } catch (e) {
       throw Exception('Failed to log habit: $e');
     }
@@ -80,30 +113,34 @@ class HabitRepository {
     DateTime end,
   ) async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return {};
+
       final startFormatted = start.toIso8601String().split('T')[0];
       final endFormatted = end.toIso8601String().split('T')[0];
 
+      // Use JOIN to only get logs for current user's habits
       final response = await supabase
           .from('habit_logs')
-          .select('habit_id, target_date, status')
+          .select('habit_id, target_date, status, habit:habits!inner(user_id)')
+          .eq('habit.user_id', userId)
           .gte('target_date', startFormatted)
           .lte('target_date', endFormatted);
 
       final Map<String, Map<String, String>> logs = {};
 
-      for (var log in (response as List)) {
+      for (var log in response) {
         final habitId = log['habit_id'] as String;
-        final date = log['target_date'] as String; // YYYY-MM-DD
+        final date = log['target_date'] as String;
         final status = log['status'] as String;
 
-        if (!logs.containsKey(habitId)) {
-          logs[habitId] = {};
-        }
+        logs.putIfAbsent(habitId, () => {});
         logs[habitId]![date] = status;
       }
+
       return logs;
     } catch (e) {
-      throw Exception('Failed to fetch range logs: $e');
+      throw Exception('Failed to fetch habit logs: $e');
     }
   }
 
@@ -123,9 +160,16 @@ class HabitRepository {
 
   Future<List<Map<String, dynamic>>> getAllLogs() async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return [];
+
+      // Use JOIN to only get logs for current user's habits
       final response = await supabase
           .from('habit_logs')
-          .select('habit_id, target_date, status, completed_at')
+          .select(
+            'habit_id, target_date, status, completed_at, habit:habits!inner(user_id)',
+          )
+          .eq('habit.user_id', userId)
           .order('target_date', ascending: false);
 
       return List<Map<String, dynamic>>.from(response as List);

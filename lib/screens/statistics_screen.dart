@@ -1072,18 +1072,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     switch (filter) {
       case StatsFilter.weekly:
         if (start.month == end.month) {
-          return 'Statistik Mingguan (${start.day}-${end.day} ${shortMonths[start.month - 1]})';
+          return 'WRAPPED Mingguan (${start.day}-${end.day} ${shortMonths[start.month - 1]})';
         } else {
-          return 'Statistik Mingguan (${start.day} ${shortMonths[start.month - 1]} - ${end.day} ${shortMonths[end.month - 1]})';
+          return 'WRAPPED Mingguan (${start.day} ${shortMonths[start.month - 1]} - ${end.day} ${shortMonths[end.month - 1]})';
         }
       case StatsFilter.monthly:
-        return 'Statistik Bulan ${months[start.month - 1]} (1-${end.day})';
+        return 'WRAPPED ${months[start.month - 1]} (1-${end.day})';
       case StatsFilter.yearly:
-        return 'Statistik Tahun ${start.year} (1 ${shortMonths[0]}-hari ini)';
+        return 'WRAPPED ${start.year} (1 ${shortMonths[0]}-hari ini)';
       case StatsFilter.allTime:
-        return 'Statistik Sepanjang Masaa~';
+        return 'WRAPPED Sepanjang Masaa~';
       case StatsFilter.custom:
-        return 'Statistik ${start.day} ${shortMonths[start.month - 1]} - ${end.day} ${shortMonths[end.month - 1]}';
+        return 'WRAPPED ${start.day} ${shortMonths[start.month - 1]} - ${end.day} ${shortMonths[end.month - 1]}';
     }
   }
 

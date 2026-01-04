@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/controllers/friend_controller.dart';
+import 'package:strik_app/controllers/home_controller.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:strik_app/core/theme.dart';
 
@@ -100,6 +101,22 @@ class NotificationsScreen extends StatelessWidget {
                   onTap: () {
                     if (!isRead) {
                       controller.markNotificationAsRead(notifId);
+                    }
+
+                    // Navigate to feed item if it's a reaction notification
+                    if (notif['type'] == 'reaction') {
+                      final postId = notif['post_id'];
+                      final habitLogId = notif['habit_log_id'];
+
+                      if (postId != null || habitLogId != null) {
+                        // Navigate to Social Screen (Activity Feed tab)
+                        Get.back(); // Close notifications screen
+                        Get.find<HomeController>().selectedIndex.value =
+                            1; // Switch to Social tab
+
+                        // TODO: Scroll to specific item in feed
+                        // This would require adding a method to scroll to item by ID
+                      }
                     }
                   },
                 ),
