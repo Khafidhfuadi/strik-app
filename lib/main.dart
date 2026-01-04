@@ -5,8 +5,10 @@ import 'package:strik_app/core/theme.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/core/auth_gate.dart';
 import 'package:strik_app/services/notification_service.dart';
+import 'package:strik_app/services/push_notification_service.dart';
 import 'package:strik_app/screens/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +19,9 @@ Future<void> main() async {
   try {
     // Load .env file
     await dotenv.load(fileName: ".env");
+
+    // Initialize Firebase
+    await Firebase.initializeApp();
 
     // Initialize notification service
     try {
@@ -31,6 +36,13 @@ Future<void> main() async {
       url: dotenv.env['SUPABASE_URL']!,
       anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
     );
+
+    // Initialize Push Notification (after Supabase so we have currentUser if already logged in)
+    try {
+      await PushNotificationService().init();
+    } catch (e) {
+      debugPrint('Push notification service init failed: $e');
+    }
 
     // Check onboarding status
     final prefs = await SharedPreferences.getInstance();

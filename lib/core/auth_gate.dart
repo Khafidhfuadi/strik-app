@@ -8,6 +8,7 @@ import 'package:strik_app/widgets/custom_loading_indicator.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/controllers/friend_controller.dart';
+import 'package:strik_app/services/push_notification_service.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -29,6 +30,9 @@ class AuthGate extends StatelessWidget {
           Get.put(HabitController(), permanent: false);
           Get.put(HomeController(), permanent: false);
           Get.put(FriendController(), permanent: false);
+
+          // Refresh/Init Push Notifications (will save token if user logged in)
+          PushNotificationService().init();
 
           return const HomeScreen();
         } else {

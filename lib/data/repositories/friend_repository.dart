@@ -17,10 +17,26 @@ class FriendRepository {
       'receiver_id': receiverId,
       'status': 'pending',
     });
+
+    // Notify receiver
+    await sendNotification(
+      recipientId: receiverId,
+      type: 'friend_request',
+      title: 'Teman Baru!',
+      body: 'Seseorang ingin berteman denganmu!',
+    );
   }
 
   // Accept a friend request
   Future<void> acceptRequest(String friendshipId) async {
+    // Get requester ID before updating
+    final friendship = await _supabase
+        .from('friendships')
+        .select('requester_id')
+        .eq('id', friendshipId)
+        .single();
+    final requesterId = friendship['requester_id'];
+
     await _supabase
         .from('friendships')
         .update({
@@ -28,6 +44,16 @@ class FriendRepository {
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', friendshipId);
+
+    // Notify requester
+    if (requesterId != null) {
+      await sendNotification(
+        recipientId: requesterId,
+        type: 'friend_accept',
+        title: 'Hore!',
+        body: 'Permintaan pertemananmu diterima!',
+      );
+    }
   }
 
   // Reject a friend request (can also be used to remove friend)
@@ -263,10 +289,23 @@ class FriendRepository {
     final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('User not logged in');
 
-    await _supabase.from('posts').insert({
-      'user_id': user.id,
-      'content': content,
-    });
+    final res = await _supabase
+        .from('posts')
+        .insert({'user_id': user.id, 'content': content})
+        .select()
+        .single();
+
+    // Fan-out notification to all friends
+    final friends = await getFriends();
+    for (var friend in friends) {
+      await sendNotification(
+        recipientId: friend.id,
+        type: 'new_post',
+        title: 'Update Baru!',
+        body: 'Temanmu baru saja membuat postingan. Cek yuk!',
+        postId: res['id'],
+      );
+    }
   }
 
   // Delete a post
