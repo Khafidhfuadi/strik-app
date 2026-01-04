@@ -405,6 +405,7 @@ class FriendController extends GetxController {
   var leaderboard = <Map<String, dynamic>>[].obs;
   var activityFeed = <Map<String, dynamic>>[].obs;
   var notifications = <Map<String, dynamic>>[].obs;
+  var unreadNotificationCount = 0.obs;
   var isLoadingLeaderboard = false.obs;
   var isLoadingActivity = false.obs;
 
@@ -598,12 +599,17 @@ class FriendController extends GetxController {
         }
 
         if (ownerId != null && ownerId != currentUser.id) {
-          _friendRepository.sendNotification(
+          // Fetch sender's username
+          final senderUsername =
+              currentUser.userMetadata?['username'] ??
+              currentUser.email?.split('@')[0] ??
+              'Teman';
+
+          await _friendRepository.sendNotification(
             recipientId: ownerId,
             type: 'reaction',
             title: 'Strik!',
-            body:
-                '${currentUser.userMetadata?['username'] ?? 'Teman'} baru nge-strik feed lo, nih! 🔥',
+            body: '$senderUsername baru nge-strik feed lo, nih! 🔥',
           );
         }
         // -------------------------------------------
@@ -647,9 +653,19 @@ class FriendController extends GetxController {
 
   Future<void> fetchNotifications() async {
     try {
-      notifications.value = await _friendRepository.getNotifications();
+      final data = await _friendRepository.getNotifications();
+      notifications.value = data;
+
+      // Calculate unread count
+      unreadNotificationCount.value = data
+          .where((notif) => notif['is_read'] == false)
+          .length;
     } catch (e) {
-      print('Error fetching notifications: $e');
+      Get.snackbar(
+        'Error',
+        'Gagal load notifikasi: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
@@ -659,6 +675,27 @@ class FriendController extends GetxController {
       Get.snackbar('Terciduk!', 'Udah dicolek! Semoga dia peka ya! 🫣');
     } catch (e) {
       Get.snackbar('Yah...', 'Gagal nyolek, dia lagi sibuk kali ya? 😔');
+    }
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      // Update in database
+      await _friendRepository.markNotificationAsRead(notificationId);
+
+      // Update local state
+      final index = notifications.indexWhere((n) => n['id'] == notificationId);
+      if (index != -1) {
+        notifications[index]['is_read'] = true;
+        notifications.refresh();
+
+        // Decrement unread count
+        if (unreadNotificationCount.value > 0) {
+          unreadNotificationCount.value--;
+        }
+      }
+    } catch (e) {
+      print('Error marking notification as read: $e');
     }
   }
 }

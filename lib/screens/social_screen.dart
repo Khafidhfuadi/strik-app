@@ -79,7 +79,7 @@ class _SocialScreenState extends State<SocialScreen> {
               child: Row(
                 children: [
                   Text(
-                    'Community',
+                    'Sosialita',
                     style: GoogleFonts.spaceGrotesk(
                       fontWeight: FontWeight.bold,
                       fontSize: 28,
@@ -87,13 +87,22 @@ class _SocialScreenState extends State<SocialScreen> {
                     ),
                   ),
                   const Spacer(),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => Get.to(() => const NotificationsScreen()),
-                  ),
+                  Obx(() {
+                    final unreadCount =
+                        _controller.unreadNotificationCount.value;
+                    return IconButton(
+                      icon: Badge(
+                        label: Text('$unreadCount'),
+                        isLabelVisible: unreadCount > 0,
+                        child: const Icon(
+                          Icons.notifications_outlined,
+                          color: Colors.white,
+                        ),
+                      ),
+                      onPressed: () =>
+                          Get.to(() => const NotificationsScreen()),
+                    );
+                  }),
                   IconButton(
                     icon: const Icon(
                       Icons.person_add_alt_1_rounded,
