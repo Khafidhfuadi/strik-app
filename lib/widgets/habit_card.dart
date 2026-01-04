@@ -68,7 +68,9 @@ class HabitCard extends StatelessWidget {
                   Text(
                     habit.title,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: (status == 'completed' || status == 'skipped')
+                          ? Colors.grey
+                          : Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       decoration: status == 'completed'

@@ -81,7 +81,7 @@ async function createSignedJwt(email: string, privateKeyPem: string): Promise<st
   const signatureBuffer = await crypto.subtle.sign(
     'RSASSA-PKCS1-v1_5',
     privateKey,
-    dataToSign
+    dataToSign as unknown as BufferSource
   )
   const encodedSignature = arrayBufferToBase64Url(signatureBuffer)
 

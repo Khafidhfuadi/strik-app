@@ -299,7 +299,6 @@ class CreateHabitController extends GetxController {
           habitController.habits.refresh();
         }
         Get.back(); // Return to Detail screen
-        Get.snackbar('Sip!', 'Habit udah di-update ya coy! ✨');
       } else {
         await _habitRepository.createHabit(habit);
       }

@@ -109,6 +109,10 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           actions: [
             IconButton(
+              icon: const Icon(Icons.filter_list, color: Colors.white),
+              onPressed: () => _showFilterBottomSheet(context),
+            ),
+            IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () => _navigateAndRefresh(context),
             ),
@@ -639,6 +643,75 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16), // Padding for bottom safe area
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    final controller = Get.find<HabitController>();
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Filter Habit',
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Obx(
+              () => SwitchListTile(
+                title: Text(
+                  'Tampilkan yang udah kelar',
+                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                ),
+                value: controller.showCompleted.value,
+                onChanged: (val) => controller.showCompleted.value = val,
+                activeColor: AppTheme.primary,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            Obx(
+              () => SwitchListTile(
+                title: Text(
+                  'Tampilkan yang di-skip',
+                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                ),
+                value: controller.showSkipped.value,
+                onChanged: (val) => controller.showSkipped.value = val,
+                activeColor: AppTheme.primary,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(text: 'Terapkan Filter', onPressed: () => Get.back()),
+            const SizedBox(height: 16),
           ],
         ),
       ),
