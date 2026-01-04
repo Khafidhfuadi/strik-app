@@ -214,14 +214,29 @@ class FriendRepository {
 
     final allUsers = [...friends, selfUser];
 
-    // 3. Calculate start of week (Monday)
+    // 3. Calculate start of week (Effective Cycle Start = Monday 08:00 AM)
     final now = referenceDate ?? DateTime.now();
-    final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
-    final startOfWeek = DateTime(
-      currentWeekStart.year,
-      currentWeekStart.month,
-      currentWeekStart.day,
+
+    // Find 'current' Monday of this calendar week
+    final calendarWeekStart = now.subtract(Duration(days: now.weekday - 1));
+    final calendarMonday8am = DateTime(
+      calendarWeekStart.year,
+      calendarWeekStart.month,
+      calendarWeekStart.day,
+      8,
+      0,
     );
+
+    // Determine scoring cycle start:
+    // If we are BEFORE Monday 08:00 AM, we are still in the PREVIOUS cycle.
+    // E.g., Monday 05:00 AM -> Cycle started LAST Monday 08:00 AM.
+    // If we are AFTER Monday 08:00 AM (e.g. 09:00, 13:00, Tuesday...), cycle started THIS Monday 08:00 AM.
+    DateTime startOfWeek;
+    if (now.isBefore(calendarMonday8am)) {
+      startOfWeek = calendarMonday8am.subtract(const Duration(days: 7));
+    } else {
+      startOfWeek = calendarMonday8am;
+    }
 
     List<Map<String, dynamic>> leaderboard = [];
 
@@ -266,7 +281,7 @@ class FriendRepository {
         }
       }
 
-      // Count actual completions
+      // Count actual completions using the new startOfWeek
       final completedRes = await _supabase
           .from('habit_logs')
           .select('id')
@@ -300,21 +315,35 @@ class FriendRepository {
   }
 
   Future<UserModel?> getPreviousWeekWinner() async {
-    // 1. Get dates for previous week
+    // 1. Determine Effective Previous Cycle
     final now = DateTime.now();
-    final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
-    final startOfCurrentWeek = DateTime(
-      currentWeekStart.year,
-      currentWeekStart.month,
-      currentWeekStart.day,
+    final calendarWeekStart = now.subtract(Duration(days: now.weekday - 1));
+    final calendarMonday8am = DateTime(
+      calendarWeekStart.year,
+      calendarWeekStart.month,
+      calendarWeekStart.day,
+      8,
+      0,
     );
 
-    final endOfLastWeek = startOfCurrentWeek.subtract(
-      const Duration(seconds: 1),
-    );
-    final startOfLastWeek = startOfCurrentWeek.subtract(
+    DateTime startOfCurrentProcessingCycle;
+    if (now.isBefore(calendarMonday8am)) {
+      // Currently in a cycle that started Last Week Monday 8 AM
+      startOfCurrentProcessingCycle = calendarMonday8am.subtract(
+        const Duration(days: 7),
+      );
+    } else {
+      // Currently in a cycle that started This Week Monday 8 AM
+      startOfCurrentProcessingCycle = calendarMonday8am;
+    }
+
+    // The "Previous" cycle is simply 7 days before the "Current" one
+    final startOfLastCycle = startOfCurrentProcessingCycle.subtract(
       const Duration(days: 7),
     );
+    final endOfLastCycle = startOfCurrentProcessingCycle.subtract(
+      const Duration(seconds: 1),
+    ); // Up to boundary
 
     // 2. Get all friends + self
     final friends = await getFriends();
@@ -359,13 +388,13 @@ class FriendRepository {
         }
       }
 
-      // Count actual completions
+      // Count actual completions in PREVIOUS CYCLE
       final countRes = await _supabase
           .from('habit_logs')
           .select('id')
           .eq('status', 'completed')
-          .gte('completed_at', startOfLastWeek.toIso8601String())
-          .lte('completed_at', endOfLastWeek.toIso8601String())
+          .gte('completed_at', startOfLastCycle.toUtc().toIso8601String())
+          .lte('completed_at', endOfLastCycle.toUtc().toIso8601String())
           .inFilter('habit_id', habitIds);
 
       final totalCompleted = (countRes as List).length;

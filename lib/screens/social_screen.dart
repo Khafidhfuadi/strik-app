@@ -610,6 +610,56 @@ class _SocialScreenState extends State<SocialScreen> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 20),
+                            const Divider(color: Colors.white24),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Siklus Mingguan:',
+                              style: GoogleFonts.spaceGrotesk(
+                                color: Colors.amber,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildInfoBullet(
+                              'Senin 12:00 - Senin 07:59',
+                              'Masa akumulasi poin.',
+                            ),
+                            const SizedBox(height: 4),
+                            _buildInfoBullet(
+                              'Senin 08:00 - 12:00',
+                              'Freeze Time (Showcase Pemenang).',
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.blue.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: Colors.blue,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Habit yang selesai saat Freeze Time akan diakumulasi ke minggu berikutnya.',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.blue[100],
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1810,6 +1860,43 @@ class _SocialScreenState extends State<SocialScreen> {
           }),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoBullet(String time, String desc) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 6, right: 8),
+          width: 6,
+          height: 6,
+          decoration: const BoxDecoration(
+            color: Colors.white54,
+            shape: BoxShape.circle,
+          ),
+        ),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white70,
+                fontSize: 13,
+              ),
+              children: [
+                TextSpan(
+                  text: '$time: ',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                TextSpan(text: desc),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
