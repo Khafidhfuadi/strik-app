@@ -7,13 +7,20 @@ import 'package:strik_app/controllers/habit_detail_controller.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/screens/create_habit_screen.dart';
+import 'package:strik_app/controllers/habit_journal_controller.dart';
+import 'package:strik_app/data/models/habit_journal.dart';
 
 class HabitDetailScreen extends StatelessWidget {
   final Habit habit;
   final HabitDetailController controller;
+  final HabitJournalController journalController;
 
   HabitDetailScreen({super.key, required this.habit})
-    : controller = Get.put(HabitDetailController(habit.id!), tag: habit.id);
+    : controller = Get.put(HabitDetailController(habit.id!), tag: habit.id),
+      journalController = Get.put(
+        HabitJournalController(habit.id!),
+        tag: habit.id,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +135,10 @@ class HabitDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
               ],
+
+              // Journal Section
+              _buildJournalSection(context),
+              const SizedBox(height: 32),
             ],
           ),
         );
@@ -454,5 +465,273 @@ class HabitDetailScreen extends StatelessWidget {
         ),
       );
     });
+  }
+
+  Widget _buildJournalSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Jurnal',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            Obx(() {
+              if (journalController.todayJournal.value == null) {
+                return TextButton.icon(
+                  onPressed: () => _showJournalDialog(context),
+                  icon: const Icon(
+                    Icons.add,
+                    size: 16,
+                    color: AppTheme.primary,
+                  ),
+                  label: Text(
+                    'Tulis Jurnal',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              } else {
+                return const SizedBox.shrink();
+              }
+            }),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Obx(() {
+          if (journalController.isLoading.value) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (journalController.journals.isEmpty) {
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.book_outlined,
+                    size: 48,
+                    color: AppTheme.textSecondary.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Belum ada jurnal',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: journalController.journals.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final journal = journalController.journals[index];
+              return _buildJournalItem(context, journal);
+            },
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildJournalItem(BuildContext context, HabitJournal journal) {
+    return GestureDetector(
+      onTap: () => _showJournalDialog(context, journal: journal),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  DateFormat(
+                    'EEEE, d MMM yyyy',
+                    'id_ID',
+                  ).format(journal.createdAt),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: AppTheme.textSecondary,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              journal.content,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: AppTheme.textPrimary.withValues(alpha: 0.9),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showJournalDialog(BuildContext context, {HabitJournal? journal}) {
+    final textController = TextEditingController(text: journal?.content ?? '');
+    final isEditing = journal != null;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppTheme.background,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                if (isEditing)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () {
+                      Get.back(); // close sheet
+                      _confirmDeleteJournal(journal!);
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: textController,
+              maxLines: 6,
+              style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Gimana habit kamu hari ini? Apa yang kamu rasain?',
+                hintStyle: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textSecondary,
+                ),
+                filled: true,
+                fillColor: AppTheme.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(16),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  final content = textController.text.trim();
+                  if (content.isEmpty) {
+                    Get.snackbar(
+                      'Error',
+                      'Konten jurnal tidak boleh kosong',
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                    return;
+                  }
+
+                  if (isEditing) {
+                    journalController.updateJournal(journal!.id!, content);
+                  } else {
+                    journalController.addJournal(content);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Simpan',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  void _confirmDeleteJournal(HabitJournal journal) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: Text(
+          'Hapus Jurnal?',
+          style: GoogleFonts.spaceGrotesk(color: Colors.white),
+        ),
+        content: Text(
+          'Yakin mau hapus jurnal ini?',
+          style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Gajadi')),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              journalController.deleteJournal(journal.id!);
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 }
