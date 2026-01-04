@@ -22,9 +22,13 @@ class HabitController extends GetxController {
     fetchHabitsAndLogs();
   }
 
-  Future<void> fetchHabitsAndLogs() async {
+  DateTime? _lastFetchTime;
+
+  Future<void> fetchHabitsAndLogs({bool isRefresh = false}) async {
     try {
-      isLoading.value = true;
+      if (!isRefresh) {
+        isLoading.value = true;
+      }
       final fetchedHabits = await _habitRepository.getHabits();
       final today = DateTime.now();
 
@@ -45,14 +49,37 @@ class HabitController extends GetxController {
       habits.value = fetchedHabits;
       todayLogs.value = logs;
       weeklyLogs.value = rangeLogs;
+      _lastFetchTime = DateTime.now();
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to load habits: $e',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      if (!isRefresh) {
+        // Only show snackbar if not pull-to-refresh to avoid spamming
+        Get.snackbar(
+          'Error',
+          'Failed to load habits: $e',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      } else {
+        print('Error refreshing habits: $e');
+      }
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> checkDailyRefresh() async {
+    if (_lastFetchTime == null) return;
+
+    final now = DateTime.now();
+    final lastFetchDate = DateTime(
+      _lastFetchTime!.year,
+      _lastFetchTime!.month,
+      _lastFetchTime!.day,
+    );
+    final todayDate = DateTime(now.year, now.month, now.day);
+
+    if (todayDate.isAfter(lastFetchDate)) {
+      // It's a new day! Refresh everything.
+      await fetchHabitsAndLogs(isRefresh: true);
     }
   }
 

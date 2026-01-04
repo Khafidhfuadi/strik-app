@@ -25,12 +25,13 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final homeController = Get.find<HomeController>();
     // Initialize PageController based on current tab
     int initialPage = 0;
@@ -40,8 +41,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      Get.find<HabitController>().checkDailyRefresh();
+    }
   }
 
   void _onTabChanged(int index) {
@@ -221,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTodayList(HabitController controller) {
     if (controller.habits.isEmpty) {
       return RefreshIndicator(
-        onRefresh: () => controller.fetchHabitsAndLogs(),
+        onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -242,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final habits = controller.sortedHabits;
 
     return RefreshIndicator(
-      onRefresh: () => controller.fetchHabitsAndLogs(),
+      onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: habits.length,
@@ -332,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (controller.habits.isEmpty) {
       return RefreshIndicator(
-        onRefresh: () => controller.fetchHabitsAndLogs(),
+        onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -351,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: () => controller.fetchHabitsAndLogs(),
+      onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
@@ -396,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _navigateAndRefresh(BuildContext context) async {
     await Get.to(() => const CreateHabitScreen());
-    Get.find<HabitController>().fetchHabitsAndLogs();
+    Get.find<HabitController>().fetchHabitsAndLogs(isRefresh: true);
   }
 
   void _showProfileBottomSheet(BuildContext context) {
