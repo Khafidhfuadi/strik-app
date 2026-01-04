@@ -42,8 +42,30 @@ class _AuthScreenState extends State<AuthScreen> {
           // or we just navigated away anyway.
         }
       } else {
+        // Sign In Logic
+        String finalEmail = email;
+
+        // If input doesn't contain '@', treat it as username
+        if (!email.contains('@')) {
+          try {
+            final data = await supabase.rpc(
+              'get_email_by_username',
+              params: {'username_input': email},
+            );
+
+            if (data == null) {
+              throw const AuthException('Username tidak ditemukan! 🧐');
+            }
+            finalEmail = data as String;
+          } catch (e) {
+            // If RPC fails or returns null handled above
+            if (e is AuthException) rethrow; // Pass our custom error
+            throw const AuthException('Gagal ngecek username. Coba lagi!');
+          }
+        }
+
         await supabase.auth.signInWithPassword(
-          email: email,
+          email: finalEmail,
           password: password,
         );
       }
@@ -85,7 +107,7 @@ class _AuthScreenState extends State<AuthScreen> {
               const SizedBox(height: 32),
               CustomTextField(
                 controller: _emailController,
-                label: 'Email Lo',
+                label: 'Username / Email',
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
