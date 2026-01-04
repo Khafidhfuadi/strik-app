@@ -400,6 +400,16 @@ class FriendRepository {
     final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('User not logged in');
 
+    // Fetch user profile to get username
+    final userProfile = await _supabase
+        .from(
+          'profiles',
+        ) // Changed from 'users' to 'profiles' based on other code
+        .select('username')
+        .eq('id', user.id)
+        .single();
+    final username = userProfile['username'] ?? 'Temanmu';
+
     final res = await _supabase
         .from('posts')
         .insert({'user_id': user.id, 'content': content})
@@ -412,8 +422,8 @@ class FriendRepository {
       await sendNotification(
         recipientId: friend.id,
         type: 'new_post',
-        title: 'Update Baru!',
-        body: 'Temanmu baru saja membuat postingan. Cek yuk!',
+        title: 'Feed Baru!',
+        body: '$username baru saja nge-feed, klik notif biar ga FOMO!',
         postId: res['id'],
       );
     }
