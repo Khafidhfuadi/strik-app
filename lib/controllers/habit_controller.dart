@@ -280,4 +280,17 @@ class HabitController extends GetxController {
     int totalCount = habits.length;
     return totalCount == 0 ? 0 : completedCount / totalCount;
   }
+
+  Future<void> deleteHabit(String id) async {
+    try {
+      await _habitRepository.deleteHabit(id);
+      habits.removeWhere((h) => h.id == id);
+      todayLogs.remove(id);
+      weeklyLogs.remove(id);
+      Get.back(); // Back from Detail screen
+      Get.snackbar('Hapus!', 'Habit udah di-delete permanen ya coy. 🗑️');
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal hapus habit: $e');
+    }
+  }
 }

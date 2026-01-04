@@ -10,6 +10,22 @@ class HabitRepository {
     }
   }
 
+  Future<void> updateHabit(Habit habit) async {
+    try {
+      await supabase.from('habits').update(habit.toJson()).eq('id', habit.id!);
+    } catch (e) {
+      throw Exception('Failed to update habit: $e');
+    }
+  }
+
+  Future<void> deleteHabit(String id) async {
+    try {
+      await supabase.from('habits').delete().eq('id', id);
+    } catch (e) {
+      throw Exception('Failed to delete habit: $e');
+    }
+  }
+
   Future<List<Habit>> getHabits() async {
     try {
       final userId = supabase.auth.currentUser?.id;

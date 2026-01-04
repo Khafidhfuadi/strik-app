@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/habit_detail_controller.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
+import 'package:strik_app/screens/create_habit_screen.dart';
 
 class HabitDetailScreen extends StatelessWidget {
   final Habit habit;
@@ -17,181 +19,231 @@ class HabitDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-          onPressed: () => Get.back(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share_outlined, color: AppTheme.textPrimary),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
-            onPressed: () {
-              // TODO: Navigate to Edit
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: AppTheme.textPrimary),
-            onPressed: () {
-              // TODO: Confirm and delete
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Text(
-              habit.title,
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              habit.frequency == 'daily'
-                  ? 'Tiap Hari'
-                  : habit.frequency.capitalizeFirst!,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 32),
+      appBar: _buildAppBar(context, controller),
+      body: Obx(() {
+        final habitController = Get.find<HabitController>();
+        final currentHabit = habitController.habits.firstWhere(
+          (h) => h.id == habit.id,
+          orElse: () => habit,
+        );
 
-            // Stats
-            Obx(() {
-              if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 24,
-                  horizontal: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatItem(
-                      'Totalan',
-                      '${controller.totalCompletions.value}',
-                    ),
-                    _buildVerticalDivider(),
-                    _buildStatItem(
-                      'Best Streak',
-                      '${controller.bestStreak.value}',
-                    ),
-                    _buildVerticalDivider(),
-                    _buildStatItem(
-                      'Streak',
-                      '${controller.currentStreak.value}',
-                    ),
-                  ],
-                ),
-              );
-            }),
-
-            const SizedBox(height: 32),
-
-            // History Calendar
-            Obx(
-              () => Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Wrapped Bulanan',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.chevron_left,
-                          color: AppTheme.textSecondary,
-                        ),
-                        onPressed: () => controller.changeMonth(-1),
-                      ),
-                      Text(
-                        DateFormat(
-                          'MMM yyyy',
-                        ).format(controller.focusedMonth.value),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.chevron_right,
-                          color: AppTheme.textSecondary,
-                        ),
-                        onPressed: () => controller.changeMonth(1),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildInteractiveCalendar(controller),
-
-            const SizedBox(height: 32),
-
-            // Description
-            if (habit.description != null && habit.description!.isNotEmpty) ...[
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
               Text(
-                'Detailnya',
+                currentHabit.title,
                 style: GoogleFonts.spaceGrotesk(
-                  fontSize: 20,
+                  fontSize: 36,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
                 ),
               ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
-                  ),
-                ),
-                child: Text(
-                  habit.description!,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    color: AppTheme.textPrimary.withValues(alpha: 0.8),
-                    height: 1.5,
-                  ),
+              const SizedBox(height: 8),
+              Text(
+                currentHabit.frequency == 'daily'
+                    ? 'Tiap Hari'
+                    : currentHabit.frequency.capitalizeFirst!,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  color: AppTheme.textSecondary,
                 ),
               ),
               const SizedBox(height: 32),
+
+              // Stats
+              _buildStats(controller),
+
+              const SizedBox(height: 32),
+
+              // History Calendar
+              _buildCalendarHeader(controller),
+              const SizedBox(height: 16),
+              _buildInteractiveCalendar(controller, currentHabit),
+
+              const SizedBox(height: 32),
+
+              // Description
+              if (currentHabit.description != null &&
+                  currentHabit.description!.isNotEmpty) ...[
+                Text(
+                  'Detailnya',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Text(
+                    currentHabit.description!,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      color: AppTheme.textPrimary.withValues(alpha: 0.8),
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ],
             ],
+          ),
+        );
+      }),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    HabitDetailController controller,
+  ) {
+    return AppBar(
+      backgroundColor: AppTheme.background,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+        onPressed: () => Get.back(),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
+          onPressed: () {
+            final habitController = Get.find<HabitController>();
+            final currentHabit = habitController.habits.firstWhere(
+              (h) => h.id == habit.id,
+              orElse: () => habit,
+            );
+            Get.to(() => CreateHabitScreen(habit: currentHabit));
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_outline, color: AppTheme.textPrimary),
+          onPressed: () => _showDeleteConfirmation(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStats(HabitDetailController controller) {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildStatItem('Totalan', '${controller.totalCompletions.value}'),
+            _buildVerticalDivider(),
+            _buildStatItem('Best Streak', '${controller.bestStreak.value}'),
+            _buildVerticalDivider(),
+            _buildStatItem('Streak', '${controller.currentStreak.value}'),
           ],
         ),
+      );
+    });
+  }
+
+  Widget _buildCalendarHeader(HabitDetailController controller) {
+    return Obx(
+      () => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Wrapped Bulanan',
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.chevron_left,
+                  color: AppTheme.textSecondary,
+                ),
+                onPressed: () => controller.changeMonth(-1),
+              ),
+              Text(
+                DateFormat('MMM yyyy').format(controller.focusedMonth.value),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.chevron_right,
+                  color: AppTheme.textSecondary,
+                ),
+                onPressed: () => controller.changeMonth(1),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: Text(
+          'Hapus Habit?',
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Beneran mau hapus "${habit.title}"? Progressnya bakal ilang semua loh coy.',
+          style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Gajadi',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back(); // Close dialog
+              final habitController = Get.find<HabitController>();
+              habitController.deleteHabit(habit.id!);
+            },
+            child: Text(
+              'Hapus!',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
   }
@@ -229,7 +281,10 @@ class HabitDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInteractiveCalendar(HabitDetailController controller) {
+  Widget _buildInteractiveCalendar(
+    HabitDetailController controller,
+    Habit currentHabit,
+  ) {
     return Obx(() {
       final focusedDate = controller.focusedMonth.value;
       final daysInMonth = DateUtils.getDaysInMonth(
@@ -319,8 +374,8 @@ class HabitDetailScreen extends StatelessWidget {
                   if (isCompleted) {
                     Color habitColor = AppTheme.primary;
                     try {
-                      if (habit.color.startsWith('0x')) {
-                        habitColor = Color(int.parse(habit.color));
+                      if (currentHabit.color.startsWith('0x')) {
+                        habitColor = Color(int.parse(currentHabit.color));
                       }
                     } catch (_) {}
 

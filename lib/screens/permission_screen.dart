@@ -15,7 +15,7 @@ class PermissionScreen extends StatelessWidget {
       await Permission.scheduleExactAlarm.request();
     }
 
-    // After permissions are asked (regardless of outcome), go to AuthGate
+    // After permissions are asked (regardless of o utcome), go to AuthGate
     Get.offAll(() => const AuthGate());
   }
 

@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/core/theme.dart';
+import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/widgets/custom_text_field.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/controllers/create_habit_controller.dart';
 
 class CreateHabitScreen extends StatelessWidget {
-  const CreateHabitScreen({super.key});
+  final Habit? habit;
+  const CreateHabitScreen({super.key, this.habit});
 
   @override
   Widget build(BuildContext context) {
     // Put the controller
     final controller = Get.put(CreateHabitController());
+
+    // Initialize if editing
+    if (habit != null) {
+      controller.initFromHabit(habit!);
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -28,9 +35,9 @@ class CreateHabitScreen extends StatelessWidget {
               fontWeight: FontWeight.w400,
               color: Colors.white,
             ),
-            children: const [
-              TextSpan(text: 'Bikin '),
-              TextSpan(
+            children: [
+              TextSpan(text: controller.isEdit ? 'Edit ' : 'Bikin '),
+              const TextSpan(
                 text: 'Kebiasaan',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
@@ -584,7 +591,7 @@ class CreateHabitScreen extends StatelessWidget {
             const SizedBox(height: 32),
             Obx(
               () => PrimaryButton(
-                text: 'Gas Simpen!',
+                text: controller.isEdit ? 'Simpan Perubahan!' : 'Gas Simpen!',
                 isLoading: controller.isLoading.value,
                 onPressed: controller.saveHabit,
               ),

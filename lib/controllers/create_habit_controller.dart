@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:strik_app/services/notification_service.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 
 class CreateHabitController extends GetxController {
@@ -42,12 +43,47 @@ class CreateHabitController extends GetxController {
   var isPublic = true.obs;
 
   var isLoading = false.obs;
+  Habit? _existingHabit;
+  bool get isEdit => _existingHabit != null;
 
   @override
   void onClose() {
     titleController.dispose();
     descriptionController.dispose();
     super.onClose();
+  }
+
+  void initFromHabit(Habit habit) {
+    _existingHabit = habit;
+    titleController.text = habit.title;
+    descriptionController.text = habit.description ?? '';
+    isPublic.value = habit.isPublic;
+    isReminder.value = habit.reminderEnabled;
+    reminderTime.value = habit.reminderTime;
+
+    // Map color
+    final colorStr = habit.color;
+    final index = colors.indexWhere(
+      (c) => '0x${c.toARGB32().toRadixString(16).toUpperCase()}' == colorStr,
+    );
+    if (index != -1) selectedColorIndex.value = index;
+
+    // Map frequency
+    if (habit.frequency == 'daily') {
+      selectedFrequencyIndex.value = 0;
+      if (habit.daysOfWeek != null) {
+        selectedDays.assignAll(habit.daysOfWeek!);
+      }
+    } else if (habit.frequency == 'weekly') {
+      selectedFrequencyIndex.value = 1;
+      weeklyFrequency.value = habit.frequencyCount ?? 1;
+    } else if (habit.frequency == 'monthly') {
+      selectedFrequencyIndex.value = 2;
+      if (habit.daysOfWeek != null) {
+        selectedMonthlyDates.assignAll(habit.daysOfWeek!);
+      }
+    }
+    isRepeat.value = true; // For editing existing complex habits
   }
 
   void toggleDay(int index) {
@@ -237,6 +273,7 @@ class CreateHabitController extends GetxController {
       }
 
       final habit = Habit(
+        id: _existingHabit?.id,
         userId: user.id,
         title: titleController.text,
         description: descriptionController.text.isNotEmpty
@@ -252,7 +289,20 @@ class CreateHabitController extends GetxController {
         isPublic: isPublic.value,
       );
 
-      await _habitRepository.createHabit(habit);
+      if (isEdit) {
+        await _habitRepository.updateHabit(habit);
+        // Update local list in HabitController
+        final habitController = Get.find<HabitController>();
+        final idx = habitController.habits.indexWhere((h) => h.id == habit.id);
+        if (idx != -1) {
+          habitController.habits[idx] = habit;
+          habitController.habits.refresh();
+        }
+        Get.back(); // Return to Detail screen
+        Get.snackbar('Sip!', 'Habit udah di-update ya coy! ✨');
+      } else {
+        await _habitRepository.createHabit(habit);
+      }
 
       // Auto-create post if habit is public
       if (isPublic.value) {
