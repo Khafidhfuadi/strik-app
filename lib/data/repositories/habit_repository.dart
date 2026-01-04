@@ -91,7 +91,7 @@ class HabitRepository {
         'habit_id': habitId,
         'target_date': formattedDate,
         'status': status,
-        'completed_at': DateTime.now().toIso8601String(),
+        'completed_at': DateTime.now().toUtc().toIso8601String(),
       };
 
       // Only update post_id if provided (when creating new post)

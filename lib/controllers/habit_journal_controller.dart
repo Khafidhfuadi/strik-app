@@ -177,7 +177,7 @@ class HabitJournalController extends GetxController {
             'habit_id': habitId,
             'user_id': userId,
             'content': content,
-            'created_at': targetDate.toIso8601String(),
+            'created_at': targetDate.toUtc().toIso8601String(),
           })
           .select()
           .single();

@@ -490,7 +490,7 @@ class StatisticsController extends GetxController {
     if (completedWithTime.isNotEmpty) {
       final hourCounts = <int, int>{};
       for (var log in completedWithTime) {
-        final dt = DateTime.parse(log['completed_at']);
+        final dt = DateTime.parse(log['completed_at']).toLocal();
         final hour = dt.hour;
         hourCounts[hour] = (hourCounts[hour] ?? 0) + 1;
       }

@@ -16,7 +16,7 @@ class UserModel {
       id: json['id'],
       username: json['username'],
       avatarUrl: json['avatar_url'],
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: DateTime.parse(json['created_at']).toLocal(),
     );
   }
 

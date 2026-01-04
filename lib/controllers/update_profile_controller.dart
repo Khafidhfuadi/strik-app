@@ -108,7 +108,7 @@ class UpdateProfileController extends GetxController {
       // 2. Prepare update data
       final Map<String, dynamic> profileUpdate = {
         'username': newUsername,
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
       final Map<String, dynamic> metadataUpdate = {'username': newUsername};

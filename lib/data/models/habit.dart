@@ -34,10 +34,17 @@ class Habit {
     if (json['reminder_time'] != null) {
       final parts = (json['reminder_time'] as String).split(':');
       if (parts.length >= 2) {
-        reminder = TimeOfDay(
-          hour: int.parse(parts[0]),
-          minute: int.parse(parts[1]),
+        final now = DateTime.now();
+        // Assume stored time is UTC
+        final utcWithTime = DateTime.utc(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(parts[0]),
+          int.parse(parts[1]),
         );
+        final localTime = utcWithTime.toLocal();
+        reminder = TimeOfDay(hour: localTime.hour, minute: localTime.minute);
       }
     }
 
@@ -55,7 +62,7 @@ class Habit {
       reminderTime: reminder,
       reminderEnabled: json['reminder_enabled'] ?? false,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+          ? DateTime.parse(json['created_at']).toLocal()
           : null,
       isPublic: json['is_public'] ?? true,
     );
@@ -64,7 +71,17 @@ class Habit {
   Map<String, dynamic> toJson() {
     String? reminderString;
     if (reminderTime != null) {
-      reminderString = '${reminderTime!.hour}:${reminderTime!.minute}';
+      // Convert Local TimeOfDay to UTC string
+      final now = DateTime.now();
+      final localDateTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        reminderTime!.hour,
+        reminderTime!.minute,
+      );
+      final utcDateTime = localDateTime.toUtc();
+      reminderString = '${utcDateTime.hour}:${utcDateTime.minute}';
     }
 
     return {

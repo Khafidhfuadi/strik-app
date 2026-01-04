@@ -330,7 +330,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 children: [
                   Expanded(
                     child: _buildStatCard(
-                      'Jam Emas',
+                      'Golden Hour',
                       _controller.goldenHour.value,
                       '',
                       Colors.purpleAccent,

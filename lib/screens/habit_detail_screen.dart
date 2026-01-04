@@ -113,7 +113,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     Text(
                       currentHabit.reminderEnabled &&
                               currentHabit.reminderTime != null
-                          ? 'Ingat: ${currentHabit.reminderTime!.format(context)}'
+                          ? 'Diingetin: ${currentHabit.reminderTime!.format(context)}'
                           : 'Reminder Off',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,

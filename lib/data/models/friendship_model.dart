@@ -21,8 +21,8 @@ class FriendshipModel {
       requesterId: json['requester_id'],
       receiverId: json['receiver_id'],
       status: json['status'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      createdAt: DateTime.parse(json['created_at']).toLocal(),
+      updatedAt: DateTime.parse(json['updated_at']).toLocal(),
     );
   }
 
