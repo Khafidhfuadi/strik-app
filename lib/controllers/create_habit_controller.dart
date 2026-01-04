@@ -9,6 +9,7 @@ import 'package:strik_app/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/widgets/primary_button.dart';
+import 'package:flutter_alarm_clock/flutter_alarm_clock.dart';
 
 class CreateHabitController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
@@ -316,16 +317,15 @@ class CreateHabitController extends GetxController {
         }
       }
 
-      /* Local Notification Removed in favor of Server-Side FCM
+      /* Native Alarm Support */
       if (isReminder.value && reminderTime.value != null) {
-        await NotificationService().scheduleDailyNotification(
-          id: habit.hashCode, // Simple ID generation for now
-          title: 'Waktunya ${titleController.text}!',
-          body: 'Yuk semangat! Jangan lupa ${titleController.text} ya coy!',
-          time: reminderTime.value!,
+        FlutterAlarmClock.createAlarm(
+          hour: reminderTime.value!.hour,
+          minutes: reminderTime.value!.minute,
+          title: 'Habit: ${titleController.text}',
+          skipUi: false, // Let user confirm/edit in alarm app
         );
       }
-      */
 
       Get.back(); // Navigate back
     } catch (e) {

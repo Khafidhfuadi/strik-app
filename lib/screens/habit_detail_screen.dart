@@ -51,6 +51,36 @@ class HabitDetailScreen extends StatelessWidget {
                   color: AppTheme.textSecondary,
                 ),
               ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    currentHabit.reminderEnabled
+                        ? Icons.notifications_active_outlined
+                        : Icons.notifications_off_outlined,
+                    size: 16,
+                    color: currentHabit.reminderEnabled
+                        ? AppTheme.primary
+                        : AppTheme.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    currentHabit.reminderEnabled &&
+                            currentHabit.reminderTime != null
+                        ? 'Ingat: ${currentHabit.reminderTime!.format(context)}'
+                        : 'Reminder Off',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      color: currentHabit.reminderEnabled
+                          ? AppTheme.primary
+                          : AppTheme.textSecondary,
+                      fontWeight: currentHabit.reminderEnabled
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 32),
 
               // Stats
