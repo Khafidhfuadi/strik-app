@@ -6,6 +6,7 @@ import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/screens/create_habit_screen.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
 import 'package:strik_app/screens/social_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:strik_app/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -108,9 +109,10 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () => _navigateAndRefresh(context),
             ),
+            //profile icon
             IconButton(
-              icon: const Icon(Icons.logout_rounded, color: Colors.white),
-              onPressed: () => homeController.logout(),
+              icon: const Icon(Icons.manage_accounts, color: Colors.white),
+              onPressed: () => _showProfileBottomSheet(context),
             ),
           ],
         ),
@@ -353,5 +355,136 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateAndRefresh(BuildContext context) async {
     await Get.to(() => const CreateHabitScreen());
     Get.find<HabitController>().fetchHabitsAndLogs();
+  }
+
+  void _showProfileBottomSheet(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+    final metadata = user?.userMetadata;
+    final username =
+        metadata?['username'] ?? user?.email?.split('@')[0] ?? 'User';
+    final email = user?.email ?? '-';
+    // Use avatar_url if available, otherwise null
+    final avatarUrl = metadata?['avatar_url'] as String?;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Drag Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Avatar
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.primary.withValues(alpha: 0.2),
+                border: Border.all(color: AppTheme.primary, width: 2),
+                image: avatarUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(avatarUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: avatarUrl == null
+                  ? Center(
+                      child: Text(
+                        username.substring(0, 1).toUpperCase(),
+                        style: GoogleFonts.outfit(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(height: 16),
+
+            // User Info
+            Text(
+              username,
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              email,
+              style: GoogleFonts.inter(fontSize: 14, color: Colors.white54),
+            ),
+
+            const SizedBox(height: 24),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 8),
+
+            // Edit Profile (Placeholder)
+            ListTile(
+              leading: const Icon(Icons.edit_rounded, color: Colors.white),
+              title: Text(
+                'Edit Profil',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white54,
+              ),
+              onTap: () {
+                Get.back(); // Close bottom sheet
+                Get.snackbar(
+                  'Coming Soon',
+                  'Fitur edit profil belum tersedia coy!',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              },
+            ),
+
+            // Logout
+            ListTile(
+              leading: const Icon(
+                Icons.logout_rounded,
+                color: Color(0xFFEF4444),
+              ),
+              title: Text(
+                'Logout',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFFEF4444),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                Get.back();
+                Get.find<HomeController>().logout();
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 }
