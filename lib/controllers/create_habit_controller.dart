@@ -283,6 +283,7 @@ class CreateHabitController extends GetxController {
         'Yah error: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
+      print(e);
     } finally {
       isLoading.value = false;
     }

@@ -993,7 +993,10 @@ class _SocialScreenState extends State<SocialScreen> {
                           return IconButton(
                             onPressed: () async {
                               if (canPoke) {
-                                _controller.sendNudge(friend.id);
+                                await _controller.sendNudge(friend.id);
+                                setState(
+                                  () {},
+                                ); // Trigger rebuild to show disabled state
                               } else {
                                 // Show remaining time when disabled icon is tapped
                                 final currentUser =
@@ -1022,7 +1025,10 @@ class _SocialScreenState extends State<SocialScreen> {
                                     final minutesRemaining =
                                         1440 - minutesSinceLastPoke;
                                     final hoursRemaining =
-                                        (minutesRemaining / 60).ceil();
+                                        (minutesRemaining / 60).ceil().clamp(
+                                          1,
+                                          24,
+                                        );
 
                                     Get.snackbar(
                                       'Sabar dulu!',

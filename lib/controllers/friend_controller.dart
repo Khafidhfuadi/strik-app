@@ -676,7 +676,7 @@ class FriendController extends GetxController {
         if (minutesSinceLastPoke < 1440) {
           // 24 hours = 1440 minutes
           final minutesRemaining = 1440 - minutesSinceLastPoke;
-          final hoursRemaining = (minutesRemaining / 60).ceil();
+          final hoursRemaining = (minutesRemaining / 60).ceil().clamp(1, 24);
           Get.snackbar(
             'Sabar dulu!',
             'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
@@ -697,10 +697,10 @@ class FriendController extends GetxController {
             '${currentUser.userMetadata?['username'] ?? 'Teman'} baru aja ngecolek lo, nih!',
       );
 
-      // Update last_poke_at timestamp
+      // Update last_poke_at timestamp (store in UTC)
       await Supabase.instance.client
           .from('friendships')
-          .update({'last_poke_at': DateTime.now().toIso8601String()})
+          .update({'last_poke_at': DateTime.now().toUtc().toIso8601String()})
           .or(
             'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
           )
@@ -757,7 +757,7 @@ class FriendController extends GetxController {
         if (minutesSinceLastPoke < 1440) {
           // 24 hours = 1440 minutes
           final minutesRemaining = 1440 - minutesSinceLastPoke;
-          final hoursRemaining = (minutesRemaining / 60).ceil();
+          final hoursRemaining = (minutesRemaining / 60).ceil().clamp(1, 24);
           Get.snackbar(
             'Sabar dulu!',
             'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
@@ -778,10 +778,10 @@ class FriendController extends GetxController {
             '${currentUser.userMetadata?['username'] ?? 'Teman'} baru aja ngecolek lo, nih!',
       );
 
-      // Update last_poke_at timestamp
+      // Update last_poke_at timestamp (store in UTC)
       await Supabase.instance.client
           .from('friendships')
-          .update({'last_poke_at': DateTime.now().toIso8601String()})
+          .update({'last_poke_at': DateTime.now().toUtc().toIso8601String()})
           .or(
             'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
           )
