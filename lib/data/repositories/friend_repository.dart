@@ -478,6 +478,27 @@ class FriendRepository {
     }
   }
 
+  // Check last poke time (based on notifications)
+  Future<DateTime?> getLastPokeTime(String recipientId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return null;
+
+    final response = await _supabase
+        .from('notifications')
+        .select('created_at')
+        .eq('sender_id', user.id)
+        .eq('recipient_id', recipientId)
+        .eq('type', 'poke')
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (response != null && response['created_at'] != null) {
+      return DateTime.parse(response['created_at']);
+    }
+    return null;
+  }
+
   // Search users by username
   Future<List<UserModel>> searchUsers(String query) async {
     final user = _supabase.auth.currentUser;

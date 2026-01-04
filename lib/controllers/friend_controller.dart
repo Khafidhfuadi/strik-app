@@ -661,20 +661,19 @@ class FriendController extends GetxController {
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser == null) return;
 
-      // Check if already poked today
-      final friendship = await Supabase.instance.client
-          .from('friendships')
-          .select('last_poke_at')
-          .or(
-            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
-          )
-          .eq('status', 'accepted')
-          .maybeSingle();
+      // Check if already poked today (using Notification History)
+      final lastPokeAt = await _friendRepository.getLastPokeTime(friendId);
 
-      if (friendship != null && friendship['last_poke_at'] != null) {
-        final lastPokeAt = DateTime.parse(friendship['last_poke_at']).toLocal();
+      if (lastPokeAt != null) {
         final now = DateTime.now();
-        final minutesSinceLastPoke = now.difference(lastPokeAt).inMinutes;
+        // Ensure lastPokeAt is in local time for comparison if needed,
+        // but difference accounts for it if both are UTC or Local.
+        // DateTime.parse returns local or UTC depending on string.
+        // Helper returns DateTime.parse so it depends on DB string (usually UTC).
+        // Let's ensure strict UTC diff or just diff.
+        final minutesSinceLastPoke = now
+            .difference(lastPokeAt.toLocal())
+            .inMinutes;
 
         if (minutesSinceLastPoke < 1440) {
           // 24 hours = 1440 minutes
@@ -696,18 +695,10 @@ class FriendController extends GetxController {
         recipientId: friendId,
         type: 'poke',
         title: 'Colek! 👋',
-        body:
-            '${currentUser.userMetadata?['username'] ?? 'Teman'} baru aja ngecolek lo, nih!',
+        body: 'Hi, jangan lupa lakuin habit hari ini, ya!',
       );
 
-      // Update last_poke_at timestamp (store in UTC)
-      await Supabase.instance.client
-          .from('friendships')
-          .update({'last_poke_at': DateTime.now().toUtc().toIso8601String()})
-          .or(
-            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
-          )
-          .eq('status', 'accepted');
+      // No need to update friendships table anymore
 
       Get.snackbar(
         'Sukses!',
@@ -742,20 +733,14 @@ class FriendController extends GetxController {
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser == null) return;
 
-      // Check if already poked today
-      final friendship = await Supabase.instance.client
-          .from('friendships')
-          .select('last_poke_at')
-          .or(
-            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
-          )
-          .eq('status', 'accepted')
-          .maybeSingle();
+      // Check if already poked today (using Notification History)
+      final lastPokeAt = await _friendRepository.getLastPokeTime(friendId);
 
-      if (friendship != null && friendship['last_poke_at'] != null) {
-        final lastPokeAt = DateTime.parse(friendship['last_poke_at']).toLocal();
+      if (lastPokeAt != null) {
         final now = DateTime.now();
-        final minutesSinceLastPoke = now.difference(lastPokeAt).inMinutes;
+        final minutesSinceLastPoke = now
+            .difference(lastPokeAt.toLocal())
+            .inMinutes;
 
         if (minutesSinceLastPoke < 1440) {
           // 24 hours = 1440 minutes
@@ -777,18 +762,10 @@ class FriendController extends GetxController {
         recipientId: friendId,
         type: 'poke',
         title: 'Colek! 👋',
-        body:
-            '${currentUser.userMetadata?['username'] ?? 'Teman'} baru aja ngecolek lo, nih!',
+        body: 'Hi, jangan lupa lakuin habit hari ini, ya!',
       );
 
-      // Update last_poke_at timestamp (store in UTC)
-      await Supabase.instance.client
-          .from('friendships')
-          .update({'last_poke_at': DateTime.now().toUtc().toIso8601String()})
-          .or(
-            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
-          )
-          .eq('status', 'accepted');
+      // No need to update friendships table anymore
 
       Get.snackbar('Terciduk!', 'Udah dicolek! Semoga dia peka ya! 🫣');
     } catch (e) {
