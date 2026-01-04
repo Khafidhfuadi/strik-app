@@ -23,12 +23,40 @@ class NotificationService {
     tz.initializeTimeZones();
     // Get local timezone
     final timeZoneName = await FlutterTimezone.getLocalTimezone();
+    final String timeZoneString = timeZoneName.toString();
     try {
-      tz.setLocalLocation(tz.getLocation(timeZoneName.toString()));
+      tz.setLocalLocation(tz.getLocation(timeZoneString));
     } catch (e) {
-      // Fallback to UTC or ID if invalid
-      print('Failed to set location: $e');
-      tz.setLocalLocation(tz.getLocation('Asia/Jakarta')); // Default fallback
+      // Handle verbose timezone names (e.g., "TimezoneInfo(Asia/Jakarta, ...)")
+      // which happen on some Android devices/versions.
+      bool setSuccessfully = false;
+
+      // 1. Try to extract IANA ID using Regex
+      final regex = RegExp(r'([a-zA-Z]+/[a-zA-Z_]+)');
+      final match = regex.firstMatch(timeZoneString);
+      if (match != null) {
+        final extractedName = match.group(1);
+        if (extractedName != null) {
+          try {
+            tz.setLocalLocation(tz.getLocation(extractedName));
+            setSuccessfully = true;
+            print('Successfully extracted and set timezone: $extractedName');
+          } catch (_) {}
+        }
+      }
+
+      // 2. Fallback to Asia/Jakarta (Default for this app)
+      if (!setSuccessfully) {
+        print(
+          'Warning: Could not set local timezone "$timeZoneName". Falling back to Asia/Jakarta.',
+        );
+        try {
+          tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
+        } catch (fallbackError) {
+          print('Critical: Failed to set fallback timezone. Using UTC.');
+          tz.setLocalLocation(tz.getLocation('UTC'));
+        }
+      }
     }
 
     // Android Initialization settings

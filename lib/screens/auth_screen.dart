@@ -18,6 +18,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLoading = false;
   bool _isSignUp = false;
   bool _isPasswordVisible = false;
+  String? _selectedGender;
 
   Future<void> _submit() async {
     setState(() => _isLoading = true);
@@ -26,12 +27,30 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       if (_isSignUp) {
+        if (_selectedGender == null) {
+          throw const AuthException('Pilih gender dulu dong! 🙏');
+        }
+
         await supabase.auth.signUp(
           email: email,
           password: password,
-          data: {'full_name': email.split('@')[0]}, // Simple default name
+          data: {'full_name': email.split('@')[0], 'gender': _selectedGender},
           emailRedirectTo: 'strikapp://auth/callback',
         );
+
+        // Try to update profiles table directly just in case trigger doesn't map it
+        try {
+          final user = supabase.auth.currentUser;
+          if (user != null) {
+            await supabase
+                .from('profiles')
+                .update({'gender': _selectedGender})
+                .eq('id', user.id);
+          }
+        } catch (_) {
+          // Ignore error here, as typical flow might rely on trigger or user not confirmed yet
+        }
+
         if (mounted) {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -129,6 +148,41 @@ class _AuthScreenState extends State<AuthScreen> {
                   },
                 ),
               ),
+              if (_isSignUp) ...[
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedGender,
+                  decoration: InputDecoration(
+                    labelText: 'Gender (buat personalisasi AI)',
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.1),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      color: Colors.white70,
+                    ),
+                    labelStyle: const TextStyle(color: Colors.white70),
+                  ),
+                  dropdownColor: const Color(0xFF1E1E1E),
+                  style: const TextStyle(color: Colors.white),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'Laki-laki',
+                      child: Text('Laki-laki (Bro)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Perempuan',
+                      child: Text('Perempuan (Sis)'),
+                    ),
+                  ],
+                  onChanged: (val) => setState(() => _selectedGender = val),
+                  validator: (val) =>
+                      val == null && _isSignUp ? 'Wajib diisi ya' : null,
+                ),
+              ],
               const SizedBox(height: 24),
               PrimaryButton(
                 text: _isSignUp ? 'Daftar Kuy' : 'Masuk Sini',

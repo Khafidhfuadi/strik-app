@@ -10,17 +10,47 @@ import 'package:strik_app/screens/create_habit_screen.dart';
 import 'package:strik_app/controllers/habit_journal_controller.dart';
 import 'package:strik_app/data/models/habit_journal.dart';
 
-class HabitDetailScreen extends StatelessWidget {
+class HabitDetailScreen extends StatefulWidget {
   final Habit habit;
-  final HabitDetailController controller;
-  final HabitJournalController journalController;
 
-  HabitDetailScreen({super.key, required this.habit})
-    : controller = Get.put(HabitDetailController(habit.id!), tag: habit.id),
-      journalController = Get.put(
-        HabitJournalController(habit.id!),
-        tag: habit.id,
-      );
+  const HabitDetailScreen({super.key, required this.habit});
+
+  @override
+  State<HabitDetailScreen> createState() => _HabitDetailScreenState();
+}
+
+class _HabitDetailScreenState extends State<HabitDetailScreen> {
+  late HabitDetailController controller;
+  late HabitJournalController journalController;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(
+      HabitDetailController(widget.habit.id!),
+      tag: widget.habit.id,
+    );
+    journalController = Get.put(
+      HabitJournalController(widget.habit.id!),
+      tag: widget.habit.id,
+    );
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200) {
+      journalController.fetchJournals();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,116 +60,126 @@ class HabitDetailScreen extends StatelessWidget {
       body: Obx(() {
         final habitController = Get.find<HabitController>();
         final currentHabit = habitController.habits.firstWhere(
-          (h) => h.id == habit.id,
-          orElse: () => habit,
+          (h) => h.id == widget.habit.id,
+          orElse: () => widget.habit,
         );
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Text(
-                currentHabit.title,
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                currentHabit.frequency == 'daily'
-                    ? 'Tiap Hari'
-                    : currentHabit.frequency.capitalizeFirst!,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    currentHabit.reminderEnabled
-                        ? Icons.notifications_active_outlined
-                        : Icons.notifications_off_outlined,
-                    size: 16,
-                    color: currentHabit.reminderEnabled
-                        ? AppTheme.primary
-                        : AppTheme.textSecondary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    currentHabit.reminderEnabled &&
-                            currentHabit.reminderTime != null
-                        ? 'Ingat: ${currentHabit.reminderTime!.format(context)}'
-                        : 'Reminder Off',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      color: currentHabit.reminderEnabled
-                          ? AppTheme.primary
-                          : AppTheme.textSecondary,
-                      fontWeight: currentHabit.reminderEnabled
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // Stats
-              _buildStats(controller),
-
-              const SizedBox(height: 32),
-
-              // History Calendar
-              _buildCalendarHeader(controller),
-              const SizedBox(height: 16),
-              _buildInteractiveCalendar(controller, currentHabit),
-
-              const SizedBox(height: 32),
-
-              // Description
-              if (currentHabit.description != null &&
-                  currentHabit.description!.isNotEmpty) ...[
+        return RefreshIndicator(
+          onRefresh: () async {
+            await journalController.fetchJournals(refresh: true);
+          },
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
                 Text(
-                  'Detailnya',
+                  currentHabit.title,
                   style: GoogleFonts.spaceGrotesk(
-                    fontSize: 20,
+                    fontSize: 36,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                  ),
-                  child: Text(
-                    currentHabit.description!,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      color: AppTheme.textPrimary.withValues(alpha: 0.8),
-                      height: 1.5,
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  currentHabit.frequency == 'daily'
+                      ? 'Tiap Hari'
+                      : currentHabit.frequency.capitalizeFirst!,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    color: AppTheme.textSecondary,
                   ),
                 ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      currentHabit.reminderEnabled
+                          ? Icons.notifications_active_outlined
+                          : Icons.notifications_off_outlined,
+                      size: 16,
+                      color: currentHabit.reminderEnabled
+                          ? AppTheme.primary
+                          : AppTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      currentHabit.reminderEnabled &&
+                              currentHabit.reminderTime != null
+                          ? 'Ingat: ${currentHabit.reminderTime!.format(context)}'
+                          : 'Reminder Off',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: currentHabit.reminderEnabled
+                            ? AppTheme.primary
+                            : AppTheme.textSecondary,
+                        fontWeight: currentHabit.reminderEnabled
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+
+                // Stats
+                _buildStats(controller),
+
+                const SizedBox(height: 32),
+
+                // History Calendar
+                _buildCalendarHeader(controller),
+                const SizedBox(height: 16),
+                _buildInteractiveCalendar(controller, currentHabit),
+
+                const SizedBox(height: 32),
+
+                // Description
+                if (currentHabit.description != null &&
+                    currentHabit.description!.isNotEmpty) ...[
+                  Text(
+                    'Detailnya',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Text(
+                      currentHabit.description!,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        color: AppTheme.textPrimary.withValues(alpha: 0.8),
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+
+                // Journal Section
+                _buildJournalSection(context),
                 const SizedBox(height: 32),
               ],
-
-              // Journal Section
-              _buildJournalSection(context),
-              const SizedBox(height: 32),
-            ],
+            ),
           ),
         );
       }),
@@ -163,8 +203,8 @@ class HabitDetailScreen extends StatelessWidget {
           onPressed: () {
             final habitController = Get.find<HabitController>();
             final currentHabit = habitController.habits.firstWhere(
-              (h) => h.id == habit.id,
-              orElse: () => habit,
+              (h) => h.id == widget.habit.id,
+              orElse: () => widget.habit,
             );
             Get.to(() => CreateHabitScreen(habit: currentHabit));
           },
@@ -258,7 +298,7 @@ class HabitDetailScreen extends StatelessWidget {
           ),
         ),
         content: Text(
-          'Beneran mau hapus "${habit.title}"? Progressnya bakal ilang semua loh coy.',
+          'Beneran mau hapus "${widget.habit.title}"? Progressnya bakal ilang semua loh coy.',
           style: GoogleFonts.plusJakartaSans(color: Colors.white70),
         ),
         actions: [
@@ -273,7 +313,7 @@ class HabitDetailScreen extends StatelessWidget {
             onPressed: () {
               Get.back(); // Close dialog
               final habitController = Get.find<HabitController>();
-              habitController.deleteHabit(habit.id!);
+              habitController.deleteHabit(widget.habit.id!);
             },
             child: Text(
               'Hapus!',
@@ -327,6 +367,9 @@ class HabitDetailScreen extends StatelessWidget {
     Habit currentHabit,
   ) {
     return Obx(() {
+      // dependence on journals to trigger rebuild
+      journalController.journals.length;
+
       final focusedDate = controller.focusedMonth.value;
       final daysInMonth = DateUtils.getDaysInMonth(
         focusedDate.year,
@@ -406,6 +449,14 @@ class HabitDetailScreen extends StatelessWidget {
                   final isToday = DateUtils.isSameDay(date, DateTime.now());
                   final isFuture = date.isAfter(DateTime.now());
 
+                  // Check for journal on this date
+                  final hasJournal = journalController.journals.any((j) {
+                    final jDate = j.createdAt.toLocal();
+                    return jDate.year == date.year &&
+                        jDate.month == date.month &&
+                        jDate.day == date.day;
+                  });
+
                   Color? bgColor;
                   Color? textColor = isFuture
                       ? AppTheme.textSecondary.withOpacity(0.3)
@@ -433,6 +484,23 @@ class HabitDetailScreen extends StatelessWidget {
                   }
 
                   return GestureDetector(
+                    onLongPress: () {
+                      if (!isFuture) {
+                        // Find existing journal to edit, or null to create new
+                        final journal = journalController.journals
+                            .firstWhereOrNull((j) {
+                              final jDate = j.createdAt.toLocal();
+                              return jDate.year == date.year &&
+                                  jDate.month == date.month &&
+                                  jDate.day == date.day;
+                            });
+                        _showJournalDialog(
+                          context,
+                          journal: journal,
+                          date: date,
+                        );
+                      }
+                    },
                     onTap: () {
                       if (!isFuture) {
                         controller.toggleLog(date);
@@ -445,15 +513,34 @@ class HabitDetailScreen extends StatelessWidget {
                         border: border,
                       ),
                       child: Center(
-                        child: Text(
-                          '$dayNum',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            color: textColor,
-                            fontWeight: isCompleted || isToday
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Text(
+                              '$dayNum',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                color: textColor,
+                                fontWeight: isCompleted || isToday
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            if (hasJournal)
+                              Positioned(
+                                bottom: 0,
+                                child: Container(
+                                  width: 14,
+                                  height: 2,
+                                  decoration: BoxDecoration(
+                                    color: isCompleted
+                                        ? Colors.white
+                                        : AppTheme.primary,
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ),
@@ -474,13 +561,30 @@ class HabitDetailScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Jurnal',
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
+            Row(
+              children: [
+                Text(
+                  'Jurnal Habit',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () => _showTipsDialog(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
             ),
             Obx(() {
               if (journalController.todayJournal.value == null) {
@@ -506,6 +610,17 @@ class HabitDetailScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
+        Obx(() {
+          if (journalController.isEligibleForAI.value) {
+            return Column(
+              children: [
+                _buildAICoachCard(context),
+                const SizedBox(height: 24),
+              ],
+            );
+          }
+          return const SizedBox.shrink();
+        }),
         Obx(() {
           if (journalController.isLoading.value) {
             return const Center(child: CircularProgressIndicator());
@@ -543,9 +658,19 @@ class HabitDetailScreen extends StatelessWidget {
           return ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: journalController.journals.length,
+            itemCount:
+                journalController.journals.length +
+                (journalController.isLoadingMore.value ? 1 : 0),
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
+              if (index == journalController.journals.length) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
               final journal = journalController.journals[index];
               return _buildJournalItem(context, journal);
             },
@@ -606,9 +731,14 @@ class HabitDetailScreen extends StatelessWidget {
     );
   }
 
-  void _showJournalDialog(BuildContext context, {HabitJournal? journal}) {
+  void _showJournalDialog(
+    BuildContext context, {
+    HabitJournal? journal,
+    DateTime? date,
+  }) {
     final textController = TextEditingController(text: journal?.content ?? '');
     final isEditing = journal != null;
+    final displayDate = date ?? (journal?.createdAt ?? DateTime.now());
 
     Get.bottomSheet(
       Container(
@@ -625,13 +755,29 @@ class HabitDetailScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat(
+                        'EEEE, d MMM yyyy',
+                        'id_ID',
+                      ).format(displayDate),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
                 if (isEditing)
                   IconButton(
@@ -649,7 +795,7 @@ class HabitDetailScreen extends StatelessWidget {
               maxLines: 6,
               style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
               decoration: InputDecoration(
-                hintText: 'Gimana habit kamu hari ini? Apa yang kamu rasain?',
+                hintText: 'Gimana habit kamu hari ini?',
                 hintStyle: GoogleFonts.plusJakartaSans(
                   color: AppTheme.textSecondary,
                 ),
@@ -680,7 +826,7 @@ class HabitDetailScreen extends StatelessWidget {
                   if (isEditing) {
                     journalController.updateJournal(journal!.id!, content);
                   } else {
-                    journalController.addJournal(content);
+                    journalController.addJournal(content, date: date);
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -695,7 +841,7 @@ class HabitDetailScreen extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.black,
                   ),
                 ),
               ),
@@ -707,6 +853,378 @@ class HabitDetailScreen extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
+  }
+
+  Widget _buildAICoachCard(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.purple.withValues(alpha: 0.15),
+            Colors.blue.withValues(alpha: 0.05),
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.purpleAccent,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Coach Strik AI',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Rekomendasi AI jurnal habit',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  if (journalController.aiInsight.isNotEmpty &&
+                      journalController.isAiCardVisible.value)
+                    IconButton(
+                      onPressed: () {
+                        _confirmGenerateAi(context);
+                      },
+                      icon: Icon(
+                        Icons.refresh,
+                        color: Colors.white60,
+                        size: 20,
+                      ),
+                      tooltip: 'Generate Ulang',
+                    ),
+                  IconButton(
+                    onPressed: () {
+                      journalController.isAiCardVisible.toggle();
+                    },
+                    icon: Obx(
+                      () => Icon(
+                        journalController.isAiCardVisible.value
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        color: Colors.white60,
+                        size: 24,
+                      ),
+                    ),
+                    tooltip: journalController.isAiCardVisible.value
+                        ? 'Sembunyikan'
+                        : 'Tampilkan',
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Obx(
+            () => AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: journalController.isAiCardVisible.value
+                  ? Column(
+                      children: [
+                        const SizedBox(height: 16),
+                        if (journalController.isGeneratingAI.value)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              child: Column(
+                                children: [
+                                  const CircularProgressIndicator(
+                                    color: Colors.purpleAccent,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    "Ngebuatin Rekomendasi Terbaik... 🧠",
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else if (journalController.aiInsight.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildStyledText(
+                                journalController.aiInsight.value,
+                              ),
+                              const SizedBox(height: 12),
+                              if (journalController.aiQuotaUsed.value < 3)
+                                Text(
+                                  "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.white38,
+                                    fontSize: 10,
+                                  ),
+                                )
+                              else
+                                Text(
+                                  "Kuota bulan ini habis. Tunggu bulan depan ya! 🌚",
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: Colors.amber,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                            ],
+                          )
+                        else
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Berdasarkan jurnal & kebiasaan lo bulan ini, gue bisa kasih saran biar makin gacor.",
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    _confirmGenerateAi(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.purpleAccent,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "Minta Saran Coach",
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white38,
+                                  fontSize: 10,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmGenerateAi(BuildContext context) {
+    if (journalController.aiQuotaUsed.value >= 3) {
+      Get.snackbar(
+        'Limit Habis',
+        'Jatah coach bulan ini udah kepake semua. Tunggu bulan depan ya! 🌚',
+        backgroundColor: Colors.red.withValues(alpha: 0.1),
+        colorText: Colors.redAccent,
+      );
+      return;
+    }
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          "Minta Saran Coach Strik AI?",
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Tindakan ini bakal pake 1 kuota generate kamu.",
+              style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Sisa Kuota: ${3 - journalController.aiQuotaUsed.value}x lagi",
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              "Batal",
+              style: GoogleFonts.plusJakartaSans(color: Colors.white60),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              Get.back(); // Close dialog
+
+              // Prepare stats logic here since we moved it out of the button
+              final totalLogs = controller.logs.length;
+              final completed = controller.logs
+                  .where((l) => l['status'] == 'completed')
+                  .length;
+              final skipped = controller.logs
+                  .where((l) => l['status'] == 'skipped')
+                  .length;
+
+              final stats = {
+                'total_logs': totalLogs,
+                'completed': completed,
+                'skipped': skipped,
+                'rate': totalLogs > 0
+                    ? (completed / totalLogs * 100).toStringAsFixed(1)
+                    : '0',
+              };
+
+              journalController.generateAiInsight(widget.habit.title, stats);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purpleAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              "Lanjut Gas!",
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStyledText(String text) {
+    if (text.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final List<TextSpan> spans = [];
+    // Regex to match **bold** OR *bold*, allowing newlines
+    final RegExp exp = RegExp(r'(\*{1,2})(.*?)(\1)', dotAll: true);
+    final matches = exp.allMatches(text);
+
+    int lastIndex = 0;
+    for (final match in matches) {
+      // Add text before the match
+      if (match.start > lastIndex) {
+        spans.add(
+          TextSpan(
+            text: text.substring(lastIndex, match.start),
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white.withValues(alpha: 0.95),
+              fontSize: 14,
+              height: 1.6,
+            ),
+          ),
+        );
+      }
+
+      // Add the bold text (without asterisks)
+      spans.add(
+        TextSpan(
+          text: match.group(2), // The content inside the asterisks
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white, // Pure white for bold
+            fontSize: 14,
+            fontWeight: FontWeight.bold, // BOLD
+            height: 1.6,
+          ),
+        ),
+      );
+
+      lastIndex = match.end;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      spans.add(
+        TextSpan(
+          text: text.substring(lastIndex),
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white.withValues(alpha: 0.95),
+            fontSize: 14,
+            height: 1.6,
+          ),
+        ),
+      );
+    }
+
+    return RichText(text: TextSpan(children: spans));
   }
 
   void _confirmDeleteJournal(HabitJournal journal) {
@@ -732,6 +1250,75 @@ class HabitDetailScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showTipsDialog(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.lightbulb_outline, color: Colors.amber),
+            const SizedBox(width: 8),
+            Text(
+              'Jurnal Tips',
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildTipItem(
+              Icons.touch_app_outlined,
+              'Tahan lama pada tanggal di kalender untuk melihat atau membuat jurnal masa lalu.',
+            ),
+            const SizedBox(height: 16),
+            _buildTipItem(
+              Icons.psychology_outlined,
+              'Rutin buat jurnal minimal 10x pada setiap bulan untuk mendapatkan rekomendasi personal dari AI Coach.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Oke, Paham',
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipItem(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: AppTheme.textSecondary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.plusJakartaSans(
+              color: AppTheme.textPrimary.withValues(alpha: 0.9),
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
