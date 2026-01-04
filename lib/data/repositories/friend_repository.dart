@@ -193,8 +193,8 @@ class FriendRepository {
         .eq('is_read', false);
   }
 
-  // Get leaderboard data (Friends + Self)
-  // Consumes a lot of reads if friends list is huge, but fine for MVP
+  // Get leaderboard data (Friends + Self) with fair scoring
+  // Score = (Completion Rate × 100) + (Total Completed × 0.5)
   Future<List<Map<String, dynamic>>> getLeaderboard() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return [];
@@ -203,7 +203,6 @@ class FriendRepository {
     final friends = await getFriends();
 
     // 2. Add self to the list
-    // We need our own profile first
     final selfProfileRes = await _supabase
         .from('profiles')
         .select()
@@ -213,9 +212,8 @@ class FriendRepository {
 
     final allUsers = [...friends, selfUser];
 
-    // 3. For each user, count completed habits in CURRENT WEEK (starting Monday)
+    // 3. Calculate start of week (Monday)
     final now = DateTime.now();
-    // Calculate start of week (Monday)
     final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
     final startOfWeek = DateTime(
       currentWeekStart.year,
@@ -226,24 +224,74 @@ class FriendRepository {
     List<Map<String, dynamic>> leaderboard = [];
 
     for (var u in allUsers) {
-      // Aggregate query would be better in SQL function, but doing in client for speed of dev
-      // Count 'completed' logs since start of week
-      final countRes = await _supabase
+      final habitIds = await _getHabitIdsForUser(u.id);
+      if (habitIds.isEmpty) {
+        leaderboard.add({
+          'user': u,
+          'score': 0.0,
+          'completionRate': 0.0,
+          'totalCompleted': 0,
+          'totalExpected': 0,
+        });
+        continue;
+      }
+
+      // Get all habits for this user to calculate expected completions
+      final habitsRes = await _supabase
+          .from('habits')
+          .select('frequency, days_of_week, frequency_count')
+          .eq('user_id', u.id);
+
+      // Calculate expected completions for the week
+      int totalExpected = 0;
+      for (var habit in habitsRes) {
+        final frequency = habit['frequency'] as String;
+        if (frequency == 'daily') {
+          // Check if specific days are selected
+          final daysOfWeek = habit['days_of_week'] as List?;
+          if (daysOfWeek != null && daysOfWeek.isNotEmpty) {
+            totalExpected += daysOfWeek.length; // Count selected days
+          } else {
+            totalExpected += 7; // Every day if no specific days
+          }
+        } else if (frequency == 'weekly') {
+          final weeklyFreq = habit['frequency_count'] as int? ?? 1;
+          totalExpected += weeklyFreq.clamp(0, 7);
+        } else if (frequency == 'monthly') {
+          // For monthly, use frequency_count as times per week
+          final monthlyFreq = habit['frequency_count'] as int? ?? 1;
+          totalExpected += monthlyFreq.clamp(0, 7);
+        }
+      }
+
+      // Count actual completions
+      final completedRes = await _supabase
           .from('habit_logs')
-          .select('id') // just select id to count
+          .select('id')
           .eq('status', 'completed')
           .gte('completed_at', startOfWeek.toUtc().toIso8601String())
-          .inFilter(
-            'habit_id',
-            (await _getHabitIdsForUser(u.id)),
-          ); // Helper needed to get habit IDs for user
+          .inFilter('habit_id', habitIds);
 
-      leaderboard.add({'user': u, 'score': (countRes as List).length});
+      final totalCompleted = (completedRes as List).length;
+
+      // Calculate completion rate and hybrid score
+      final completionRate = totalExpected > 0
+          ? (totalCompleted / totalExpected) * 100
+          : 0.0;
+      final hybridScore = (completionRate * 1.0) + (totalCompleted * 0.5);
+
+      leaderboard.add({
+        'user': u,
+        'score': hybridScore,
+        'completionRate': completionRate,
+        'totalCompleted': totalCompleted,
+        'totalExpected': totalExpected,
+      });
     }
 
-    // 4. Sort by score desc
+    // 4. Sort by hybrid score desc
     leaderboard.sort(
-      (a, b) => (b['score'] as int).compareTo(a['score'] as int),
+      (a, b) => (b['score'] as double).compareTo(a['score'] as double),
     );
 
     return leaderboard;
@@ -267,7 +315,6 @@ class FriendRepository {
     );
 
     // 2. Get all friends + self
-    // Note: duplicated logic from getLeaderboard, refactor if time permits
     final friends = await getFriends();
     final selfProfileRes = await _supabase
         .from('profiles')
@@ -277,27 +324,63 @@ class FriendRepository {
     final selfUser = UserModel.fromJson(selfProfileRes);
     final allUsers = [...friends, selfUser];
 
-    // 3. Find winner
+    // 3. Find winner using hybrid scoring
     UserModel? winner;
-    int maxScore = -1;
+    double maxScore = -1;
 
     for (var u in allUsers) {
+      final habitIds = await _getHabitIdsForUser(u.id);
+      if (habitIds.isEmpty) continue;
+
+      // Get habits to calculate expected
+      final habitsRes = await _supabase
+          .from('habits')
+          .select('frequency, days_of_week, frequency_count')
+          .eq('user_id', u.id);
+
+      int totalExpected = 0;
+      for (var habit in habitsRes) {
+        final frequency = habit['frequency'] as String;
+        if (frequency == 'daily') {
+          final daysOfWeek = habit['days_of_week'] as List?;
+          if (daysOfWeek != null && daysOfWeek.isNotEmpty) {
+            totalExpected += daysOfWeek.length;
+          } else {
+            totalExpected += 7;
+          }
+        } else if (frequency == 'weekly') {
+          final weeklyFreq = habit['frequency_count'] as int? ?? 1;
+          totalExpected += weeklyFreq.clamp(0, 7);
+        } else if (frequency == 'monthly') {
+          final monthlyFreq = habit['frequency_count'] as int? ?? 1;
+          totalExpected += monthlyFreq.clamp(0, 7);
+        }
+      }
+
+      // Count actual completions
       final countRes = await _supabase
           .from('habit_logs')
           .select('id')
           .eq('status', 'completed')
           .gte('completed_at', startOfLastWeek.toIso8601String())
           .lte('completed_at', endOfLastWeek.toIso8601String())
-          .inFilter('habit_id', (await _getHabitIdsForUser(u.id)));
+          .inFilter('habit_id', habitIds);
 
-      final score = (countRes as List).length;
-      if (score > maxScore) {
-        maxScore = score;
+      final totalCompleted = (countRes as List).length;
+
+      // Calculate hybrid score
+      final completionRate = totalExpected > 0
+          ? (totalCompleted / totalExpected) * 100
+          : 0.0;
+      final hybridScore = (completionRate * 1.0) + (totalCompleted * 0.5);
+
+      if (hybridScore > maxScore) {
+        maxScore = hybridScore;
         winner = u;
       }
     }
 
-    // Only return winner if they actually did something (> 0 habits)
+    // Only return winner if they actually did something (score > 0)
     if (maxScore > 0) return winner;
     return null;
   }
