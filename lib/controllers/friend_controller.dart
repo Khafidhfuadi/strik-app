@@ -509,16 +509,17 @@ class FriendController extends GetxController {
     }
   }
 
-  Future<void> createPost(String content) async {
-    if (content.trim().isEmpty) return;
+  Future<bool> createPost(String content) async {
+    if (content.trim().isEmpty) return false;
 
     try {
       isCreatingPost.value = true;
       await _friendRepository.createPost(content);
       Get.snackbar('Mantap!', 'Postingan udah naik nih! 🔥');
-      fetchActivityFeed(); // Refresh feed
+      return true;
     } catch (e) {
       Get.snackbar('Waduh', 'Gagal posting, sinyal aman? 🤯');
+      return false;
     } finally {
       isCreatingPost.value = false;
     }

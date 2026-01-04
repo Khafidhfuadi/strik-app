@@ -26,6 +26,7 @@ class _SocialScreenState extends State<SocialScreen> {
   late PageController _pageController;
 
   final _scrollController = ScrollController();
+  final TextEditingController _postController = TextEditingController();
 
   @override
   void initState() {
@@ -38,6 +39,7 @@ class _SocialScreenState extends State<SocialScreen> {
   void dispose() {
     _pageController.dispose();
     _scrollController.dispose();
+    _postController.dispose();
     super.dispose();
   }
 
@@ -63,6 +65,29 @@ class _SocialScreenState extends State<SocialScreen> {
     if (index == 0) {
       _controller.markFeedAsViewed();
     }
+  }
+
+  Widget _buildBadgeUI(int count, int index, bool isActive) {
+    if (count <= 0) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: index == 0
+            ? Colors.red
+            : (isActive ? Colors.white24 : Colors.grey[800]),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: GoogleFonts.plusJakartaSans(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 
   @override
@@ -156,43 +181,24 @@ class _SocialScreenState extends State<SocialScreen> {
                               ),
                             ),
                             // Badges
-                            Obx(() {
-                              int count = 0;
-                              if (index == 0) {
-                                // Feed Tab
-                                count = _controller.newFeedCount.value;
-                              } else if (index == 2) {
-                                // Friends Tab
-                                count = _controller.friends.length;
-                              }
-
-                              if (count > 0) {
-                                return Container(
-                                  margin: const EdgeInsets.only(left: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: index == 1 && count > 0
-                                        ? Colors.red
-                                        : (isActive
-                                              ? Colors.white24
-                                              : Colors.grey[800]),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    count > 99 ? '99+' : '$count',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            }),
+                            if (index == 0)
+                              Obx(
+                                () => _buildBadgeUI(
+                                  _controller.newFeedCount.value,
+                                  index,
+                                  isActive,
+                                ),
+                              )
+                            else if (index == 2)
+                              Obx(
+                                () => _buildBadgeUI(
+                                  _controller.friends.length,
+                                  index,
+                                  isActive,
+                                ),
+                              )
+                            else
+                              const SizedBox.shrink(),
                           ],
                         ),
                       ),
@@ -491,6 +497,7 @@ class _SocialScreenState extends State<SocialScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
+                  controller: _postController,
                   style: GoogleFonts.plusJakartaSans(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Spill kegiatan lo hari ini...',
@@ -500,8 +507,10 @@ class _SocialScreenState extends State<SocialScreen> {
                     border: InputBorder.none,
                     isDense: true,
                   ),
-                  onSubmitted: (value) {
-                    _controller.createPost(value);
+                  onSubmitted: (value) async {
+                    if (await _controller.createPost(value)) {
+                      _postController.clear();
+                    }
                   },
                 ),
               ),
