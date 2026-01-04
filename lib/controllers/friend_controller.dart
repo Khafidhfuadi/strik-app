@@ -415,6 +415,54 @@ class FriendController extends GetxController {
     }
   }
 
+  Future<void> removeFriend(String friendId, String friendName) async {
+    // Show confirmation dialog
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: Text(
+          'Hapus Teman?',
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Yakin mau hapus $friendName dari daftar teman? Kalian bakal ga bisa liat aktivitas satu sama lain lagi.',
+          style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Gajadi',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back(); // Close dialog
+              try {
+                await _friendRepository.removeFriend(friendId);
+                fetchFriends();
+              } catch (e) {
+                Get.snackbar('Waduh', 'Gagal hapus teman, error nih! 😵');
+              }
+            },
+            child: Text(
+              'Hapus',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+    );
+  }
+
   // --- Engagement Features ---
 
   var leaderboard = <Map<String, dynamic>>[].obs;

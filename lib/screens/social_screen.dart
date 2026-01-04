@@ -1020,102 +1020,140 @@ class _SocialScreenState extends State<SocialScreen> {
               itemCount: _controller.friends.length,
               itemBuilder: (context, index) {
                 final friend = _controller.friends[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        child: Text(friend.username?[0].toUpperCase() ?? '?'),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          friend.username ?? 'User',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
+                return GestureDetector(
+                  onLongPress: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.grey[900],
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
                         ),
                       ),
-                      FutureBuilder<bool>(
-                        future: _controller.canPokeUser(friend.id),
-                        builder: (context, snapshot) {
-                          final canPoke = snapshot.data ?? true;
-                          return IconButton(
-                            onPressed: () async {
-                              if (canPoke) {
-                                await _controller.sendNudge(friend.id);
-                                setState(
-                                  () {},
-                                ); // Trigger rebuild to show disabled state
-                              } else {
-                                // Show remaining time when disabled icon is tapped
-                                final currentUser =
-                                    Supabase.instance.client.auth.currentUser;
-                                if (currentUser != null) {
-                                  final friendship = await Supabase
-                                      .instance
-                                      .client
-                                      .from('friendships')
-                                      .select('last_poke_at')
-                                      .or(
-                                        'and(requester_id.eq.${currentUser.id},receiver_id.eq.${friend.id}),and(requester_id.eq.${friend.id},receiver_id.eq.${currentUser.id})',
-                                      )
-                                      .eq('status', 'accepted')
-                                      .maybeSingle();
+                      builder: (context) => Container(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(
+                                Icons.person_remove,
+                                color: Colors.red,
+                              ),
+                              title: const Text(
+                                'Hapus Teman',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _controller.removeFriend(
+                                  friend.id,
+                                  friend.username ?? 'Unknown',
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          child: Text(friend.username?[0].toUpperCase() ?? '?'),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            friend.username ?? 'User',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        FutureBuilder<bool>(
+                          future: _controller.canPokeUser(friend.id),
+                          builder: (context, snapshot) {
+                            final canPoke = snapshot.data ?? true;
+                            return IconButton(
+                              onPressed: () async {
+                                if (canPoke) {
+                                  await _controller.sendNudge(friend.id);
+                                  setState(
+                                    () {},
+                                  ); // Trigger rebuild to show disabled state
+                                } else {
+                                  // Show remaining time when disabled icon is tapped
+                                  final currentUser =
+                                      Supabase.instance.client.auth.currentUser;
+                                  if (currentUser != null) {
+                                    final friendship = await Supabase
+                                        .instance
+                                        .client
+                                        .from('friendships')
+                                        .select('last_poke_at')
+                                        .or(
+                                          'and(requester_id.eq.${currentUser.id},receiver_id.eq.${friend.id}),and(requester_id.eq.${friend.id},receiver_id.eq.${currentUser.id})',
+                                        )
+                                        .eq('status', 'accepted')
+                                        .maybeSingle();
 
-                                  if (friendship != null &&
-                                      friendship['last_poke_at'] != null) {
-                                    final lastPokeAt = DateTime.parse(
-                                      friendship['last_poke_at'],
-                                    ).toLocal();
-                                    final now = DateTime.now();
-                                    final minutesSinceLastPoke = now
-                                        .difference(lastPokeAt)
-                                        .inMinutes;
-                                    final minutesRemaining =
-                                        1440 - minutesSinceLastPoke;
-                                    final hoursRemaining =
-                                        (minutesRemaining / 60).ceil().clamp(
-                                          1,
-                                          24,
-                                        );
+                                    if (friendship != null &&
+                                        friendship['last_poke_at'] != null) {
+                                      final lastPokeAt = DateTime.parse(
+                                        friendship['last_poke_at'],
+                                      ).toLocal();
+                                      final now = DateTime.now();
+                                      final minutesSinceLastPoke = now
+                                          .difference(lastPokeAt)
+                                          .inMinutes;
+                                      final minutesRemaining =
+                                          1440 - minutesSinceLastPoke;
+                                      final hoursRemaining =
+                                          (minutesRemaining / 60).ceil().clamp(
+                                            1,
+                                            24,
+                                          );
 
-                                    Get.snackbar(
-                                      'Sabar dulu!',
-                                      'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
-                                      snackPosition: SnackPosition.BOTTOM,
-                                      backgroundColor: Colors.orange
-                                          .withOpacity(0.8),
-                                      colorText: Colors.white,
-                                    );
+                                      Get.snackbar(
+                                        'Sabar dulu!',
+                                        'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
+                                        snackPosition: SnackPosition.BOTTOM,
+                                        backgroundColor: Colors.orange
+                                            .withOpacity(0.8),
+                                        colorText: Colors.white,
+                                      );
+                                    }
                                   }
                                 }
-                              }
-                            },
-                            icon: Text(
-                              '👋',
-                              style: TextStyle(
-                                fontSize: 24,
-                                color: canPoke
-                                    ? null
-                                    : Colors.grey.withOpacity(0.3),
+                              },
+                              icon: Text(
+                                '👋',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  color: canPoke
+                                      ? null
+                                      : Colors.grey.withOpacity(0.3),
+                                ),
                               ),
-                            ),
-                            tooltip: canPoke ? 'Colek' : 'Belum bisa colek',
-                          );
-                        },
-                      ),
-                    ],
+                              tooltip: canPoke ? 'Colek' : 'Belum bisa colek',
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

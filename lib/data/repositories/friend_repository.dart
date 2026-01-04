@@ -61,6 +61,20 @@ class FriendRepository {
     await _supabase.from('friendships').delete().eq('id', friendshipId);
   }
 
+  // Remove an existing friend
+  Future<void> removeFriend(String friendId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('User not logged in');
+
+    // Find and delete the friendship where current user is either requester or receiver
+    await _supabase
+        .from('friendships')
+        .delete()
+        .or('requester_id.eq.${user.id},receiver_id.eq.${user.id}')
+        .or('requester_id.eq.$friendId,receiver_id.eq.$friendId')
+        .eq('status', 'accepted');
+  }
+
   // Get list of friends (accepted status)
   Future<List<UserModel>> getFriends() async {
     final user = _supabase.auth.currentUser;
