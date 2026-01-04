@@ -669,12 +669,14 @@ class FriendController extends GetxController {
           .maybeSingle();
 
       if (friendship != null && friendship['last_poke_at'] != null) {
-        final lastPokeAt = DateTime.parse(friendship['last_poke_at']);
+        final lastPokeAt = DateTime.parse(friendship['last_poke_at']).toLocal();
         final now = DateTime.now();
-        final hoursSinceLastPoke = now.difference(lastPokeAt).inHours;
+        final minutesSinceLastPoke = now.difference(lastPokeAt).inMinutes;
 
-        if (hoursSinceLastPoke < 24) {
-          final hoursRemaining = 24 - hoursSinceLastPoke;
+        if (minutesSinceLastPoke < 1440) {
+          // 24 hours = 1440 minutes
+          final minutesRemaining = 1440 - minutesSinceLastPoke;
+          final hoursRemaining = (minutesRemaining / 60).ceil();
           Get.snackbar(
             'Sabar dulu!',
             'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
@@ -732,9 +734,59 @@ class FriendController extends GetxController {
     }
   }
 
-  Future<void> sendNudge(String userId) async {
+  Future<void> sendNudge(String friendId) async {
     try {
-      await _friendRepository.sendNudge(userId);
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
+
+      // Check if already poked today
+      final friendship = await Supabase.instance.client
+          .from('friendships')
+          .select('last_poke_at')
+          .or(
+            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
+          )
+          .eq('status', 'accepted')
+          .maybeSingle();
+
+      if (friendship != null && friendship['last_poke_at'] != null) {
+        final lastPokeAt = DateTime.parse(friendship['last_poke_at']).toLocal();
+        final now = DateTime.now();
+        final minutesSinceLastPoke = now.difference(lastPokeAt).inMinutes;
+
+        if (minutesSinceLastPoke < 1440) {
+          // 24 hours = 1440 minutes
+          final minutesRemaining = 1440 - minutesSinceLastPoke;
+          final hoursRemaining = (minutesRemaining / 60).ceil();
+          Get.snackbar(
+            'Sabar dulu!',
+            'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.orange.withOpacity(0.8),
+            colorText: Colors.white,
+          );
+          return;
+        }
+      }
+
+      // Send poke notification
+      await _friendRepository.sendNotification(
+        recipientId: friendId,
+        type: 'poke',
+        title: 'Colek! 👋',
+        body:
+            '${currentUser.userMetadata?['username'] ?? 'Teman'} baru aja ngecolek lo, nih!',
+      );
+
+      // Update last_poke_at timestamp
+      await Supabase.instance.client
+          .from('friendships')
+          .update({'last_poke_at': DateTime.now().toIso8601String()})
+          .or(
+            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
+          )
+          .eq('status', 'accepted');
+
       Get.snackbar('Terciduk!', 'Udah dicolek! Semoga dia peka ya! 🫣');
     } catch (e) {
       Get.snackbar('Yah...', 'Gagal nyolek, dia lagi sibuk kali ya? 😔');
@@ -759,6 +811,34 @@ class FriendController extends GetxController {
       }
     } catch (e) {
       print('Error marking notification as read: $e');
+    }
+  }
+
+  Future<bool> canPokeUser(String friendId) async {
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return false;
+
+      final friendship = await Supabase.instance.client
+          .from('friendships')
+          .select('last_poke_at')
+          .or(
+            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
+          )
+          .eq('status', 'accepted')
+          .maybeSingle();
+
+      if (friendship != null && friendship['last_poke_at'] != null) {
+        final lastPokeAt = DateTime.parse(friendship['last_poke_at']).toLocal();
+        final now = DateTime.now();
+        final minutesSinceLastPoke = now.difference(lastPokeAt).inMinutes;
+
+        return minutesSinceLastPoke >= 1440; // Can poke if 24+ hours passed
+      }
+
+      return true; // Never poked before, can poke
+    } catch (e) {
+      return true; // On error, allow poke
     }
   }
 }

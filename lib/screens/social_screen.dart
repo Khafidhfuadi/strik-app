@@ -22,7 +22,7 @@ class SocialScreen extends StatefulWidget {
 class _SocialScreenState extends State<SocialScreen> {
   final FriendController _controller = Get.put(FriendController());
   int _selectedIndex = 0;
-  final List<String> _tabs = ['Ranking', 'Feed', 'Friends'];
+  final List<String> _tabs = ['Feed', 'Rank', 'Circle'];
   late PageController _pageController;
 
   final _scrollController = ScrollController();
@@ -60,7 +60,7 @@ class _SocialScreenState extends State<SocialScreen> {
     );
 
     // Mark feed as viewed when Feed tab is tapped
-    if (index == 1) {
+    if (index == 0) {
       _controller.markFeedAsViewed();
     }
   }
@@ -211,14 +211,14 @@ class _SocialScreenState extends State<SocialScreen> {
                 controller: _pageController,
                 onPageChanged: (index) {
                   setState(() => _selectedIndex = index);
-                  if (index == 1) {
-                    // 1 is Activity Feed
+                  if (index == 0) {
+                    // 0 is now Activity Feed
                     _controller.markFeedAsViewed();
                   }
                 },
                 children: [
-                  _buildLeaderboardTab(),
                   _buildActivityFeedTab(),
+                  _buildLeaderboardTab(),
                   _buildFriendsTab(),
                 ],
               ),
@@ -986,10 +986,68 @@ class _SocialScreenState extends State<SocialScreen> {
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => _controller.sendNudge(friend.id),
-                        icon: const Text('👋', style: TextStyle(fontSize: 24)),
-                        tooltip: 'Colek',
+                      FutureBuilder<bool>(
+                        future: _controller.canPokeUser(friend.id),
+                        builder: (context, snapshot) {
+                          final canPoke = snapshot.data ?? true;
+                          return IconButton(
+                            onPressed: () async {
+                              if (canPoke) {
+                                _controller.sendNudge(friend.id);
+                              } else {
+                                // Show remaining time when disabled icon is tapped
+                                final currentUser =
+                                    Supabase.instance.client.auth.currentUser;
+                                if (currentUser != null) {
+                                  final friendship = await Supabase
+                                      .instance
+                                      .client
+                                      .from('friendships')
+                                      .select('last_poke_at')
+                                      .or(
+                                        'and(requester_id.eq.${currentUser.id},receiver_id.eq.${friend.id}),and(requester_id.eq.${friend.id},receiver_id.eq.${currentUser.id})',
+                                      )
+                                      .eq('status', 'accepted')
+                                      .maybeSingle();
+
+                                  if (friendship != null &&
+                                      friendship['last_poke_at'] != null) {
+                                    final lastPokeAt = DateTime.parse(
+                                      friendship['last_poke_at'],
+                                    ).toLocal();
+                                    final now = DateTime.now();
+                                    final minutesSinceLastPoke = now
+                                        .difference(lastPokeAt)
+                                        .inMinutes;
+                                    final minutesRemaining =
+                                        1440 - minutesSinceLastPoke;
+                                    final hoursRemaining =
+                                        (minutesRemaining / 60).ceil();
+
+                                    Get.snackbar(
+                                      'Sabar dulu!',
+                                      'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                      backgroundColor: Colors.orange
+                                          .withOpacity(0.8),
+                                      colorText: Colors.white,
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            icon: Text(
+                              '👋',
+                              style: TextStyle(
+                                fontSize: 24,
+                                color: canPoke
+                                    ? null
+                                    : Colors.grey.withOpacity(0.3),
+                              ),
+                            ),
+                            tooltip: canPoke ? 'Colek' : 'Belum bisa colek',
+                          );
+                        },
                       ),
                     ],
                   ),
