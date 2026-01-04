@@ -343,10 +343,7 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icon(Icons.grid_view_rounded),
           label: 'Home',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.people_alt_rounded),
-          label: 'Social',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.wc_rounded), label: 'Social'),
         BottomNavigationBarItem(
           icon: Icon(Icons.bar_chart_rounded),
           label: 'Stats',

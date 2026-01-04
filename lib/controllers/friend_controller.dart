@@ -653,6 +653,67 @@ class FriendController extends GetxController {
     }
   }
 
+  Future<void> pokeUser(String friendId) async {
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
+
+      // Check if already poked today
+      final friendship = await Supabase.instance.client
+          .from('friendships')
+          .select('last_poke_at')
+          .or(
+            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
+          )
+          .eq('status', 'accepted')
+          .maybeSingle();
+
+      if (friendship != null && friendship['last_poke_at'] != null) {
+        final lastPokeAt = DateTime.parse(friendship['last_poke_at']);
+        final now = DateTime.now();
+        final hoursSinceLastPoke = now.difference(lastPokeAt).inHours;
+
+        if (hoursSinceLastPoke < 24) {
+          final hoursRemaining = 24 - hoursSinceLastPoke;
+          Get.snackbar(
+            'Sabar dulu!',
+            'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.orange.withOpacity(0.8),
+            colorText: Colors.white,
+          );
+          return;
+        }
+      }
+
+      // Send poke notification
+      await _friendRepository.sendNotification(
+        recipientId: friendId,
+        type: 'poke',
+        title: 'Colek! 👋',
+        body:
+            '${currentUser.userMetadata?['username'] ?? 'Teman'} baru aja ngecolek lo, nih!',
+      );
+
+      // Update last_poke_at timestamp
+      await Supabase.instance.client
+          .from('friendships')
+          .update({'last_poke_at': DateTime.now().toIso8601String()})
+          .or(
+            'and(requester_id.eq.${currentUser.id},receiver_id.eq.$friendId),and(requester_id.eq.$friendId,receiver_id.eq.${currentUser.id})',
+          )
+          .eq('status', 'accepted');
+
+      Get.snackbar(
+        'Sukses!',
+        'Udah dicolek tuh! Semoga dia langsung semangat! 🔥',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar('Yah...', 'Gagal nyolek, dia lagi sibuk kali ya? 😔');
+    }
+  }
+
   Future<void> fetchNotifications() async {
     try {
       final data = await _friendRepository.getNotifications();
