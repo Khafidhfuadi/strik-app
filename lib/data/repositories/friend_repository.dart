@@ -161,20 +161,26 @@ class FriendRepository {
 
     final allUsers = [...friends, selfUser];
 
-    // 3. For each user, count completed habits in last 7 days
+    // 3. For each user, count completed habits in CURRENT WEEK (starting Monday)
     final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+    // Calculate start of week (Monday)
+    final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(
+      currentWeekStart.year,
+      currentWeekStart.month,
+      currentWeekStart.day,
+    );
 
     List<Map<String, dynamic>> leaderboard = [];
 
     for (var u in allUsers) {
       // Aggregate query would be better in SQL function, but doing in client for speed of dev
-      // Count 'completed' logs in last 7 days
+      // Count 'completed' logs since start of week
       final countRes = await _supabase
           .from('habit_logs')
           .select('id') // just select id to count
           .eq('status', 'completed')
-          .gte('completed_at', sevenDaysAgo.toIso8601String())
+          .gte('completed_at', startOfWeek.toUtc().toIso8601String())
           .inFilter(
             'habit_id',
             (await _getHabitIdsForUser(u.id)),
@@ -189,6 +195,59 @@ class FriendRepository {
     );
 
     return leaderboard;
+  }
+
+  Future<UserModel?> getPreviousWeekWinner() async {
+    // 1. Get dates for previous week
+    final now = DateTime.now();
+    final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
+    final startOfCurrentWeek = DateTime(
+      currentWeekStart.year,
+      currentWeekStart.month,
+      currentWeekStart.day,
+    );
+
+    final endOfLastWeek = startOfCurrentWeek.subtract(
+      const Duration(seconds: 1),
+    );
+    final startOfLastWeek = startOfCurrentWeek.subtract(
+      const Duration(days: 7),
+    );
+
+    // 2. Get all friends + self
+    // Note: duplicated logic from getLeaderboard, refactor if time permits
+    final friends = await getFriends();
+    final selfProfileRes = await _supabase
+        .from('profiles')
+        .select()
+        .eq('id', _supabase.auth.currentUser!.id)
+        .single();
+    final selfUser = UserModel.fromJson(selfProfileRes);
+    final allUsers = [...friends, selfUser];
+
+    // 3. Find winner
+    UserModel? winner;
+    int maxScore = -1;
+
+    for (var u in allUsers) {
+      final countRes = await _supabase
+          .from('habit_logs')
+          .select('id')
+          .eq('status', 'completed')
+          .gte('completed_at', startOfLastWeek.toIso8601String())
+          .lte('completed_at', endOfLastWeek.toIso8601String())
+          .inFilter('habit_id', (await _getHabitIdsForUser(u.id)));
+
+      final score = (countRes as List).length;
+      if (score > maxScore) {
+        maxScore = score;
+        winner = u;
+      }
+    }
+
+    // Only return winner if they actually did something (> 0 habits)
+    if (maxScore > 0) return winner;
+    return null;
   }
 
   Future<List<String>> _getHabitIdsForUser(String userId) async {
@@ -256,8 +315,11 @@ class FriendRepository {
     }
   }
 
-  // Get Activity Feed (Mixed: Habits + Posts)
-  Future<List<Map<String, dynamic>>> getActivityFeed() async {
+  // Get Activity Feed (Mixed: Habits + Posts) - Paginated
+  Future<List<Map<String, dynamic>>> getActivityFeed({
+    int limit = 10,
+    DateTime? beforeDate,
+  }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return [];
 
@@ -268,6 +330,10 @@ class FriendRepository {
 
     if (friendIds.isEmpty) return [];
 
+    // Use current time if no cursor provided
+    final cursorDate = beforeDate ?? DateTime.now();
+    final cursorIso = cursorDate.toUtc().toIso8601String();
+
     // 2. Fetch completed habits
     final habitLogsResponse = await _supabase
         .from('habit_logs')
@@ -275,14 +341,16 @@ class FriendRepository {
           *,
           habit:habits!inner(
             title,
+            is_public,
             user:profiles!inner(*)
           ),
           reactions:reactions(*)
         ''')
         .eq('status', 'completed')
         .inFilter('habit.user_id', friendIds)
+        .lt('completed_at', cursorIso) // Cursor filter
         .order('completed_at', ascending: false)
-        .limit(20);
+        .limit(limit);
 
     // 3. Fetch posts
     final postsResponse = await _supabase
@@ -293,8 +361,9 @@ class FriendRepository {
           reactions:reactions(*)
         ''')
         .inFilter('user_id', friendIds)
+        .lt('created_at', cursorIso) // Cursor filter
         .order('created_at', ascending: false)
-        .limit(20);
+        .limit(limit);
 
     // 4. Merge and Sort
     final mixedFeed = <Map<String, dynamic>>[];
@@ -317,7 +386,8 @@ class FriendRepository {
 
     mixedFeed.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
 
-    return mixedFeed.take(50).toList();
+    // Return only 'limit' items to keep page size consistent
+    return mixedFeed.take(limit).toList();
   }
 
   // Get Single Post (for Realtime)
@@ -363,6 +433,30 @@ class FriendRepository {
       'data': response,
       'timestamp': DateTime.parse(response['completed_at']),
     };
+  }
+
+  // Search users by username
+  // Send Notification
+  Future<void> sendNotification({
+    required String recipientId,
+    required String type,
+    required String title,
+    required String body,
+  }) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await _supabase.from('notifications').insert({
+        'recipient_id': recipientId,
+        'sender_id': user.id,
+        'type': type,
+        'title': title,
+        'body': body,
+      });
+    } catch (e) {
+      print('Error sending notification: $e');
+    }
   }
 
   // Search users by username

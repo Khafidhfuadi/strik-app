@@ -25,16 +25,28 @@ class _SocialScreenState extends State<SocialScreen> {
   final List<String> _tabs = ['Ranking', 'Feed', 'Friends'];
   late PageController _pageController;
 
+  final _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200) {
+      _controller.loadMoreActivityFeed();
+    }
   }
 
   void _onTabTapped(int index) {
@@ -188,8 +200,13 @@ class _SocialScreenState extends State<SocialScreen> {
             Expanded(
               child: PageView(
                 controller: _pageController,
-                onPageChanged: (index) =>
-                    setState(() => _selectedIndex = index),
+                onPageChanged: (index) {
+                  setState(() => _selectedIndex = index);
+                  if (index == 1) {
+                    // 1 is Activity Feed
+                    _controller.markFeedAsViewed();
+                  }
+                },
                 children: [
                   _buildLeaderboardTab(),
                   _buildActivityFeedTab(),
@@ -237,6 +254,19 @@ class _SocialScreenState extends State<SocialScreen> {
       return ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // Info Text
+          Container(
+            alignment: Alignment.center,
+            margin: const EdgeInsets.only(bottom: 24),
+            child: Text(
+              'Leaderboard reset tiap Senin 🔄',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white54,
+                fontSize: 12,
+              ),
+            ),
+          ),
+
           // Top 3 Podium - Cleaner Design
           if (topThree.isNotEmpty)
             Container(
@@ -317,7 +347,7 @@ class _SocialScreenState extends State<SocialScreen> {
                     ),
                   ),
                   Text(
-                    ' pts',
+                    ' Striks',
                     style: GoogleFonts.plusJakartaSans(
                       color: Colors.grey,
                       fontSize: 14,
@@ -496,279 +526,299 @@ class _SocialScreenState extends State<SocialScreen> {
               );
             }
 
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _controller.activityFeed.length,
-              itemBuilder: (context, index) {
-                final item = _controller.activityFeed[index];
-                final type = item['type'];
-                final data = item['data'];
-                final date = item['timestamp'] as DateTime;
+            return RefreshIndicator(
+              onRefresh: () => _controller.fetchActivityFeed(refresh: true),
+              child: ListView.builder(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                itemCount:
+                    _controller.activityFeed.length +
+                    (_controller.isLoadingMoreActivity.value ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _controller.activityFeed.length) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CustomLoadingIndicator()),
+                    );
+                  }
+                  final item = _controller.activityFeed[index];
+                  final type = item['type'];
+                  final data = item['data'];
+                  final date = item['timestamp'] as DateTime;
 
-                // Map data based on type
-                String titleText = '';
-                String username = '';
-                String? avatarUrl;
-                List reactions = data['reactions'] ?? [];
+                  // Map data based on type
+                  String titleText = '';
+                  String username = '';
+                  String? avatarUrl;
+                  List reactions = data['reactions'] ?? [];
 
-                // Helper to check my reaction
-                bool hasReacted = false;
-                if (currentUser != null) {
-                  hasReacted = reactions.any(
-                    (r) => r['user_id'] == currentUser.id,
-                  );
-                }
+                  // Helper to check my reaction
+                  bool hasReacted = false;
+                  if (currentUser != null) {
+                    hasReacted = reactions.any(
+                      (r) => r['user_id'] == currentUser.id,
+                    );
+                  }
 
-                if (type == 'habit_log') {
-                  // Habit Log
-                  final habit = data['habit'];
-                  final user = habit['user'];
-                  username = user['username'] ?? 'User';
-                  avatarUrl = user['avatar_url'];
-                  titleText = habit['title'];
-                } else {
-                  // Post
-                  final user = data['user'];
-                  username = user['username'] ?? 'User';
-                  avatarUrl = user['avatar_url'];
-                  titleText = data['content'];
-                }
+                  if (type == 'habit_log') {
+                    // Habit Log
+                    final habit = data['habit'];
+                    final user = habit['user'];
+                    username = user['username'] ?? 'User';
+                    avatarUrl = user['avatar_url'];
+                    titleText = habit['title'];
+                  } else {
+                    // Post
+                    final user = data['user'];
+                    username = user['username'] ?? 'User';
+                    avatarUrl = user['avatar_url'];
+                    titleText = data['content'];
+                  }
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900]!.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.05)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundImage: avatarUrl != null
-                                ? NetworkImage(avatarUrl)
-                                : null,
-                            child: avatarUrl == null
-                                ? Text(username[0].toUpperCase())
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                RichText(
-                                  text: TextSpan(
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                    children: [
-                                      TextSpan(
-                                        text: username,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900]!.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundImage: avatarUrl != null
+                                  ? NetworkImage(avatarUrl)
+                                  : null,
+                              child: avatarUrl == null
+                                  ? Text(username[0].toUpperCase())
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontSize: 14,
                                       ),
-                                      TextSpan(
-                                        text: type == 'habit_log'
-                                            ? ' abis bantai '
-                                            : ' ngepost: ',
-                                        style: TextStyle(
-                                          color: Colors.grey[400],
-                                        ),
-                                      ),
-                                      if (type == 'habit_log')
+                                      children: [
                                         TextSpan(
-                                          text: titleText,
+                                          text: username,
                                           style: const TextStyle(
-                                            color: AppTheme.primary,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                    ],
-                                  ),
-                                ),
-                                if (type == 'post') ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    titleText,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: 4),
-                                Text(
-                                  timeago.format(date),
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (type == 'post' &&
-                              data['user_id'] == currentUser?.id)
-                            IconButton(
-                              icon: const Icon(
-                                Icons.more_horiz,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  backgroundColor: Colors.grey[900],
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(20),
-                                    ),
-                                  ),
-                                  builder: (context) => Container(
-                                    padding: const EdgeInsets.all(24),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // Handle Bar
-                                        Container(
-                                          width: 40,
-                                          height: 4,
-                                          margin: const EdgeInsets.only(
-                                            bottom: 24,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[700],
-                                            borderRadius: BorderRadius.circular(
-                                              2,
-                                            ),
+                                        TextSpan(
+                                          text: type == 'habit_log'
+                                              ? ' abis bantai '
+                                              : ' ngepost: ',
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
                                           ),
                                         ),
-                                        // Delete Option
-                                        InkWell(
-                                          onTap: () {
-                                            Navigator.pop(
-                                              context,
-                                            ); // Close sheet
-                                            _controller.deletePost(data['id']);
-                                          },
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 16,
-                                              horizontal: 16,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.red.withOpacity(
-                                                0.1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                const Icon(
-                                                  Icons.delete_outline,
-                                                  color: Colors.red,
-                                                  size: 24,
-                                                ),
-                                                const SizedBox(width: 16),
-                                                Text(
-                                                  'Hapus Postingan',
-                                                  style:
-                                                      GoogleFonts.plusJakartaSans(
-                                                        color: Colors.red,
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                ),
-                                              ],
+                                        if (type == 'habit_log')
+                                          TextSpan(
+                                            text: titleText,
+                                            style: const TextStyle(
+                                              color: AppTheme.primary,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 16),
                                       ],
                                     ),
                                   ),
-                                );
-                              },
-                            ),
-                        ],
-                      ),
-
-                      // Reaction Button
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              if (type == 'habit_log') {
-                                _controller.toggleReaction(
-                                  habitLogId: data['id'],
-                                );
-                              } else {
-                                _controller.toggleReaction(postId: data['id']);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: hasReacted
-                                    ? const Color(0xFFFF5757).withOpacity(0.2)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: hasReacted
-                                      ? const Color(0xFFFF5757)
-                                      : Colors.grey[800]!,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  // Fire Icon (Lottie or Static)
-                                  SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: Lottie.asset(
-                                      'assets/src/strik-logo.json',
-                                      animate: hasReacted,
-                                      repeat: false,
+                                  if (type == 'post') ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      titleText,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 6),
+                                  ],
+                                  const SizedBox(height: 4),
                                   Text(
-                                    '${reactions.length}',
-                                    style: GoogleFonts.spaceGrotesk(
-                                      color: hasReacted
-                                          ? const Color(0xFFFF5757)
-                                          : Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                    timeago.format(date),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
+                            if (type == 'post' &&
+                                data['user_id'] == currentUser?.id)
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.more_horiz,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: Colors.grey[900],
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(20),
+                                      ),
+                                    ),
+                                    builder: (context) => Container(
+                                      padding: const EdgeInsets.all(24),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Handle Bar
+                                          Container(
+                                            width: 40,
+                                            height: 4,
+                                            margin: const EdgeInsets.only(
+                                              bottom: 24,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[700],
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
+                                            ),
+                                          ),
+                                          // Delete Option
+                                          InkWell(
+                                            onTap: () {
+                                              Navigator.pop(
+                                                context,
+                                              ); // Close sheet
+                                              _controller.deletePost(
+                                                data['id'],
+                                              );
+                                            },
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 16,
+                                                    horizontal: 16,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red.withOpacity(
+                                                  0.1,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.delete_outline,
+                                                    color: Colors.red,
+                                                    size: 24,
+                                                  ),
+                                                  const SizedBox(width: 16),
+                                                  Text(
+                                                    'Hapus Postingan',
+                                                    style:
+                                                        GoogleFonts.plusJakartaSans(
+                                                          color: Colors.red,
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+
+                        // Reaction Button
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                if (type == 'habit_log') {
+                                  _controller.toggleReaction(
+                                    habitLogId: data['id'],
+                                  );
+                                } else {
+                                  _controller.toggleReaction(
+                                    postId: data['id'],
+                                  );
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: hasReacted
+                                      ? const Color(0xFFFF5757).withOpacity(0.2)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: hasReacted
+                                        ? const Color(0xFFFF5757)
+                                        : Colors.grey[800]!,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    // Fire Icon (Lottie or Static)
+                                    SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: Lottie.asset(
+                                        'assets/src/strik-logo.json',
+                                        animate: hasReacted,
+                                        repeat: false,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${reactions.length}',
+                                      style: GoogleFonts.spaceGrotesk(
+                                        color: hasReacted
+                                            ? const Color(0xFFFF5757)
+                                            : Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             );
           }),
         ),

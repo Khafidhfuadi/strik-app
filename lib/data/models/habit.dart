@@ -12,6 +12,7 @@ class Habit {
   final TimeOfDay? reminderTime;
   final bool reminderEnabled;
   final DateTime? createdAt;
+  final bool isPublic;
 
   Habit({
     this.id,
@@ -25,6 +26,7 @@ class Habit {
     this.reminderTime,
     this.reminderEnabled = false,
     this.createdAt,
+    this.isPublic = true,
   });
 
   factory Habit.fromJson(Map<String, dynamic> json) {
@@ -55,15 +57,14 @@ class Habit {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
+      isPublic: json['is_public'] ?? true,
     );
   }
 
   Map<String, dynamic> toJson() {
     String? reminderString;
     if (reminderTime != null) {
-      final hour = reminderTime!.hour.toString().padLeft(2, '0');
-      final minute = reminderTime!.minute.toString().padLeft(2, '0');
-      reminderString = '$hour:$minute:00';
+      reminderString = '${reminderTime!.hour}:${reminderTime!.minute}';
     }
 
     return {
@@ -76,6 +77,7 @@ class Habit {
       'frequency_count': frequencyCount,
       'reminder_time': reminderString,
       'reminder_enabled': reminderEnabled,
+      'is_public': isPublic,
     };
   }
 }

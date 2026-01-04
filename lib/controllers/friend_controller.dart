@@ -3,6 +3,12 @@ import 'package:strik_app/data/models/user_model.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:strik_app/main.dart'; // Access global supabase client
 
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+// import 'package:lottie/lottie.dart'; // Unused for now
+import 'package:strik_app/core/theme.dart';
+import 'package:strik_app/widgets/primary_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FriendController extends GetxController {
@@ -22,7 +28,127 @@ class FriendController extends GetxController {
     super.onInit();
     fetchFriends();
     fetchPendingRequests();
+    fetchFriends();
+    fetchPendingRequests();
+    fetchFriends();
+    // fetchPendingRequests(); // Remove duplicate if present (checked in previous view)
     _subscribeToRealtime();
+    checkWeeklyWinner();
+    _loadLastViewedTime();
+  }
+
+  Future<void> _loadLastViewedTime() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _lastViewedFeedMarker = prefs.getString('last_feed_marker');
+    } catch (e) {
+      print('Error loading last viewed marker: $e');
+    }
+  }
+
+  bool _hasShownWinner = false;
+
+  Future<void> checkWeeklyWinner() async {
+    // Prevent duplicate dialogs in session
+    if (_hasShownWinner) return;
+
+    try {
+      final winner = await _friendRepository.getPreviousWeekWinner();
+      if (winner != null) {
+        _hasShownWinner = true;
+
+        // Wait a bit for app to settle
+        await Future.delayed(const Duration(seconds: 2));
+
+        Get.dialog(
+          Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFFFD700), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFFD700).withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Lottie Trophy or Icon Placeholder for now if asset missing
+                  const Icon(
+                    Icons.emoji_events_rounded,
+                    color: Color(0xFFFFD700),
+                    size: 64,
+                  ),
+                  // Lottie.asset('assets/src/trophy.json', height: 100),
+                  const SizedBox(height: 16),
+                  Text(
+                    'JUARA MINGGU LALU! 👑',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: const Color(0xFFFFD700),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFFFD700),
+                        width: 2,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundImage: winner.avatarUrl != null
+                          ? NetworkImage(winner.avatarUrl!)
+                          : null,
+                      backgroundColor: Colors.grey[800],
+                      child: winner.avatarUrl == null
+                          ? Text(
+                              winner.username?[0].toUpperCase() ?? '?',
+                              style: const TextStyle(
+                                fontSize: 32,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    winner.username ?? 'Unknown',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Menyala abangkuh! 🔥',
+                    style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  PrimaryButton(text: 'Keren!', onPressed: () => Get.back()),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error checking winner: $e');
+    }
   }
 
   void _subscribeToRealtime() {
@@ -153,22 +279,15 @@ class FriendController extends GetxController {
       final updatedData = Map<String, dynamic>.from(item['data']);
       final reactions = List<dynamic>.from(updatedData['reactions'] ?? []);
 
-      // Check if reaction from this user already exists
-      final existingIndex = reactions.indexWhere(
-        (r) => r['user_id'] == reaction['user_id'],
-      );
+      // Critical Fix: Ensure NO duplicates by removing any existing reaction by this user first.
+      // This handles:
+      // 1. Replacing optimistic reaction (user_id matches)
+      // 2. Preventing duplicate real reactions (if DB sends double events)
+      // 3. Ensuring count never exceeds 1 per user
+      reactions.removeWhere((r) => r['user_id'] == reaction['user_id']);
 
-      if (existingIndex != -1) {
-        // If existing is optimistic, replace it with real one
-        final existing = reactions[existingIndex];
-        if (existing['id'].toString().startsWith('optimistic_')) {
-          reactions[existingIndex] = reaction;
-        }
-        // If it's real (duplicate event?), do nothing
-      } else {
-        // No existing reaction, add it
-        reactions.add(reaction);
-      }
+      // Add the new valid reaction from Realtime
+      reactions.add(reaction);
 
       updatedData['reactions'] = reactions;
       item['data'] = updatedData;
@@ -289,8 +408,13 @@ class FriendController extends GetxController {
   var isLoadingLeaderboard = false.obs;
   var isLoadingActivity = false.obs;
 
+  var hasMoreActivity = true.obs;
+  var isLoadingMoreActivity = false.obs;
+
+  // Duplicates removed
+
   var newFeedCount = 0.obs;
-  DateTime? _lastViewedFeedTime;
+  String? _lastViewedFeedMarker;
 
   Future<void> fetchLeaderboard() async {
     try {
@@ -305,25 +429,82 @@ class FriendController extends GetxController {
 
   var isCreatingPost = false.obs;
 
-  Future<void> fetchActivityFeed() async {
+  Future<void> fetchActivityFeed({bool refresh = false}) async {
     try {
-      isLoadingActivity.value = true;
-      activityFeed.value = await _friendRepository.getActivityFeed();
+      if (refresh) {
+        isLoadingActivity.value = true;
+        activityFeed.clear();
+        hasMoreActivity.value = true;
+      } else {
+        isLoadingActivity.value = true;
+      }
+
+      // Initial load (limit 10)
+      final newItems = await _friendRepository.getActivityFeed(limit: 10);
+      activityFeed.value = newItems;
+
+      // Check if we have more
+      hasMoreActivity.value = newItems.length >= 10;
 
       // Calculate new feed count
-      if (_lastViewedFeedTime == null) {
+      if (_lastViewedFeedMarker == null) {
+        // Try loading if not ready
+        await _loadLastViewedTime();
+      }
+
+      if (_lastViewedFeedMarker == null) {
         newFeedCount.value = activityFeed.length;
       } else {
-        newFeedCount.value = activityFeed.where((item) {
-          // Repository now returns 'timestamp' as DateTime object in the map
-          final date = item['timestamp'] as DateTime;
-          return date.isAfter(_lastViewedFeedTime!);
-        }).length;
+        int count = 0;
+        bool foundMarker = false;
+
+        for (var item in activityFeed) {
+          final id = '${item['type']}_${item['data']['id']}';
+          if (id == _lastViewedFeedMarker) {
+            foundMarker = true;
+            break;
+          }
+          count++;
+        }
+
+        newFeedCount.value = foundMarker ? count : activityFeed.length;
       }
     } catch (e) {
       print('Error fetching activity feed: $e');
     } finally {
       isLoadingActivity.value = false;
+    }
+  }
+
+  Future<void> loadMoreActivityFeed() async {
+    if (isLoadingMoreActivity.value || !hasMoreActivity.value) return;
+
+    try {
+      isLoadingMoreActivity.value = true;
+
+      DateTime? lastTimestamp;
+      if (activityFeed.isNotEmpty) {
+        final lastItem = activityFeed.last;
+        lastTimestamp = lastItem['timestamp'] as DateTime;
+      }
+
+      final newItems = await _friendRepository.getActivityFeed(
+        limit: 10,
+        beforeDate: lastTimestamp,
+      );
+
+      if (newItems.isEmpty) {
+        hasMoreActivity.value = false;
+      } else {
+        activityFeed.addAll(newItems);
+        if (newItems.length < 10) {
+          hasMoreActivity.value = false;
+        }
+      }
+    } catch (e) {
+      print('Error loading more activity: $e');
+    } finally {
+      isLoadingMoreActivity.value = false;
     }
   }
 
@@ -400,6 +581,32 @@ class FriendController extends GetxController {
           'habit_log_id': habitLogId,
           'type': 'fire',
         });
+
+        // --- NEW: Send Notification if not owner ---
+        String? ownerId;
+        if (postId != null) {
+          final postOwner = data['user'];
+          if (postOwner != null) {
+            ownerId = postOwner['id'];
+          }
+        } else if (habitLogId != null) {
+          final habit = data['habit'];
+          final habitOwner = habit['user'];
+          if (habitOwner != null) {
+            ownerId = habitOwner['id'];
+          }
+        }
+
+        if (ownerId != null && ownerId != currentUser.id) {
+          _friendRepository.sendNotification(
+            recipientId: ownerId,
+            type: 'reaction',
+            title: 'Strik!',
+            body:
+                '${currentUser.userMetadata?['username'] ?? 'Teman'} baru nge-strik feed lo, nih! 🔥',
+          );
+        }
+        // -------------------------------------------
       }
 
       updatedData['reactions'] = updatedReactions;
@@ -420,9 +627,22 @@ class FriendController extends GetxController {
     }
   }
 
-  void markFeedAsViewed() {
+  Future<void> markFeedAsViewed() async {
     newFeedCount.value = 0;
-    _lastViewedFeedTime = DateTime.now();
+
+    // Save the top most item as marker
+    if (activityFeed.isNotEmpty) {
+      final item = activityFeed.first;
+      final markerId = '${item['type']}_${item['data']['id']}';
+      _lastViewedFeedMarker = markerId;
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('last_feed_marker', markerId);
+      } catch (e) {
+        print('Error saving last viewed marker: $e');
+      }
+    }
   }
 
   Future<void> fetchNotifications() async {

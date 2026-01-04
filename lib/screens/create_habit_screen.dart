@@ -194,6 +194,40 @@ class CreateHabitScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _buildSectionContainer(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Tampilkan di Feed',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Temanmu bisa lihat progress habit ini',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  Obx(
+                    () => Switch(
+                      value: controller.isPublic.value,
+                      onChanged: (value) => controller.isPublic.value = value,
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: AppTheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildSectionContainer(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

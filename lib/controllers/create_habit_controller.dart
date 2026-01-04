@@ -38,6 +38,7 @@ class CreateHabitController extends GetxController {
     const Color(0xFF6EE7B7), // Pastel Emerald
   ];
   var selectedColorIndex = 0.obs;
+  var isPublic = true.obs;
 
   var isLoading = false.obs;
 
@@ -247,6 +248,7 @@ class CreateHabitController extends GetxController {
         frequencyCount: frequencyCount,
         reminderTime: reminderTime.value,
         reminderEnabled: isReminder.value,
+        isPublic: isPublic.value,
       );
 
       await _habitRepository.createHabit(habit);

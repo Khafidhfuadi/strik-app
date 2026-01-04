@@ -47,6 +47,7 @@ dependencies:
   flutter_local_notifications: ^19.5.0
   timezone: ^0.10.1
   timeago: ^3.7.1
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
