@@ -4,6 +4,7 @@ import 'package:strik_app/controllers/friend_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:strik_app/core/theme.dart';
+import 'package:strik_app/screens/post_detail_screen.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -103,20 +104,20 @@ class NotificationsScreen extends StatelessWidget {
                       controller.markNotificationAsRead(notifId);
                     }
 
-                    // Navigate to feed item if it's a reaction notification
-                    if (notif['type'] == 'reaction') {
-                      final postId = notif['post_id'];
-                      final habitLogId = notif['habit_log_id'];
+                    final postId = notif['post_id'];
+                    final habitLogId = notif['habit_log_id'];
 
-                      if (postId != null || habitLogId != null) {
-                        // Navigate to Social Screen (Activity Feed tab)
-                        Get.back(); // Close notifications screen
-                        Get.find<HomeController>().selectedIndex.value =
-                            1; // Switch to Social tab
-
-                        // TODO: Scroll to specific item in feed
-                        // This would require adding a method to scroll to item by ID
-                      }
+                    if (postId != null || habitLogId != null) {
+                      Get.to(
+                        () => PostDetailScreen(
+                          postId: postId,
+                          habitLogId: habitLogId,
+                        ),
+                      );
+                    } else if (notif['type'] == 'reaction') {
+                      // Fallback for old reaction notifications without IDs if any
+                      Get.back();
+                      Get.find<HomeController>().selectedIndex.value = 1;
                     }
                   },
                 ),
