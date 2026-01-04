@@ -12,9 +12,13 @@ class HabitRepository {
 
   Future<List<Habit>> getHabits() async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return [];
+
       final response = await supabase
           .from('habits')
           .select()
+          .eq('user_id', userId) // Only fetch current user's habits
           .order('created_at', ascending: false);
 
       return (response as List).map((data) => Habit.fromJson(data)).toList();

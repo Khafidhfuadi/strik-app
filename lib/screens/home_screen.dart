@@ -489,6 +489,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showEditProfileBottomSheet(BuildContext context) {
     final updateController = Get.put(UpdateProfileController());
+    final user = Supabase.instance.client.auth.currentUser;
+    final metadata = user?.userMetadata;
+    final currentAvatarUrl = metadata?['avatar_url'] as String?;
 
     Get.bottomSheet(
       Container(
@@ -520,7 +523,73 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+
+            // Avatar Picker
+            Center(
+              child: GestureDetector(
+                onTap: () => updateController.pickImage(),
+                child: Obx(() {
+                  final selectedImage = updateController.selectedImage.value;
+
+                  return Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.primary.withValues(alpha: 0.2),
+                      border: Border.all(color: AppTheme.primary, width: 2),
+                      image: selectedImage != null
+                          ? DecorationImage(
+                              image: FileImage(selectedImage),
+                              fit: BoxFit.cover,
+                            )
+                          : (currentAvatarUrl != null
+                                ? DecorationImage(
+                                    image: NetworkImage(currentAvatarUrl),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null),
+                    ),
+                    child: selectedImage == null && currentAvatarUrl == null
+                        ? const Icon(
+                            Icons.add_a_photo_rounded,
+                            color: AppTheme.primary,
+                            size: 32,
+                          )
+                        : Stack(
+                            children: [
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.edit,
+                                    color: Colors.black,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'Tap untuk ubah foto',
+                style: GoogleFonts.inter(fontSize: 12, color: Colors.white54),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             CustomTextField(
               controller: updateController.usernameController,
               label: 'Username',

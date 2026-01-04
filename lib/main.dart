@@ -4,8 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/core/auth_gate.dart';
-import 'package:strik_app/controllers/habit_controller.dart';
-import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/services/notification_service.dart';
 
 Future<void> main() async {
@@ -34,11 +32,6 @@ class StrikApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const AuthGate(),
-      // Ensure controllers are available globally
-      initialBinding: BindingsBuilder(() {
-        Get.put(HabitController());
-        Get.put(HomeController());
-      }),
     );
   }
 }

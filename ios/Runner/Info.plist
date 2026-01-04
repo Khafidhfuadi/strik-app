@@ -54,6 +54,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Strik perlu akses ke foto untuk mengubah foto profil kamu</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Strik perlu akses ke kamera untuk mengambil foto profil</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 </dict>
