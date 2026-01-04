@@ -14,6 +14,9 @@ import 'package:strik_app/widgets/habit_card.dart';
 import 'package:strik_app/widgets/weekly_habit_card.dart';
 import 'package:strik_app/screens/statistics_screen.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
+import 'package:strik_app/controllers/update_profile_controller.dart';
+import 'package:strik_app/widgets/custom_text_field.dart';
+import 'package:strik_app/widgets/primary_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -452,12 +455,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.white54,
               ),
               onTap: () {
-                Get.back(); // Close bottom sheet
-                Get.snackbar(
-                  'Coming Soon',
-                  'Fitur edit profil belum tersedia coy!',
-                  snackPosition: SnackPosition.BOTTOM,
-                );
+                Get.back(); // Close view profile sheet
+                _showEditProfileBottomSheet(context);
               },
             ),
 
@@ -480,6 +479,62 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const SizedBox(height: 16),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  void _showEditProfileBottomSheet(BuildContext context) {
+    final updateController = Get.put(UpdateProfileController());
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Edit Profil',
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              controller: updateController.usernameController,
+              label: 'Username',
+              hintText: 'Masukkan username baru',
+            ),
+            const SizedBox(height: 24),
+            Obx(
+              () => PrimaryButton(
+                text: 'Simpan',
+                onPressed: () => updateController.updateProfile(),
+                isLoading: updateController.isLoading.value,
+              ),
+            ),
+            const SizedBox(height: 16), // Padding for bottom safe area
           ],
         ),
       ),
