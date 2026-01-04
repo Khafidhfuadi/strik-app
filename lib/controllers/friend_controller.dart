@@ -489,9 +489,7 @@ class FriendController extends GetxController {
 
       final now = DateTime.now();
       // Check if it's Monday between 08:00 and 12:00
-      // SIMULATION MODE: Force true
-      if (true ||
-          (now.weekday == DateTime.monday && now.hour >= 8 && now.hour < 12)) {
+      if (now.weekday == DateTime.monday && now.hour >= 8 && now.hour < 12) {
         isTransitionPeriod.value = true;
         // Fetch data for the previous week
         // Subtract 7 days to get a date in the previous week

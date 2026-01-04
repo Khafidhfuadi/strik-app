@@ -266,235 +266,225 @@ class _SocialScreenState extends State<SocialScreen> {
         final winner = _controller.leaderboard.first;
         return ListView(
           padding: const EdgeInsets.all(20),
-          children:
-              [
-                // Transition Title
-                Text(
-                  'Leaderboard Minggu Lalu',
-                  style: GoogleFonts.spaceGrotesk(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+          children: [
+            // Transition Title
+            Text(
+              'Leaderboard Minggu Lalu',
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.timer_outlined,
+                    size: 16,
+                    color: Colors.amber,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                  const SizedBox(width: 8),
+                  Text(
+                    'Leaderboard baru dimulai pukul 12:00',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.amber,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.amber.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.timer_outlined,
-                        size: 16,
-                        color: Colors.amber,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Leaderboard baru dimulai pukul 12:00',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: Colors.amber,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
 
-                // Winner Spotlight
+            // Winner Spotlight
+            Column(
+              children: [
                 Stack(
                   alignment: Alignment.center,
                   children: [
-                    Positioned(
-                      top: 0,
-                      child: Lottie.asset(
-                        'assets/src/confetti.json',
-                        height: 300,
-                        width: 300,
-                        fit: BoxFit.cover,
-                        repeat: true,
-                      ),
+                    Lottie.asset(
+                      'assets/src/confetti.json',
+                      height: 300,
+                      width: 300,
+                      fit: BoxFit.cover,
+                      repeat: true,
                     ),
-                    Column(
-                      children: [
-                        Lottie.asset(
-                          'assets/src/trophy.json',
-                          height: 150,
-                          width: 150,
-                          fit: BoxFit.cover,
-                          repeat: true,
-                        ),
-                        GestureDetector(
-                          onTap: () => _showUserDetailDialog(winner, 1),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.amber,
-                                    width: 4,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.amber.withOpacity(0.5),
-                                      blurRadius: 20,
-                                      spreadRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                child: CircleAvatar(
-                                  radius: 50,
-                                  backgroundImage:
-                                      winner['user'].avatarUrl != null
-                                      ? NetworkImage(winner['user'].avatarUrl)
-                                      : null,
-                                  backgroundColor: Colors.grey[800],
-                                  child: winner['user'].avatarUrl == null
-                                      ? Text(
-                                          winner['user'].username?[0]
-                                                  .toUpperCase() ??
-                                              '?',
-                                          style: const TextStyle(
-                                            fontSize: 32,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                winner['user'].username ?? 'Unknown',
-                                style: GoogleFonts.spaceGrotesk(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  '${winner['score'].toStringAsFixed(1)} pts',
-                                  style: GoogleFonts.spaceGrotesk(
-                                    color: Colors.amber,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    Lottie.asset(
+                      'assets/src/new-trophy.json',
+                      height: 200,
+                      width: 200,
+                      fit: BoxFit.cover,
+                      repeat: false,
                     ),
                   ],
                 ),
-                const SizedBox(height: 40),
-
-                // Rest of leaderboard title
-                Text(
-                  'Peringkat Lainnya',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: Colors.white54,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-              ]..addAll(
-                _controller.leaderboard.skip(1).map((data) {
-                  final index = _controller.leaderboard.indexOf(data);
-                  return GestureDetector(
-                    onTap: () => _showUserDetailDialog(data, index + 1),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900]!.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 30,
-                            child: Text(
-                              '${index + 1}',
-                              style: GoogleFonts.spaceGrotesk(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                Transform.translate(
+                  offset: const Offset(0, -40),
+                  child: GestureDetector(
+                    onTap: () => _showUserDetailDialog(winner, 1),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.amber, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.amber.withOpacity(0.5),
+                                blurRadius: 20,
+                                spreadRadius: 5,
                               ),
-                              textAlign: TextAlign.center,
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundImage: data['user'].avatarUrl != null
-                                ? NetworkImage(data['user'].avatarUrl)
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundImage: winner['user'].avatarUrl != null
+                                ? NetworkImage(winner['user'].avatarUrl)
                                 : null,
                             backgroundColor: Colors.grey[800],
-                            child: data['user'].avatarUrl == null
+                            child: winner['user'].avatarUrl == null
                                 ? Text(
-                                    data['user'].username?[0].toUpperCase() ??
+                                    winner['user'].username?[0].toUpperCase() ??
                                         '?',
                                     style: const TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 32,
                                       color: Colors.white,
                                     ),
                                   )
                                 : null,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              data['user'].username ?? 'Unknown',
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          winner['user'].username ?? 'Unknown',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
-                          Text(
-                            '${data['score'].toStringAsFixed(1)} pts',
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${winner['score'].toStringAsFixed(1)} pts',
                             style: GoogleFonts.spaceGrotesk(
-                              color: Colors.white54,
+                              color: Colors.amber,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
-                }),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 40),
+
+            // Rest of leaderboard title
+            Text(
+              'Peringkat Lainnya',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.white54,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
               ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ..._controller.leaderboard.skip(1).map((data) {
+              final index = _controller.leaderboard.indexOf(data);
+              return GestureDetector(
+                onTap: () => _showUserDetailDialog(data, index + 1),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900]!.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 30,
+                        child: Text(
+                          '${index + 1}',
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundImage: data['user'].avatarUrl != null
+                            ? NetworkImage(data['user'].avatarUrl)
+                            : null,
+                        backgroundColor: Colors.grey[800],
+                        child: data['user'].avatarUrl == null
+                            ? Text(
+                                data['user'].username?[0].toUpperCase() ?? '?',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          data['user'].username ?? 'Unknown',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${data['score'].toStringAsFixed(1)} pts',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: Colors.white54,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
         );
       }
 
@@ -1004,13 +994,13 @@ class _SocialScreenState extends State<SocialScreen> {
               _buildCalculationRow(
                 'Rate Score',
                 '${completionRate.toStringAsFixed(1)} × 1.0',
-                '${completionRate.toStringAsFixed(1)}',
+                completionRate.toStringAsFixed(1),
               ),
               const SizedBox(height: 4),
               _buildCalculationRow(
                 'Volume Bonus',
                 '$totalCompleted × 0.5',
-                '${(totalCompleted * 0.5).toStringAsFixed(1)}',
+                (totalCompleted * 0.5).toStringAsFixed(1),
               ),
               const Divider(height: 24, color: Colors.white24),
               _buildCalculationRow(
@@ -1605,7 +1595,7 @@ class _SocialScreenState extends State<SocialScreen> {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               );
@@ -1649,7 +1639,7 @@ class _SocialScreenState extends State<SocialScreen> {
                           style: TextStyle(color: Colors.white54, fontSize: 12),
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               );

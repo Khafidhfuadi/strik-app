@@ -151,7 +151,7 @@ class _AuthScreenState extends State<AuthScreen> {
               if (_isSignUp) ...[
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedGender,
+                  initialValue: _selectedGender,
                   decoration: InputDecoration(
                     labelText: 'Gender (buat personalisasi AI)',
                     filled: true,

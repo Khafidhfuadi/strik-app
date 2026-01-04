@@ -824,7 +824,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   }
 
                   if (isEditing) {
-                    journalController.updateJournal(journal!.id!, content);
+                    journalController.updateJournal(journal.id!, content);
                   } else {
                     journalController.addJournal(content, date: date);
                   }
