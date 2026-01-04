@@ -519,6 +519,7 @@ class FriendController extends GetxController {
       fetchActivityFeed(); // Refresh feed
     } catch (e) {
       Get.snackbar('Waduh', 'Gagal posting, sinyal aman? 🤯');
+    } finally {
       isCreatingPost.value = false;
     }
   }

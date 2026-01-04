@@ -156,44 +156,43 @@ class _SocialScreenState extends State<SocialScreen> {
                               ),
                             ),
                             // Badges
-                            if (index != 0)
-                              Obx(() {
-                                int count = 0;
-                                if (index == 1) {
-                                  // Feed Tab
-                                  count = _controller.newFeedCount.value;
-                                } else if (index == 2) {
-                                  // Friends Tab
-                                  count = _controller.friends.length;
-                                }
+                            Obx(() {
+                              int count = 0;
+                              if (index == 0) {
+                                // Feed Tab
+                                count = _controller.newFeedCount.value;
+                              } else if (index == 2) {
+                                // Friends Tab
+                                count = _controller.friends.length;
+                              }
 
-                                if (count > 0) {
-                                  return Container(
-                                    margin: const EdgeInsets.only(left: 8),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
+                              if (count > 0) {
+                                return Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: index == 1 && count > 0
+                                        ? Colors.red
+                                        : (isActive
+                                              ? Colors.white24
+                                              : Colors.grey[800]),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    count > 99 ? '99+' : '$count',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: index == 1 && count > 0
-                                          ? Colors.red
-                                          : (isActive
-                                                ? Colors.white24
-                                                : Colors.grey[800]),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      count > 99 ? '99+' : '$count',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              }),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            }),
                           ],
                         ),
                       ),

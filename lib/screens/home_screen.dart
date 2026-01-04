@@ -216,52 +216,66 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTodayList(HabitController controller) {
     if (controller.habits.isEmpty) {
-      return const Center(
-        child: Text(
-          'Belum ada habit nih, gass bikin!',
-          style: TextStyle(color: Colors.white54),
+      return RefreshIndicator(
+        onRefresh: () => controller.fetchHabitsAndLogs(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: const Center(
+                child: Text(
+                  'Belum ada habit nih, gass bikin!',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
     // Use sorted habits from controller
     final habits = controller.sortedHabits;
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: habits.length,
-      itemBuilder: (context, index) {
-        final habit = habits[index];
+    return RefreshIndicator(
+      onRefresh: () => controller.fetchHabitsAndLogs(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: habits.length,
+        itemBuilder: (context, index) {
+          final habit = habits[index];
 
-        return Obx(() {
-          final status = controller.todayLogs[habit.id];
-          return Dismissible(
-            key: Key(habit.id!),
-            confirmDismiss: (direction) async {
-              await controller.toggleHabitStatus(habit, status, direction);
-              return false; // Toggle handled in controller
-            },
-            background: _buildSwipeBackground(
-              Alignment.centerLeft,
-              status == 'completed' ? Icons.undo : Icons.check,
-              status == 'completed' ? 'batalin' : 'sikat',
-              AppTheme.primary,
-              Colors.black,
-            ),
-            secondaryBackground: _buildSwipeBackground(
-              Alignment.centerRight,
-              status == 'skipped' ? Icons.undo : Icons.close,
-              status == 'skipped' ? 'gajadi' : 'skip dlu',
-              const Color(0xFFFF5757),
-              Colors.white,
-            ),
-            child: HabitCard(
-              habit: habit,
-              status: status,
-              onTap: () => Get.to(() => HabitDetailScreen(habit: habit)),
-            ),
-          );
-        });
-      },
+          return Obx(() {
+            final status = controller.todayLogs[habit.id];
+            return Dismissible(
+              key: Key(habit.id!),
+              confirmDismiss: (direction) async {
+                await controller.toggleHabitStatus(habit, status, direction);
+                return false; // Toggle handled in controller
+              },
+              background: _buildSwipeBackground(
+                Alignment.centerLeft,
+                status == 'completed' ? Icons.undo : Icons.check,
+                status == 'completed' ? 'batalin' : 'sikat',
+                AppTheme.primary,
+                Colors.black,
+              ),
+              secondaryBackground: _buildSwipeBackground(
+                Alignment.centerRight,
+                status == 'skipped' ? Icons.undo : Icons.close,
+                status == 'skipped' ? 'gajadi' : 'skip dlu',
+                const Color(0xFFFF5757),
+                Colors.white,
+              ),
+              child: HabitCard(
+                habit: habit,
+                status: status,
+                onTap: () => Get.to(() => HabitDetailScreen(habit: habit)),
+              ),
+            );
+          });
+        },
+      ),
     );
   }
 
@@ -312,20 +326,44 @@ class _HomeScreenState extends State<HomeScreen> {
     final currentWeekday = now.weekday;
     final weekStart = now.subtract(Duration(days: currentWeekday - 1));
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: controller.habits.length,
-      itemBuilder: (context, index) {
-        final habit = controller.habits[index];
-        return Obx(() {
-          final logs = controller.weeklyLogs[habit.id] ?? {};
-          return WeeklyHabitCard(
-            habit: habit,
-            weeklyLogs: logs,
-            weekStart: weekStart,
-          );
-        });
-      },
+    if (controller.habits.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () => controller.fetchHabitsAndLogs(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: const Center(
+                child: Text(
+                  'Belum ada habit nih!',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => controller.fetchHabitsAndLogs(),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        itemCount: controller.habits.length,
+        itemBuilder: (context, index) {
+          final habit = controller.habits[index];
+          return Obx(() {
+            final logs = controller.weeklyLogs[habit.id] ?? {};
+            return WeeklyHabitCard(
+              habit: habit,
+              weeklyLogs: logs,
+              weekStart: weekStart,
+            );
+          });
+        },
+      ),
     );
   }
 

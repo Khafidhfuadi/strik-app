@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:strik_app/data/onboarding_data.dart';
-import 'package:strik_app/core/auth_gate.dart';
+import 'package:strik_app/screens/permission_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -26,7 +26,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_completed', true);
-    Get.offAll(() => const AuthGate());
+    Get.offAll(() => const PermissionScreen());
   }
 
   void _nextPage() {
