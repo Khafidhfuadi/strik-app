@@ -29,10 +29,9 @@ class FriendController extends GetxController {
     fetchFriends();
     fetchPendingRequests();
     fetchFriends();
-    fetchPendingRequests();
-    fetchFriends();
     // fetchPendingRequests(); // Remove duplicate if present (checked in previous view)
     _subscribeToRealtime();
+    fetchNotifications();
     checkWeeklyWinner();
     _loadLastViewedTime();
   }
@@ -249,8 +248,10 @@ class FriendController extends GetxController {
                 payload.newRecord['body'] ?? 'Punya update baru nih!',
                 snackPosition: SnackPosition.TOP,
               );
-              // Refresh notifications list if we had one
-              // fetchNotifications();
+
+              // Add to local list and increment unread count
+              notifications.insert(0, payload.newRecord);
+              unreadNotificationCount.value++;
             },
           )
           .subscribe();
