@@ -88,14 +88,61 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  currentHabit.frequency == 'daily'
-                      ? 'Tiap Hari'
-                      : currentHabit.frequency.capitalizeFirst!,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    color: AppTheme.textSecondary,
-                  ),
+                Builder(
+                  builder: (context) {
+                    String label;
+                    if (currentHabit.frequency == 'daily') {
+                      if (currentHabit.daysOfWeek != null &&
+                          currentHabit.daysOfWeek!.isNotEmpty) {
+                        if (currentHabit.daysOfWeek!.length == 7) {
+                          label = 'Tiap Hari';
+                        } else {
+                          const days = [
+                            'Sen',
+                            'Sel',
+                            'Rab',
+                            'Kam',
+                            'Jum',
+                            'Sab',
+                            'Min',
+                          ];
+                          // Sort safely
+                          final sortedDays = List<int>.from(
+                            currentHabit.daysOfWeek!,
+                          )..sort();
+                          label = sortedDays.map((d) => days[d]).join(', ');
+                        }
+                      } else {
+                        label = 'Tiap Hari';
+                      }
+                    } else if (currentHabit.frequency == 'weekly') {
+                      if (currentHabit.frequencyCount != null) {
+                        label = 'Mingguan: ${currentHabit.frequencyCount}x';
+                      } else {
+                        label = 'Mingguan';
+                      }
+                    } else if (currentHabit.frequency == 'monthly') {
+                      if (currentHabit.daysOfWeek != null &&
+                          currentHabit.daysOfWeek!.isNotEmpty) {
+                        final sortedDates = List<int>.from(
+                          currentHabit.daysOfWeek!,
+                        )..sort();
+                        label = 'Bulanan: Tanggal ${sortedDates.join(', ')}';
+                      } else {
+                        label = 'Bulanan';
+                      }
+                    } else {
+                      label = currentHabit.frequency.capitalizeFirst!;
+                    }
+
+                    return Text(
+                      label,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -236,7 +283,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             _buildVerticalDivider(),
             _buildStatItem('Best Streak', '${controller.bestStreak.value}'),
             _buildVerticalDivider(),
-            _buildStatItem('Streak', '${controller.currentStreak.value}'),
+            _buildStatItem('Streak Aktif', '${controller.currentStreak.value}'),
           ],
         ),
       );
