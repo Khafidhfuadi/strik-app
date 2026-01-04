@@ -513,7 +513,7 @@ class _SocialScreenState extends State<SocialScreen> {
               Icon(Icons.info_outline, size: 14, color: Colors.white54),
               const SizedBox(width: 6),
               Text(
-                'Reset setiap Senin pukul 00:00',
+                'Reset setiap Senin pukul 12:00',
                 style: GoogleFonts.plusJakartaSans(
                   color: Colors.white54,
                   fontSize: 12,
