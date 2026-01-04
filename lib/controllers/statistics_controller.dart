@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 enum StatsFilter { weekly, monthly, yearly, allTime, custom }
 
 class StatisticsController extends GetxController {
@@ -17,6 +19,12 @@ class StatisticsController extends GetxController {
   var allLogs = <Map<String, dynamic>>[].obs;
   var isLoading = true.obs;
   var isGeneratingAI = false.obs;
+
+  // AI Quota
+  var aiQuotaUsed = 0.obs;
+  final int aiQuotaLimit = 10;
+  static const String _aiQuotaCountKey = 'stats_ai_quota_count';
+  static const String _aiQuotaMonthKey = 'stats_ai_quota_month';
 
   // Filter State
   var selectedFilter = StatsFilter.weekly.obs;
@@ -51,7 +59,29 @@ class StatisticsController extends GetxController {
   void onInit() {
     super.onInit();
     fetchData();
+    _loadAiQuota();
     _subscribeToRealtimeUpdates();
+  }
+
+  Future<void> _loadAiQuota() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedMonth = prefs.getInt(_aiQuotaMonthKey) ?? 0;
+    final currentMonth = DateTime.now().month;
+
+    if (savedMonth != currentMonth) {
+      // New month, reset quota
+      await prefs.setInt(_aiQuotaMonthKey, currentMonth);
+      await prefs.setInt(_aiQuotaCountKey, 0);
+      aiQuotaUsed.value = 0;
+    } else {
+      aiQuotaUsed.value = prefs.getInt(_aiQuotaCountKey) ?? 0;
+    }
+  }
+
+  Future<void> incrementAiQuota() async {
+    final prefs = await SharedPreferences.getInstance();
+    aiQuotaUsed.value++;
+    await prefs.setInt(_aiQuotaCountKey, aiQuotaUsed.value);
   }
 
   @override

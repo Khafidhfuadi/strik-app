@@ -1286,7 +1286,7 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
-                        widget.controller.generateManualInsight();
+                        _confirmGenerateAi(context);
                       },
                     ),
                 ],
@@ -1388,9 +1388,7 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
   Widget _buildAskButton() {
     return Center(
       child: GestureDetector(
-        onTap: () {
-          widget.controller.generateManualInsight();
-        },
+        onTap: () => _confirmGenerateAi(context),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
@@ -1424,6 +1422,100 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _confirmGenerateAi(BuildContext context) {
+    if (widget.controller.aiQuotaUsed.value >= widget.controller.aiQuotaLimit) {
+      Get.snackbar(
+        'Limit Habis',
+        'Jatah coach bulan ini udah kepake semua (10x). Tunggu bulan depan ya! 🌚',
+        backgroundColor: Colors.red.withValues(alpha: 0.1),
+        colorText: Colors.redAccent,
+      );
+      return;
+    }
+
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          "Minta Saran Coach Strik AI?",
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Tindakan ini bakal pake 1 kuota generate kamu.",
+              style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Obx(
+                      () => Text(
+                        "Sisa Kuota: ${widget.controller.aiQuotaLimit - widget.controller.aiQuotaUsed.value}x lagi",
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              "Batal",
+              style: GoogleFonts.plusJakartaSans(color: Colors.white54),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              backgroundColor: AppTheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Get.back();
+              widget.controller.incrementAiQuota();
+              widget.controller.generateManualInsight();
+            },
+            child: Text(
+              "Gas!",
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
