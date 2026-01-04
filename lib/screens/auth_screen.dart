@@ -17,6 +17,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isSignUp = false;
+  bool _isPasswordVisible = false;
 
   Future<void> _submit() async {
     setState(() => _isLoading = true);
@@ -91,7 +92,20 @@ class _AuthScreenState extends State<AuthScreen> {
               CustomTextField(
                 controller: _passwordController,
                 label: 'Sandi',
-                obscureText: true,
+                obscureText: !_isPasswordVisible,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                    color: Colors.white70,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 24),
               PrimaryButton(

@@ -9,6 +9,7 @@ class CustomTextField extends StatelessWidget {
   final String? hintText;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final Widget? suffixIcon;
 
   const CustomTextField({
     super.key,
@@ -19,6 +20,7 @@ class CustomTextField extends StatelessWidget {
     this.hintText,
     this.onChanged,
     this.onSubmitted,
+    this.suffixIcon,
   });
 
   @override
@@ -49,6 +51,7 @@ class CustomTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Theme.of(context).primaryColor),
         ),
+        suffixIcon: suffixIcon,
       ),
     );
   }
