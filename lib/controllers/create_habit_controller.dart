@@ -5,7 +5,6 @@ import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:strik_app/services/notification_service.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
@@ -317,6 +316,7 @@ class CreateHabitController extends GetxController {
         }
       }
 
+      /* Local Notification Removed in favor of Server-Side FCM
       if (isReminder.value && reminderTime.value != null) {
         await NotificationService().scheduleDailyNotification(
           id: habit.hashCode, // Simple ID generation for now
@@ -325,6 +325,7 @@ class CreateHabitController extends GetxController {
           time: reminderTime.value!,
         );
       }
+      */
 
       Get.back(); // Navigate back
     } catch (e) {

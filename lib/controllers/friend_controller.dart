@@ -256,6 +256,20 @@ class FriendController extends GetxController {
           )
           .subscribe();
     }
+
+    // Subscribe to public.friendships
+    supabase
+        .channel('public:friendships')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'friendships',
+          callback: (payload) {
+            fetchFriends();
+            fetchPendingRequests();
+          },
+        )
+        .subscribe();
   }
 
   void _handleNewReaction(Map<String, dynamic> reaction) {
@@ -690,12 +704,17 @@ class FriendController extends GetxController {
         }
       }
 
+      final senderName =
+          currentUser.userMetadata?['full_name'] ??
+          currentUser.email?.split('@')[0] ??
+          'Temanmu';
       // Send poke notification
       await _friendRepository.sendNotification(
         recipientId: friendId,
         type: 'poke',
-        title: 'Colek! 👋',
-        body: 'Hi, jangan lupa lakuin habit hari ini, ya!',
+        title: '$senderName nyolek lo! 👋',
+        body:
+            'Hi, $senderName nyolek lo nih! Jangan lupa lakuin habit hari ini, ya!',
       );
 
       // No need to update friendships table anymore
@@ -757,12 +776,17 @@ class FriendController extends GetxController {
         }
       }
 
+      final senderName =
+          currentUser.userMetadata?['full_name'] ??
+          currentUser.email?.split('@')[0] ??
+          'Temanmu';
       // Send poke notification
       await _friendRepository.sendNotification(
         recipientId: friendId,
         type: 'poke',
-        title: 'Colek! 👋',
-        body: 'Hi, jangan lupa lakuin habit hari ini, ya!',
+        title: '$senderName nyolek lo! 👋',
+        body:
+            'Hi, $senderName nyolek lo nih! Jangan lupa lakuin habit hari ini, ya!',
       );
 
       // No need to update friendships table anymore
@@ -791,6 +815,26 @@ class FriendController extends GetxController {
       }
     } catch (e) {
       print('Error marking notification as read: $e');
+    }
+  }
+
+  Future<void> markAllAsRead() async {
+    try {
+      if (unreadNotificationCount.value == 0) return;
+
+      // Update in database
+      await _friendRepository.markAllNotificationsAsRead();
+
+      // Update local state
+      for (var n in notifications) {
+        n['is_read'] = true;
+      }
+      notifications.refresh();
+      unreadNotificationCount.value = 0;
+
+      Get.snackbar('Sip!', 'Semua notifikasi udah ditandain baca! ✅');
+    } catch (e) {
+      Get.snackbar('Waduh', 'Gagal update status notifikasi: $e');
     }
   }
 

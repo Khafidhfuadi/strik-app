@@ -167,6 +167,18 @@ class FriendRepository {
         .eq('id', id);
   }
 
+  // Mark all notifications as read for current user
+  Future<void> markAllNotificationsAsRead() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    await _supabase
+        .from('notifications')
+        .update({'is_read': true})
+        .eq('recipient_id', user.id)
+        .eq('is_read', false);
+  }
+
   // Get leaderboard data (Friends + Self)
   // Consumes a lot of reads if friends list is huge, but fine for MVP
   Future<List<Map<String, dynamic>>> getLeaderboard() async {

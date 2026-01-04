@@ -217,7 +217,7 @@ class CreateHabitScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Temanmu bisa lihat progress habit ini',
+                        'Bisa pamerin update habit ini ke temanmu',
                         style: TextStyle(color: Colors.white54, fontSize: 12),
                       ),
                     ],

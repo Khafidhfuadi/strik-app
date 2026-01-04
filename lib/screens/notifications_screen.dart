@@ -15,7 +15,18 @@ class NotificationsScreen extends StatelessWidget {
     controller.fetchNotifications();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifikasi')),
+      appBar: AppBar(
+        title: const Text('Notifikasi'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.done_all),
+            tooltip: 'Tandai semua dibaca',
+            onPressed: () {
+              controller.markAllAsRead();
+            },
+          ),
+        ],
+      ),
       body: Obx(() {
         if (controller.notifications.isEmpty) {
           return const Center(child: Text('Belum ada notifikasi.'));
@@ -42,12 +53,6 @@ class NotificationsScreen extends StatelessWidget {
               ),
               confirmDismiss: (direction) async {
                 await controller.markNotificationAsRead(notifId);
-                Get.snackbar(
-                  'Ditandai',
-                  'Notifikasi sudah dibaca',
-                  snackPosition: SnackPosition.BOTTOM,
-                  duration: const Duration(seconds: 1),
-                );
                 return false; // Don't remove from tree, just mark as read
               },
               child: Container(
