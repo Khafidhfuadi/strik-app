@@ -10,6 +10,7 @@ import 'package:strik_app/services/push_notification_service.dart';
 import 'package:strik_app/screens/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:alarm/alarm.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,9 @@ Future<void> main() async {
   try {
     // Load .env file
     await dotenv.load(fileName: ".env");
+
+    // Initialize Alarm
+    await Alarm.init();
 
     // Initialize Firebase
     await Firebase.initializeApp();

@@ -53,6 +53,7 @@ dependencies:
   firebase_messaging: ^16.1.0
   flutter_timezone: ^5.0.1
   flutter_alarm_clock: ^0.1.2
+  alarm: ^5.1.5
 
 dev_dependencies:
   flutter_test:
