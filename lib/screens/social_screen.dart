@@ -1769,7 +1769,12 @@ class _SocialScreenState extends State<SocialScreen> {
                     child: Row(
                       children: [
                         CircleAvatar(
-                          child: Text(friend.username?[0].toUpperCase() ?? '?'),
+                          backgroundImage: friend.avatarUrl != null
+                              ? NetworkImage(friend.avatarUrl!)
+                              : null,
+                          child: friend.avatarUrl == null
+                              ? Text(friend.username?[0].toUpperCase() ?? '?')
+                              : null,
                         ),
                         const SizedBox(width: 16),
                         Expanded(

@@ -62,7 +62,13 @@ class NotificationsScreen extends StatelessWidget {
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: isRead ? Colors.grey : AppTheme.primary,
-                    child: sender != null
+                    backgroundImage:
+                        (sender != null && sender['avatar_url'] != null)
+                        ? NetworkImage(sender['avatar_url'])
+                        : null,
+                    child: (sender != null && sender['avatar_url'] != null)
+                        ? null
+                        : sender != null
                         ? Text(
                             senderName[0].toUpperCase(),
                             style: TextStyle(
