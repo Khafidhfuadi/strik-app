@@ -35,11 +35,25 @@ class HabitRepository {
           .from('habits')
           .select()
           .eq('user_id', userId) // Only fetch current user's habits
+          .order('sort_order', ascending: true)
           .order('created_at', ascending: false);
 
       return (response as List).map((data) => Habit.fromJson(data)).toList();
     } catch (e) {
       throw Exception('Failed to fetch habits: $e');
+    }
+  }
+
+  Future<void> updateHabitOrder(List<Habit> habits) async {
+    try {
+      for (int i = 0; i < habits.length; i++) {
+        await supabase
+            .from('habits')
+            .update({'sort_order': i})
+            .eq('id', habits[i].id!);
+      }
+    } catch (e) {
+      throw Exception('Failed to update habit order: $e');
     }
   }
 
@@ -201,5 +215,9 @@ class HabitRepository {
           primaryKey: ['id'],
         ) // Assuming 'id' is PK, or use logical key if supported by stream
         .order('target_date', ascending: false);
+  }
+
+  Stream<List<Map<String, dynamic>>> subscribeToHabits() {
+    return supabase.from('habits').stream(primaryKey: ['id']);
   }
 }

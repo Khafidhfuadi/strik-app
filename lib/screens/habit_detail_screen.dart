@@ -657,17 +657,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        Obx(() {
-          if (journalController.isEligibleForAI.value) {
-            return Column(
-              children: [
-                _buildAICoachCard(context),
-                const SizedBox(height: 24),
-              ],
-            );
-          }
-          return const SizedBox.shrink();
-        }),
+        const SizedBox(height: 16),
+        _buildAICoachCard(context),
+        const SizedBox(height: 24),
         Obx(() {
           if (journalController.isLoading.value) {
             return const Center(child: CircularProgressIndicator());
@@ -908,16 +900,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.purple.withValues(alpha: 0.15),
-            Colors.blue.withValues(alpha: 0.05),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -927,14 +911,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
+                  color: AppTheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  color: Colors.purpleAccent,
-                  size: 20,
-                ),
+                child: const Icon(Icons.psychology, color: AppTheme.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -944,163 +924,130 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     Text(
                       'Coach Strik AI',
                       style: GoogleFonts.spaceGrotesk(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     Text(
-                      'Rekomendasi AI jurnal habit',
+                      'Analisis habit kamu',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
-                        color: Colors.white70,
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              Row(
-                children: [
-                  if (journalController.aiInsight.isNotEmpty &&
-                      journalController.isAiCardVisible.value)
-                    IconButton(
-                      onPressed: () {
-                        _confirmGenerateAi(context);
-                      },
-                      icon: Icon(
-                        Icons.refresh,
-                        color: Colors.white60,
+              Obx(
+                () => journalController.isEligibleForAI.value
+                    ? const Icon(
+                        Icons.lock_open,
+                        color: AppTheme.primary,
                         size: 20,
-                      ),
-                      tooltip: 'Generate Ulang',
-                    ),
-                  IconButton(
-                    onPressed: () {
-                      journalController.isAiCardVisible.toggle();
-                    },
-                    icon: Obx(
-                      () => Icon(
-                        journalController.isAiCardVisible.value
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        color: Colors.white60,
-                        size: 24,
-                      ),
-                    ),
-                    tooltip: journalController.isAiCardVisible.value
-                        ? 'Sembunyikan'
-                        : 'Tampilkan',
-                  ),
-                ],
+                      )
+                    : const Icon(Icons.lock, color: Colors.grey, size: 20),
               ),
             ],
           ),
-          Obx(
-            () => AnimatedSize(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: journalController.isAiCardVisible.value
-                  ? Column(
-                      children: [
-                        const SizedBox(height: 16),
-                        if (journalController.isGeneratingAI.value)
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 20),
-                              child: Column(
-                                children: [
-                                  const CircularProgressIndicator(
-                                    color: Colors.purpleAccent,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    "Ngebuatin Rekomendasi Terbaik... 🧠",
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        else if (journalController.aiInsight.isNotEmpty)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildStyledText(
-                                journalController.aiInsight.value,
-                              ),
-                              const SizedBox(height: 12),
-                              if (journalController.aiQuotaUsed.value < 3)
-                                Text(
-                                  "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: Colors.white38,
-                                    fontSize: 10,
-                                  ),
-                                )
-                              else
-                                Text(
-                                  "Kuota bulan ini habis. Tunggu bulan depan ya! 🌚",
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: Colors.amber,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                            ],
-                          )
-                        else
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Berdasarkan jurnal & kebiasaan lo bulan ini, gue bisa kasih saran biar makin gacor.",
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    _confirmGenerateAi(context);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.purpleAccent,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    "Minta Saran Coach",
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: Colors.white38,
-                                  fontSize: 10,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+          const SizedBox(height: 16),
+          Obx(() {
+            if (journalController.aiInsight.value.isNotEmpty) {
+              // Reuse likely existing logic or simple text
+              return _buildStyledText(journalController.aiInsight.value);
+            } else if (!journalController.isEligibleForAI.value) {
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: AppTheme.textSecondary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Tulis minimal 10 jurnal dulu ya buat dianalisis sama Coach Strik AI!',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return Text(
+                'Generate insight buat tau pola habit kamu dan tips memperbaikinya.',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.textSecondary,
+                ),
+              );
+            }
+          }),
+          const SizedBox(height: 20),
+          Obx(() {
+            if (journalController.isEligibleForAI.value) {
+              return SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: !journalController.isGeneratingAI.value
+                      ? () {
+                          _confirmGenerateAi(context);
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: journalController.isGeneratingAI.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
                           ),
-                      ],
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ),
+                        )
+                      : Text(
+                          journalController.aiInsight.value.isEmpty
+                              ? 'Generate Insight ✨'
+                              : 'Regenerate Insight 🔄',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              );
+            } else {
+              return const SizedBox.shrink();
+            }
+          }),
+          const SizedBox(height: 8),
+          Obx(() {
+            if (journalController.isEligibleForAI.value) {
+              return Center(
+                child: Text(
+                  "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white38,
+                    fontSize: 10,
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
         ],
       ),
     );

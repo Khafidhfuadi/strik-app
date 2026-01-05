@@ -21,7 +21,9 @@ class StatisticsScreen extends StatefulWidget {
 class _StatisticsScreenState extends State<StatisticsScreen> {
   late StatisticsController _controller;
   late PageController _pageController;
+  late ScrollController _tabScrollController;
   final RxInt _currentIndex = 0.obs;
+  final Map<int, GlobalKey> _tabKeys = {};
   bool _isAiCardVisible = true;
 
   @override
@@ -29,12 +31,28 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     super.initState();
     _controller = Get.put(StatisticsController());
     _pageController = PageController();
+    _tabScrollController = ScrollController();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _tabScrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToTab(int index) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final key = _tabKeys[index];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.5,
+        );
+      }
+    });
   }
 
   void _onTabTapped(int index) {
@@ -44,10 +62,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+    _scrollToTab(index);
   }
 
   void _onPageChanged(int index) {
     _currentIndex.value = index;
+    _scrollToTab(index);
   }
 
   @override
@@ -86,12 +106,56 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             // Custom Tab Bar (Home Style)
             SizedBox(
               height: 50,
-              child: ListView.builder(
+              child: ReorderableListView.builder(
+                scrollController: _tabScrollController,
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: 1 + habits.length,
+                onReorder: (int oldIndex, int newIndex) {
+                  if (oldIndex == 0) return;
+                  if (newIndex <= 0) newIndex = 1;
+                  if (oldIndex < newIndex) newIndex -= 1;
+
+                  // Capture the ID of the currently selected habit
+                  String? selectedHabitId;
+                  if (_currentIndex.value > 0) {
+                    selectedHabitId = habits[_currentIndex.value - 1].id;
+                  }
+
+                  final item = habits.removeAt(oldIndex - 1);
+                  habits.insert(newIndex - 1, item);
+
+                  // Update selection to follow the habit
+                  if (selectedHabitId != null) {
+                    final newIdx = habits.indexWhere(
+                      (h) => h.id == selectedHabitId,
+                    );
+                    if (newIdx != -1) {
+                      final targetIndex = newIdx + 1;
+                      if (_currentIndex.value != targetIndex) {
+                        _currentIndex.value = targetIndex;
+                        _pageController.jumpToPage(targetIndex);
+                      }
+                    }
+                  }
+
+                  // Persist the new order
+                  _controller.updateHabitOrder();
+                },
                 itemBuilder: (context, index) {
-                  return Obx(() {
+                  // Assign a global key for auto-scrolling to this index
+                  // We update it on every build to ensure it points to the current slot
+                  final scrollKey = _tabKeys.putIfAbsent(
+                    index,
+                    () => GlobalKey(),
+                  );
+
+                  // Key for ReorderableListView to track the item identity
+                  final itemKey = index == 0
+                      ? const ValueKey('all')
+                      : ValueKey(habits[index - 1].id);
+
+                  return Obx(key: itemKey, () {
                     final isSelected = _currentIndex.value == index;
                     String label;
                     if (index == 0) {
@@ -101,33 +165,36 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     }
                     return GestureDetector(
                       onTap: () => _onTabTapped(index),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
+                      child: Container(
+                        key: scrollKey,
                         margin: const EdgeInsets.only(right: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.grey[900]
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          border: isSelected
-                              ? null
-                              : Border.all(color: Colors.white12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            label,
-                            style: GoogleFonts.plusJakartaSans(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.grey[600],
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.grey[900]
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                            border: isSelected
+                                ? null
+                                : Border.all(color: Colors.white12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              label,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.grey[600],
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
                             ),
                           ),
                         ),
@@ -521,12 +588,30 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            _buildStatCard(
-              'Rekor Terpanjang',
-              '${stats['bestStreak']}',
-              'Hari',
-              Colors.amber,
-              description: 'Streak paling lama yang pernah lo capai. Legend!',
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Best Streak',
+                    '${stats['bestStreak']}',
+                    'Hari',
+                    Colors.amber,
+                    description:
+                        'Streak paling lama yang pernah lo capai. Legend!',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    'Dilewatin',
+                    '${stats['skipped'] ?? 0}',
+                    'Kali',
+                    Colors.grey,
+                    description:
+                        'Berapa kali lo skip habit ini. Jangan sering-sering ya!',
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 32),

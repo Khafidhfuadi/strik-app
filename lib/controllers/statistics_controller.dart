@@ -13,7 +13,7 @@ enum StatsFilter { weekly, monthly, yearly, allTime, custom }
 
 class StatisticsController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
-  StreamSubscription? _subscription;
+  final List<StreamSubscription> _subscriptions = [];
 
   var habits = <Habit>[].obs;
   var allLogs = <Map<String, dynamic>>[].obs;
@@ -86,24 +86,43 @@ class StatisticsController extends GetxController {
 
   @override
   void onClose() {
-    _subscription?.cancel();
+    for (var sub in _subscriptions) {
+      sub.cancel();
+    }
     super.onClose();
   }
 
   void _subscribeToRealtimeUpdates() {
-    _subscription = _habitRepository.subscribeToHabitLogs().listen(
-      (event) {
-        fetchData();
-      },
-      onError: (e) {
-        // print('Stream error: $e');
-      },
+    _subscriptions.add(
+      _habitRepository.subscribeToHabitLogs().listen(
+        (event) {
+          fetchData();
+        },
+        onError: (e) {
+          // print('Stream error: $e');
+        },
+      ),
+    );
+
+    _subscriptions.add(
+      _habitRepository.subscribeToHabits().listen(
+        (event) {
+          fetchData();
+        },
+        onError: (e) {
+          // print('Stream error: $e');
+        },
+      ),
     );
   }
 
   void setFilter(StatsFilter filter) {
     selectedFilter.value = filter;
     _processData();
+  }
+
+  Future<void> updateHabitOrder() async {
+    await _habitRepository.updateHabitOrder(habits);
   }
 
   void setCustomRange(DateTimeRange range) {
@@ -121,8 +140,16 @@ class StatisticsController extends GetxController {
         _habitRepository.getAllLogs(),
       ]);
 
-      habits.value = results[0] as List<Habit>;
-      allLogs.value = results[1] as List<Map<String, dynamic>>;
+      final newHabits = results[0] as List<Habit>;
+      final newAllLogs = results[1] as List<Map<String, dynamic>>;
+
+      // Only update habits if different to avoid flicker
+      if (!_areHabitListsEqual(habits, newHabits)) {
+        habits.assignAll(newHabits);
+      }
+
+      // Always update logs as they might have changed
+      allLogs.value = newAllLogs;
 
       _processData();
     } catch (e) {
@@ -130,6 +157,16 @@ class StatisticsController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  bool _areHabitListsEqual(List<Habit> a, List<Habit> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id || a[i].title != b[i].title) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void _processData() {
@@ -720,6 +757,9 @@ class StatisticsController extends GetxController {
     final filteredCompleted = filteredLogs
         .where((l) => l['status'] == 'completed')
         .toList();
+    final filteredSkipped = filteredLogs
+        .where((l) => l['status'] == 'skipped')
+        .toList();
 
     // 2. Streaks (from all logs, unfiltered)
     final habitAllLogs = allLogs
@@ -731,6 +771,7 @@ class StatisticsController extends GetxController {
 
     return {
       'total': filteredCompleted.length,
+      'skipped': filteredSkipped.length,
       'currentStreak': currentStreak,
       'bestStreak': bestStreak,
     };

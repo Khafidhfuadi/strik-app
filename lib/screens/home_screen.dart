@@ -260,30 +260,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
           return Obx(() {
             final status = controller.todayLogs[habit.id];
-            return Dismissible(
-              key: Key(habit.id!),
-              confirmDismiss: (direction) async {
-                await controller.toggleHabitStatus(habit, status, direction);
-                return false; // Toggle handled in controller
-              },
-              background: _buildSwipeBackground(
-                Alignment.centerLeft,
-                status == 'completed' ? Icons.undo : Icons.check,
-                status == 'completed' ? 'batalin' : 'sikat',
-                AppTheme.primary,
-                Colors.black,
-              ),
-              secondaryBackground: _buildSwipeBackground(
-                Alignment.centerRight,
-                status == 'skipped' ? Icons.undo : Icons.close,
-                status == 'skipped' ? 'gajadi' : 'skip dlu',
-                const Color(0xFFFF5757),
-                Colors.white,
-              ),
-              child: HabitCard(
-                habit: habit,
-                status: status,
-                onTap: () => Get.to(() => HabitDetailScreen(habit: habit)),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Dismissible(
+                  key: Key(habit.id!),
+                  confirmDismiss: (direction) async {
+                    await controller.toggleHabitStatus(
+                      habit,
+                      status,
+                      direction,
+                    );
+                    return false; // Toggle handled in controller
+                  },
+                  background: _buildSwipeBackground(
+                    Alignment.centerLeft,
+                    status == 'completed' ? Icons.undo : Icons.check,
+                    status == 'completed' ? 'batalin' : 'sikat',
+                    AppTheme.primary,
+                    Colors.black,
+                  ),
+                  secondaryBackground: _buildSwipeBackground(
+                    Alignment.centerRight,
+                    status == 'skipped' ? Icons.undo : Icons.close,
+                    status == 'skipped' ? 'gajadi' : 'skip dlu',
+                    const Color(0xFFFF5757),
+                    Colors.white,
+                  ),
+                  child: HabitCard(
+                    habit: habit,
+                    status: status,
+                    onTap: () => Get.to(() => HabitDetailScreen(habit: habit)),
+                  ),
+                ),
               ),
             );
           });
@@ -300,36 +310,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     Color textColor,
   ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      // Outer container is transparent
       alignment: alignment,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: alignment == Alignment.centerLeft
-            ? MainAxisAlignment.start
-            : MainAxisAlignment.end,
-        children: [
-          if (alignment == Alignment.centerLeft) ...[
-            Icon(icon, color: textColor),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            text,
-            style: GoogleFonts.spaceGrotesk(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+      // Add padding to create a "gap" between the card and the pill background
+      padding: alignment == Alignment.centerLeft
+          ? const EdgeInsets.only(right: 20)
+          : const EdgeInsets.only(left: 20),
+      child: Container(
+        // The Pill shape
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(100), // Fully rounded pill
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (alignment == Alignment.centerLeft) ...[
+              Icon(icon, color: textColor, size: 20),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              text,
+              style: GoogleFonts.spaceGrotesk(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
-          ),
-          if (alignment == Alignment.centerRight) ...[
-            const SizedBox(width: 8),
-            Icon(icon, color: textColor),
+            if (alignment == Alignment.centerRight) ...[
+              const SizedBox(width: 8),
+              Icon(icon, color: textColor, size: 20),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

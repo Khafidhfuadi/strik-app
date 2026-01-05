@@ -65,21 +65,6 @@ class HabitJournalController extends GetxController {
     }
   }
 
-  void _checkAiEligibility() {
-    // Check if we have >= 10 journals in CURRENT month or total?
-    // User said "minimal 10 jurnal pada bulan tersebut atau kombinasi dari bulan sebelumnya"
-    // "setiap bulannya hanya dapat men generate 2x".
-    // Let's assume >= 10 total journals implies enough data for an insight.
-    // Or specifically >= 10 in current month.
-    // "AI container akan muncul jika terdapat minimal 10 jurnal pada bulan tersebut" -> strict month check.
-    // "atau kombinasi dari bulan sebelumnya" -> loose check.
-    // Let's go with Total Journals >= 10 for better UX, or confirm.
-    // User phrase: "minimal 10 jurnal pada bulan tersebut atau kombinasi dari bulan sebelumnya"
-    // This likely means "Total journals availability to analyze".
-    // Let's use journals.length >= 10.
-    isEligibleForAI.value = journals.length >= 10;
-  }
-
   Future<void> fetchJournals({bool refresh = false}) async {
     try {
       if (refresh) {
@@ -94,6 +79,14 @@ class HabitJournalController extends GetxController {
 
       final start = _page * _limit;
       final end = start + _limit - 1;
+
+      final count = await _supabase
+          .from('habit_journals')
+          .count(CountOption.exact)
+          .eq('habit_id', habitId);
+
+      // Update eligibility based on total count in DB
+      isEligibleForAI.value = count >= 10;
 
       final response = await _supabase
           .from('habit_journals')
@@ -115,9 +108,7 @@ class HabitJournalController extends GetxController {
       _page++;
 
       _checkTodayJournal();
-      if (refresh) {
-        _checkAiEligibility();
-      }
+      // No need to call _checkAiEligibility again since we set it from DB count
     } catch (e) {
       print('Error fetching journals: $e');
     } finally {

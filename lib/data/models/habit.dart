@@ -13,6 +13,7 @@ class Habit {
   final bool reminderEnabled;
   final DateTime? createdAt;
   final bool isPublic;
+  final int? sortOrder;
 
   Habit({
     this.id,
@@ -27,6 +28,7 @@ class Habit {
     this.reminderEnabled = false,
     this.createdAt,
     this.isPublic = true,
+    this.sortOrder,
   });
 
   factory Habit.fromJson(Map<String, dynamic> json) {
@@ -65,6 +67,7 @@ class Habit {
           ? DateTime.parse(json['created_at']).toLocal()
           : null,
       isPublic: json['is_public'] ?? true,
+      sortOrder: json['sort_order'],
     );
   }
 
@@ -95,6 +98,7 @@ class Habit {
       'reminder_time': reminderString,
       'reminder_enabled': reminderEnabled,
       'is_public': isPublic,
+      'sort_order': sortOrder,
     };
   }
 }

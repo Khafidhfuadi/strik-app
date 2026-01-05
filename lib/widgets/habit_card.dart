@@ -32,7 +32,7 @@ class HabitCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        // Margin removed to let parent control layout (e.g. inside Dismissible)
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: habitColor,
