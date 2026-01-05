@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Gen-Z Palette
@@ -31,36 +30,43 @@ class AppTheme {
         onPrimary: Colors.black, // Dark text on Neon Lime
         onSurface: textPrimary,
       ),
-      textTheme:
-          GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme)
-              .apply(bodyColor: textPrimary, displayColor: textPrimary)
-              .copyWith(
-                displayLarge: GoogleFonts.spaceGrotesk(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: textPrimary,
-                ),
-                headlineMedium: GoogleFonts.spaceGrotesk(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: textPrimary,
-                ),
-                titleLarge: GoogleFonts.spaceGrotesk(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: textPrimary,
-                ),
-              ),
-      appBarTheme: AppBarTheme(
+      textTheme: ThemeData.dark().textTheme
+          .apply(
+            bodyColor: textPrimary,
+            displayColor: textPrimary,
+            fontFamily: 'Plus Jakarta Sans',
+          )
+          .copyWith(
+            displayLarge: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: textPrimary,
+            ),
+            headlineMedium: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textPrimary,
+            ),
+            titleLarge: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: textPrimary,
+            ),
+          ),
+      appBarTheme: const AppBarTheme(
         backgroundColor: background,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.spaceGrotesk(
+        titleTextStyle: TextStyle(
+          fontFamily: 'Space Grotesk',
           fontSize: 24,
           fontWeight: FontWeight.bold,
           color: textPrimary,
         ),
-        iconTheme: const IconThemeData(color: textPrimary),
+        iconTheme: IconThemeData(color: textPrimary),
       ),
       cardTheme: CardThemeData(
         color: surface,
@@ -86,11 +92,15 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: primary, width: 2),
         ),
-        hintStyle: GoogleFonts.plusJakartaSans(
+        hintStyle: const TextStyle(
+          fontFamily: 'Plus Jakarta Sans',
           color: textSecondary,
           fontSize: 14,
         ),
-        labelStyle: GoogleFonts.plusJakartaSans(color: textSecondary),
+        labelStyle: const TextStyle(
+          fontFamily: 'Plus Jakarta Sans',
+          color: textSecondary,
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -100,7 +110,8 @@ class AppTheme {
             borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          textStyle: GoogleFonts.spaceGrotesk(
+          textStyle: const TextStyle(
+            fontFamily: 'Space Grotesk',
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),

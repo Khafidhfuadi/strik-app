@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/post_detail_controller.dart';
 import 'package:strik_app/core/theme.dart';
@@ -32,7 +31,8 @@ class PostDetailScreen extends StatelessWidget {
         ),
         title: Text(
           'Detail Feed',
-          style: GoogleFonts.spaceGrotesk(
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -117,7 +117,7 @@ class PostDetailScreen extends StatelessWidget {
                         children: [
                           RichText(
                             text: TextSpan(
-                              style: GoogleFonts.plusJakartaSans(
+                              style: TextStyle(fontFamily: 'Plus Jakarta Sans', 
                                 color: Colors.white,
                                 fontSize: 14,
                               ),
@@ -149,7 +149,7 @@ class PostDetailScreen extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               titleText,
-                              style: GoogleFonts.plusJakartaSans(
+                              style: TextStyle(fontFamily: 'Plus Jakarta Sans', 
                                 color: Colors.white,
                                 fontSize: 14,
                               ),
@@ -158,7 +158,8 @@ class PostDetailScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             timeago.format(timestamp),
-                            style: GoogleFonts.plusJakartaSans(
+                            style: TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
                               color: Colors.grey[600],
                               fontSize: 12,
                             ),
@@ -257,7 +258,8 @@ class PostDetailScreen extends StatelessWidget {
                             const SizedBox(width: 6),
                             Text(
                               '${reactions.length}',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: TextStyle(
+                                fontFamily: 'Space Grotesk',
                                 color: hasReacted
                                     ? const Color(0xFFFF5757)
                                     : Colors.grey,

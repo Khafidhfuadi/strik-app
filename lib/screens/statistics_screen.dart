@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Removed
 import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/statistics_controller.dart';
 import 'package:strik_app/core/theme.dart';
@@ -81,7 +81,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             children: [
               Text(
                 _getDynamicTitle(),
-                style: GoogleFonts.spaceGrotesk(
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                   color: AppTheme.textPrimary,
@@ -187,7 +188,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                           child: Center(
                             child: Text(
                               label,
-                              style: GoogleFonts.plusJakartaSans(
+                              style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 color: isSelected
                                     ? Colors.white
                                     : Colors.grey[600],
@@ -282,7 +284,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       child: Obx(
         () => Row(
           children: [
-            Text(text, style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+            Text(
+              text,
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white,
+              ),
+            ),
             const Spacer(),
             if (_controller.selectedFilter.value == value)
               const Icon(Icons.check, color: AppTheme.primary, size: 16),
@@ -334,7 +342,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               children: [
                 Text(
                   "Coach Strik AI",
-                  style: GoogleFonts.plusJakartaSans(
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -506,7 +515,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                   (group, groupIndex, rod, rodIndex) {
                                     return BarTooltipItem(
                                       rod.toY.toInt().toString(),
-                                      GoogleFonts.plusJakartaSans(
+                                      const TextStyle(
+                                        fontFamily: 'Plus Jakarta Sans',
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
@@ -646,7 +656,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               child: Center(
                 child: Text(
                   'grafik lain coming soon...',
-                  style: GoogleFonts.plusJakartaSans(color: Colors.white54),
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: Colors.white54,
+                  ),
                 ),
               ),
             ),
@@ -666,7 +679,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 onPressed: () => Get.to(() => HabitDetailScreen(habit: habit)),
                 child: Text(
                   'Lihat Detail Kebiasaan',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -701,7 +715,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             children: [
               Text(
                 label,
-                style: GoogleFonts.plusJakartaSans(
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   color: AppTheme.textSecondary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -723,7 +738,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             children: [
                               Text(
                                 label,
-                                style: GoogleFonts.spaceGrotesk(
+                                style: const TextStyle(
+                                  fontFamily: 'Space Grotesk',
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -733,7 +749,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                               Text(
                                 description,
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.plusJakartaSans(
+                                style: const TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 16,
                                   color: Colors.white70,
                                 ),
@@ -754,7 +771,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                   onPressed: () => Get.back(),
                                   child: Text(
                                     'Paham!',
-                                    style: GoogleFonts.plusJakartaSans(
+                                    style: const TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black,
                                     ),
@@ -794,7 +812,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               children: [
                 Text(
                   value,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: TextStyle(
+                    fontFamily: 'Space Grotesk',
                     color: color,
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -803,7 +822,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 const SizedBox(width: 4),
                 Text(
                   sub,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
                     color: AppTheme.textSecondary,
                     fontSize: 14,
                   ),
@@ -907,7 +927,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             children: [
               Text(
                 'Jawara Strik',
-                style: GoogleFonts.spaceGrotesk(
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -983,7 +1004,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
             child: Text(
               '#$rank',
-              style: GoogleFonts.spaceGrotesk(
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
                 fontWeight: FontWeight.bold,
                 color: rankColor,
                 fontSize: isFirst ? 16 : 14,
@@ -996,7 +1018,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 12,
@@ -1008,7 +1031,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             children: [
               Text(
                 '$streak',
-                style: GoogleFonts.spaceGrotesk(
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
                   color: AppTheme.primary,
                   fontSize: isFirst ? 24 : 18,
                   fontWeight: FontWeight.bold,
@@ -1024,7 +1048,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
           Text(
             'Hari',
-            style: GoogleFonts.plusJakartaSans(
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               color: Colors.white30,
               fontSize: 10,
             ),
@@ -1039,7 +1064,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       children: [
         Text(
           title,
-          style: GoogleFonts.spaceGrotesk(
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -1061,7 +1087,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     children: [
                       Text(
                         title,
-                        style: GoogleFonts.spaceGrotesk(
+                        style: const TextStyle(
+                          fontFamily: 'Space Grotesk',
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -1071,7 +1098,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       Text(
                         description,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: const TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
                           fontSize: 16,
                           color: Colors.white70,
                         ),
@@ -1089,7 +1117,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                           onPressed: () => Get.back(),
                           child: Text(
                             'Paham!',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
@@ -1342,7 +1371,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
                   const SizedBox(width: 12),
                   Text(
                     'Coach Strik AI',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -1389,7 +1419,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
                         children: [
                           Text(
                             "Lagi meracik strategi... 🧠⚡",
-                            style: GoogleFonts.plusJakartaSans(
+                            style: TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
                               color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 14,
                               fontStyle: FontStyle.italic,
@@ -1425,7 +1456,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
         spans.add(
           TextSpan(
             text: text.substring(lastIndex, match.start),
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               color: Colors.white.withValues(alpha: 0.95),
               fontSize: 15,
               height: 1.6,
@@ -1438,7 +1470,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
       spans.add(
         TextSpan(
           text: match.group(2), // The content inside the asterisks
-          style: GoogleFonts.plusJakartaSans(
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             color: Colors.white, // Pure white for bold
             fontSize: 15,
             fontWeight: FontWeight.bold, // BOLD
@@ -1455,7 +1488,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
       spans.add(
         TextSpan(
           text: text.substring(lastIndex),
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             color: Colors.white.withValues(alpha: 0.95),
             fontSize: 15,
             height: 1.6,
@@ -1498,7 +1532,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
               const SizedBox(width: 8),
               Text(
                 "Tanya Coach Strik",
-                style: GoogleFonts.plusJakartaSans(
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -1528,7 +1563,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           "Minta Saran Coach Strik AI?",
-          style: GoogleFonts.spaceGrotesk(
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -1540,7 +1576,10 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
           children: [
             Text(
               "Tindakan ini bakal pake 1 kuota generate kamu.",
-              style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white70,
+              ),
             ),
             const SizedBox(height: 12),
             Container(
@@ -1558,7 +1597,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
                     child: Obx(
                       () => Text(
                         "Sisa Kuota: ${widget.controller.aiQuotaLimit - widget.controller.aiQuotaUsed.value}x lagi",
-                        style: GoogleFonts.plusJakartaSans(
+                        style: const TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
                           color: Colors.amber,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -1576,7 +1616,10 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
             onPressed: () => Get.back(),
             child: Text(
               "Batal",
-              style: GoogleFonts.plusJakartaSans(color: Colors.white54),
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white54,
+              ),
             ),
           ),
           ElevatedButton(
@@ -1594,7 +1637,8 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
             },
             child: Text(
               "Gas!",
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
               ),

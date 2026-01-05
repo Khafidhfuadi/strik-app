@@ -9,7 +9,6 @@ import 'package:strik_app/screens/social_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:strik_app/core/theme.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/widgets/habit_card.dart';
 import 'package:strik_app/widgets/weekly_habit_card.dart';
 import 'package:strik_app/screens/statistics_screen.dart';
@@ -104,7 +103,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               Text(
                 'Strik',
-                style: GoogleFonts.spaceGrotesk(
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
                   fontWeight: FontWeight.bold,
                   fontSize: 28,
                   color: Colors.white,
@@ -191,7 +191,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           child: Text(
             label,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               color: isActive ? Colors.white : Colors.grey[600],
               fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
             ),
@@ -219,7 +220,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               const SizedBox(height: 8),
               Text(
                 '${controller.todayLogs.values.where((s) => s == 'completed').length} kelar • ${controller.todayLogs.values.where((s) => s == 'skipped').length} skip',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   color: Colors.grey[500],
                   fontSize: 14,
                 ),
@@ -338,7 +340,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
             Text(
               text,
-              style: GoogleFonts.spaceGrotesk(
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
                 color: textColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
@@ -478,7 +481,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ? Center(
                       child: Text(
                         username.substring(0, 1).toUpperCase(),
-                        style: GoogleFonts.outfit(
+                        style: const TextStyle(
+                          fontFamily: 'Outfit',
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primary,
@@ -492,7 +496,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             // User Info
             Text(
               username,
-              style: GoogleFonts.outfit(
+              style: const TextStyle(
+                fontFamily: 'Outfit',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -501,7 +506,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const SizedBox(height: 4),
             Text(
               email,
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.white54),
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                color: Colors.white54,
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -513,7 +522,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               leading: const Icon(Icons.edit_rounded, color: Colors.white),
               title: Text(
                 'Edit Profil',
-                style: GoogleFonts.inter(
+                style: const TextStyle(
+                  fontFamily: 'Inter',
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
                 ),
@@ -536,8 +546,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               title: Text(
                 'Logout',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFFEF4444),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  color: Color(0xFFEF4444),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -585,7 +596,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const SizedBox(height: 24),
             Text(
               'Edit Profil',
-              style: GoogleFonts.outfit(
+              style: const TextStyle(
+                fontFamily: 'Outfit',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -653,7 +665,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Center(
               child: Text(
                 'Tap untuk ubah foto',
-                style: GoogleFonts.inter(fontSize: 12, color: Colors.white54),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  color: Colors.white54,
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -707,7 +723,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const SizedBox(height: 24),
             Text(
               'Filter Habit',
-              style: GoogleFonts.outfit(
+              style: const TextStyle(
+                fontFamily: 'Outfit',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -716,9 +733,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const SizedBox(height: 24),
             Obx(
               () => SwitchListTile(
-                title: Text(
+                title: const Text(
                   'Tampilkan yang udah kelar',
-                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: Colors.white,
+                  ),
                 ),
                 value: controller.showCompleted.value,
                 onChanged: (val) => controller.showCompleted.value = val,
@@ -728,9 +748,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
             Obx(
               () => SwitchListTile(
-                title: Text(
+                title: const Text(
                   'Tampilkan yang di-skip',
-                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: Colors.white,
+                  ),
                 ),
                 value: controller.showSkipped.value,
                 onChanged: (val) => controller.showSkipped.value = val,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/habit_detail_controller.dart';
@@ -81,7 +80,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 // Header
                 Text(
                   currentHabit.title,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: const TextStyle(
+                    fontFamily: 'Space Grotesk',
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
@@ -137,7 +137,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
 
                     return Text(
                       label,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
                         fontSize: 16,
                         color: AppTheme.textSecondary,
                       ),
@@ -162,7 +163,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                               currentHabit.reminderTime != null
                           ? 'Diingetin: ${currentHabit.reminderTime!.format(context)}'
                           : 'Reminder Off',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
                         fontSize: 14,
                         color: currentHabit.reminderEnabled
                             ? AppTheme.primary
@@ -193,7 +195,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     currentHabit.description!.isNotEmpty) ...[
                   Text(
                     'Detailnya',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textPrimary,
@@ -212,7 +215,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     ),
                     child: Text(
                       currentHabit.description!,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
                         fontSize: 16,
                         color: AppTheme.textPrimary.withValues(alpha: 0.8),
                         height: 1.5,
@@ -297,7 +301,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         children: [
           Text(
             'Wrapped Bulanan',
-            style: GoogleFonts.spaceGrotesk(
+            style: const TextStyle(
+              fontFamily: 'Space Grotesk',
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppTheme.textPrimary,
@@ -314,7 +319,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               ),
               Text(
                 DateFormat('MMM yyyy').format(controller.focusedMonth.value),
-                style: GoogleFonts.plusJakartaSans(
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   fontSize: 16,
                   color: AppTheme.textSecondary,
                 ),
@@ -339,21 +345,28 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         backgroundColor: AppTheme.surface,
         title: Text(
           'Hapus Habit?',
-          style: GoogleFonts.spaceGrotesk(
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
           'Beneran mau hapus "${widget.habit.title}"? Progressnya bakal ilang semua loh coy.',
-          style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            color: Colors.white70,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
               'Gajadi',
-              style: GoogleFonts.plusJakartaSans(color: Colors.white54),
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white54,
+              ),
             ),
           ),
           TextButton(
@@ -364,7 +377,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             },
             child: Text(
               'Hapus!',
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.red,
                 fontWeight: FontWeight.bold,
               ),
@@ -382,7 +396,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       children: [
         Text(
           value,
-          style: GoogleFonts.spaceGrotesk(
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
             fontSize: 24,
             fontWeight: FontWeight.bold,
             color: AppTheme.textPrimary,
@@ -391,7 +406,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: GoogleFonts.plusJakartaSans(
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             fontSize: 12,
             color: AppTheme.textSecondary,
             fontWeight: FontWeight.w500,
@@ -459,7 +475,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     child: Center(
                       child: Text(
                         day,
-                        style: GoogleFonts.plusJakartaSans(
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
                           fontSize: 12,
                           color: AppTheme.textSecondary,
                           fontWeight: FontWeight.bold,
@@ -565,7 +582,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                           children: [
                             Text(
                               '$dayNum',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 fontSize: 14,
                                 color: textColor,
                                 fontWeight: isCompleted || isToday
@@ -612,7 +630,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               children: [
                 Text(
                   'Jurnal Habit',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: const TextStyle(
+                    fontFamily: 'Space Grotesk',
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary,
@@ -644,7 +663,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   ),
                   label: Text(
                     'Tulis Jurnal',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
                       color: AppTheme.primary,
                       fontWeight: FontWeight.bold,
                     ),
@@ -684,7 +704,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'Belum ada jurnal',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
                       color: AppTheme.textSecondary,
                       fontSize: 14,
                     ),
@@ -740,7 +761,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     'EEEE, d MMM yyyy',
                     'id_ID',
                   ).format(journal.createdAt),
-                  style: GoogleFonts.plusJakartaSans(
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textSecondary,
@@ -758,7 +780,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               journal.content,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.plusJakartaSans(
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 fontSize: 14,
                 color: AppTheme.textPrimary.withValues(alpha: 0.9),
                 height: 1.5,
@@ -799,7 +822,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   children: [
                     Text(
                       isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: const TextStyle(
+                        fontFamily: 'Space Grotesk',
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
@@ -811,7 +835,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                         'EEEE, d MMM yyyy',
                         'id_ID',
                       ).format(displayDate),
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
                         fontSize: 14,
                         color: AppTheme.textSecondary,
                       ),
@@ -832,10 +857,14 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             TextField(
               controller: textController,
               maxLines: 6,
-              style: GoogleFonts.plusJakartaSans(color: AppTheme.textPrimary),
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: AppTheme.textPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: 'Gimana habit kamu hari ini?',
-                hintStyle: GoogleFonts.plusJakartaSans(
+                hintStyle: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   color: AppTheme.textSecondary,
                 ),
                 filled: true,
@@ -877,7 +906,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 ),
                 child: Text(
                   'Simpan',
-                  style: GoogleFonts.plusJakartaSans(
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
@@ -923,7 +953,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   children: [
                     Text(
                       'Coach Strik AI',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: const TextStyle(
+                        fontFamily: 'Space Grotesk',
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
@@ -931,7 +962,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     ),
                     Text(
                       'Analisis habit kamu',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
                         fontSize: 12,
                         color: AppTheme.textSecondary,
                       ),
@@ -973,7 +1005,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     Expanded(
                       child: Text(
                         'Tulis minimal 10 jurnal dulu ya buat dianalisis sama Coach Strik AI!',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
                           color: AppTheme.textSecondary,
                           fontSize: 13,
                         ),
@@ -985,7 +1018,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             } else {
               return Text(
                 'Generate insight buat tau pola habit kamu dan tips memperbaikinya.',
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   color: AppTheme.textSecondary,
                 ),
               );
@@ -1023,7 +1057,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                           journalController.aiInsight.value.isEmpty
                               ? 'Generate Insight ✨'
                               : 'Regenerate Insight 🔄',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1039,7 +1074,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               return Center(
                 child: Text(
                   "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
-                  style: GoogleFonts.plusJakartaSans(
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
                     color: Colors.white38,
                     fontSize: 10,
                   ),
@@ -1070,7 +1106,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           "Minta Saran Coach Strik AI?",
-          style: GoogleFonts.spaceGrotesk(
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -1082,7 +1119,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           children: [
             Text(
               "Tindakan ini bakal pake 1 kuota generate kamu.",
-              style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white70,
+              ),
             ),
             const SizedBox(height: 12),
             Container(
@@ -1099,7 +1139,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   Expanded(
                     child: Text(
                       "Sisa Kuota: ${3 - journalController.aiQuotaUsed.value}x lagi",
-                      style: GoogleFonts.plusJakartaSans(
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
                         color: Colors.amber,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -1116,7 +1157,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             onPressed: () => Get.back(),
             child: Text(
               "Batal",
-              style: GoogleFonts.plusJakartaSans(color: Colors.white60),
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white60,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -1154,7 +1198,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             ),
             child: Text(
               "Lanjut Gas!",
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -1179,7 +1226,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         spans.add(
           TextSpan(
             text: text.substring(lastIndex, match.start),
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               color: Colors.white.withValues(alpha: 0.95),
               fontSize: 14,
               height: 1.6,
@@ -1192,7 +1240,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       spans.add(
         TextSpan(
           text: match.group(2), // The content inside the asterisks
-          style: GoogleFonts.plusJakartaSans(
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             color: Colors.white, // Pure white for bold
             fontSize: 14,
             fontWeight: FontWeight.bold, // BOLD
@@ -1209,7 +1258,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       spans.add(
         TextSpan(
           text: text.substring(lastIndex),
-          style: GoogleFonts.plusJakartaSans(
+          style: TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
             color: Colors.white.withValues(alpha: 0.95),
             fontSize: 14,
             height: 1.6,
@@ -1227,11 +1277,17 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         backgroundColor: AppTheme.surface,
         title: Text(
           'Hapus Jurnal?',
-          style: GoogleFonts.spaceGrotesk(color: Colors.white),
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
+            color: Colors.white,
+          ),
         ),
         content: Text(
           'Yakin mau hapus jurnal ini?',
-          style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            color: Colors.white70,
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('Gajadi')),
@@ -1258,7 +1314,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             const SizedBox(width: 8),
             Text(
               'Jurnal Tips',
-              style: GoogleFonts.spaceGrotesk(
+              style: const TextStyle(
+                fontFamily: 'Space Grotesk',
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -1285,7 +1342,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             onPressed: () => Get.back(),
             child: Text(
               'Oke, Paham',
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: AppTheme.primary,
                 fontWeight: FontWeight.bold,
               ),
@@ -1305,7 +1363,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         Expanded(
           child: Text(
             text,
-            style: GoogleFonts.plusJakartaSans(
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
               color: AppTheme.textPrimary.withValues(alpha: 0.9),
               fontSize: 14,
               height: 1.4,

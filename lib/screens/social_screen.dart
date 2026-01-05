@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -81,7 +80,8 @@ class _SocialScreenState extends State<SocialScreen> {
       ),
       child: Text(
         count > 99 ? '99+' : '$count',
-        style: GoogleFonts.plusJakartaSans(
+        style: const TextStyle(
+          fontFamily: 'Plus Jakarta Sans',
           color: Colors.white,
           fontSize: 10,
           fontWeight: FontWeight.bold,
@@ -105,7 +105,8 @@ class _SocialScreenState extends State<SocialScreen> {
                 children: [
                   Text(
                     'Sosialita',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
                       fontWeight: FontWeight.bold,
                       fontSize: 28,
                       color: Colors.white,
@@ -170,7 +171,8 @@ class _SocialScreenState extends State<SocialScreen> {
                           children: [
                             Text(
                               label,
-                              style: GoogleFonts.plusJakartaSans(
+                              style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 color: isActive
                                     ? Colors.white
                                     : Colors.grey[600],
@@ -255,7 +257,10 @@ class _SocialScreenState extends State<SocialScreen> {
               const SizedBox(height: 16),
               Text(
                 'Belum ada suhu nih! 🥶',
-                style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.grey,
+                ),
               ),
             ],
           ),
@@ -270,7 +275,8 @@ class _SocialScreenState extends State<SocialScreen> {
             // Transition Title
             Text(
               'Leaderboard Minggu Lalu',
-              style: GoogleFonts.spaceGrotesk(
+              style: const TextStyle(
+                fontFamily: 'Space Grotesk',
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -297,7 +303,8 @@ class _SocialScreenState extends State<SocialScreen> {
                   const SizedBox(width: 8),
                   Text(
                     'Leaderboard baru dimulai pukul 12:00',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
                       color: Colors.amber,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -370,7 +377,8 @@ class _SocialScreenState extends State<SocialScreen> {
                         const SizedBox(height: 16),
                         Text(
                           winner['user'].username ?? 'Unknown',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
                             color: Colors.white,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -388,7 +396,8 @@ class _SocialScreenState extends State<SocialScreen> {
                           ),
                           child: Text(
                             '${winner['score'].toStringAsFixed(1)} pts',
-                            style: GoogleFonts.spaceGrotesk(
+                            style: const TextStyle(
+                              fontFamily: 'Space Grotesk',
                               color: Colors.amber,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -407,7 +416,8 @@ class _SocialScreenState extends State<SocialScreen> {
             // Rest of leaderboard title
             Text(
               'Peringkat Lainnya',
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.white54,
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -435,7 +445,8 @@ class _SocialScreenState extends State<SocialScreen> {
                         width: 30,
                         child: Text(
                           '${index + 1}',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
                             color: Colors.grey,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -464,7 +475,8 @@ class _SocialScreenState extends State<SocialScreen> {
                       Expanded(
                         child: Text(
                           data['user'].username ?? 'Unknown',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: const TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
@@ -473,7 +485,8 @@ class _SocialScreenState extends State<SocialScreen> {
                       ),
                       Text(
                         '${data['score'].toStringAsFixed(1)} pts',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: const TextStyle(
+                          fontFamily: 'Space Grotesk',
                           color: Colors.white54,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
@@ -497,7 +510,8 @@ class _SocialScreenState extends State<SocialScreen> {
           // Title Section
           Text(
             'Leaderboard Mingguan',
-            style: GoogleFonts.spaceGrotesk(
+            style: const TextStyle(
+              fontFamily: 'Space Grotesk',
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -514,7 +528,8 @@ class _SocialScreenState extends State<SocialScreen> {
               const SizedBox(width: 6),
               Text(
                 'Reset setiap Senin pukul 12:00',
-                style: GoogleFonts.plusJakartaSans(
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   color: Colors.white54,
                   fontSize: 12,
                 ),
@@ -531,7 +546,8 @@ class _SocialScreenState extends State<SocialScreen> {
                       ),
                       title: Text(
                         'Sistem Scoring Leaderboard',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: const TextStyle(
+                          fontFamily: 'Space Grotesk',
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -543,7 +559,8 @@ class _SocialScreenState extends State<SocialScreen> {
                           children: [
                             Text(
                               'Sistem scoring yang adil untuk semua!',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: const TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 color: Colors.white70,
                                 fontSize: 14,
                               ),
@@ -551,7 +568,7 @@ class _SocialScreenState extends State<SocialScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'Formula:',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: TextStyle(fontFamily: 'Space Grotesk', 
                                 color: Colors.amber,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -565,7 +582,9 @@ class _SocialScreenState extends State<SocialScreen> {
                               ),
                               child: Text(
                                 'Score = (Completion Rate × 100) + (Total Completed × 0.5)',
-                                style: GoogleFonts.sourceCodePro(
+                                style: const TextStyle(
+                                  fontFamily: 'Courier',
+                                  // Keep source code pro or use monospace
                                   color: Colors.white,
                                   fontSize: 11,
                                 ),
@@ -574,7 +593,7 @@ class _SocialScreenState extends State<SocialScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'Contoh:',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: TextStyle(fontFamily: 'Space Grotesk', 
                                 color: Colors.amber,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -602,7 +621,8 @@ class _SocialScreenState extends State<SocialScreen> {
                                 Expanded(
                                   child: Text(
                                     'Perfect week (100% completion)',
-                                    style: GoogleFonts.plusJakartaSans(
+                                    style: const TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
                                       color: Colors.white70,
                                       fontSize: 12,
                                     ),
@@ -615,7 +635,7 @@ class _SocialScreenState extends State<SocialScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'Siklus Mingguan:',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: TextStyle(fontFamily: 'Space Grotesk', 
                                 color: Colors.amber,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -651,7 +671,8 @@ class _SocialScreenState extends State<SocialScreen> {
                                   Expanded(
                                     child: Text(
                                       'Habit yang selesai saat Freeze Time akan diakumulasi ke minggu berikutnya.',
-                                      style: GoogleFonts.plusJakartaSans(
+                                      style: TextStyle(
+                                        fontFamily: 'Plus Jakarta Sans',
                                         color: Colors.blue[100],
                                         fontSize: 11,
                                       ),
@@ -668,7 +689,8 @@ class _SocialScreenState extends State<SocialScreen> {
                           onPressed: () => Navigator.pop(context),
                           child: Text(
                             'Mengerti!',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
                               color: Colors.amber,
                               fontWeight: FontWeight.bold,
                             ),
@@ -724,7 +746,8 @@ class _SocialScreenState extends State<SocialScreen> {
                       width: 30,
                       child: Text(
                         '${index + 1}',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: const TextStyle(
+                          fontFamily: 'Space Grotesk',
                           color: Colors.grey,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -753,7 +776,8 @@ class _SocialScreenState extends State<SocialScreen> {
                     Expanded(
                       child: Text(
                         data['user'].username ?? 'Unknown',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: const TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
@@ -775,7 +799,8 @@ class _SocialScreenState extends State<SocialScreen> {
                               ),
                             Text(
                               '${data['score'].toStringAsFixed(1)}',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: const TextStyle(
+                                fontFamily: 'Space Grotesk',
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -783,7 +808,8 @@ class _SocialScreenState extends State<SocialScreen> {
                             ),
                             Text(
                               ' pts',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: const TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 color: Colors.grey,
                                 fontSize: 12,
                               ),
@@ -793,7 +819,8 @@ class _SocialScreenState extends State<SocialScreen> {
                         const SizedBox(height: 2),
                         Text(
                           '${data['completionRate'].toStringAsFixed(0)}% • ${data['totalCompleted']}/${data['totalExpected']}',
-                          style: GoogleFonts.plusJakartaSans(
+                          style: const TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
                             color: Colors.grey,
                             fontSize: 11,
                           ),
@@ -852,7 +879,8 @@ class _SocialScreenState extends State<SocialScreen> {
             const SizedBox(height: 8),
             Text(
               data['user'].username ?? 'Unknown',
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
@@ -881,7 +909,8 @@ class _SocialScreenState extends State<SocialScreen> {
                         ),
                       Text(
                         '${data['score'].toStringAsFixed(1)}',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
                           color: color,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -891,7 +920,8 @@ class _SocialScreenState extends State<SocialScreen> {
                   ),
                   Text(
                     '${data['completionRate'].toStringAsFixed(0)}%',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
                       color: color.withOpacity(0.7),
                       fontSize: 9,
                     ),
@@ -914,7 +944,8 @@ class _SocialScreenState extends State<SocialScreen> {
               alignment: Alignment.center,
               child: Text(
                 '$place',
-                style: GoogleFonts.spaceGrotesk(
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
                   color: Colors.grey[500],
                   fontWeight: FontWeight.bold,
                   fontSize: isFirst ? 14 : 10,
@@ -961,7 +992,8 @@ class _SocialScreenState extends State<SocialScreen> {
                 children: [
                   Text(
                     user.username ?? 'Unknown',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -969,7 +1001,8 @@ class _SocialScreenState extends State<SocialScreen> {
                   ),
                   Text(
                     'Rank #$rank',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
                       color: Colors.amber,
                       fontSize: 12,
                     ),
@@ -997,7 +1030,8 @@ class _SocialScreenState extends State<SocialScreen> {
                   children: [
                     Text(
                       'Total Score',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
                         color: Colors.white70,
                         fontSize: 14,
                       ),
@@ -1011,7 +1045,8 @@ class _SocialScreenState extends State<SocialScreen> {
                           ),
                         Text(
                           '${score.toStringAsFixed(1)} pts',
-                          style: GoogleFonts.spaceGrotesk(
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
                             color: Colors.amber,
                             fontWeight: FontWeight.bold,
                             fontSize: 20,
@@ -1027,7 +1062,8 @@ class _SocialScreenState extends State<SocialScreen> {
               // Calculation Breakdown
               Text(
                 'Perhitungan:',
-                style: GoogleFonts.spaceGrotesk(
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -1067,7 +1103,8 @@ class _SocialScreenState extends State<SocialScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Tutup',
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.amber,
                 fontWeight: FontWeight.bold,
               ),
@@ -1093,7 +1130,8 @@ class _SocialScreenState extends State<SocialScreen> {
             children: [
               Text(
                 label,
-                style: GoogleFonts.plusJakartaSans(
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
                   color: isTotal ? Colors.white : Colors.white70,
                   fontSize: isTotal ? 14 : 12,
                   fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
@@ -1102,7 +1140,8 @@ class _SocialScreenState extends State<SocialScreen> {
               if (!isTotal)
                 Text(
                   calculation,
-                  style: GoogleFonts.sourceCodePro(
+                  style: const TextStyle(
+                    fontFamily: 'Courier',
                     color: Colors.white54,
                     fontSize: 10,
                   ),
@@ -1112,7 +1151,8 @@ class _SocialScreenState extends State<SocialScreen> {
         ),
         Text(
           result,
-          style: GoogleFonts.spaceGrotesk(
+          style: TextStyle(
+            fontFamily: 'Space Grotesk',
             color: isTotal ? Colors.amber : Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: isTotal ? 16 : 13,
@@ -1139,7 +1179,8 @@ class _SocialScreenState extends State<SocialScreen> {
           Expanded(
             child: Text(
               scenario,
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.white,
                 fontSize: 12,
               ),
@@ -1154,7 +1195,8 @@ class _SocialScreenState extends State<SocialScreen> {
                 ),
               Text(
                 score,
-                style: GoogleFonts.spaceGrotesk(
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
                   color: isWinner ? Colors.green : Colors.white70,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
@@ -1197,10 +1239,14 @@ class _SocialScreenState extends State<SocialScreen> {
               Expanded(
                 child: TextField(
                   controller: _postController,
-                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: Colors.white,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Spill kegiatan lo hari ini...',
-                    hintStyle: GoogleFonts.plusJakartaSans(
+                    hintStyle: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
                       color: Colors.grey[600],
                     ),
                     border: InputBorder.none,
@@ -1325,7 +1371,7 @@ class _SocialScreenState extends State<SocialScreen> {
                                 children: [
                                   RichText(
                                     text: TextSpan(
-                                      style: GoogleFonts.plusJakartaSans(
+                                      style: TextStyle(fontFamily: 'Plus Jakarta Sans', 
                                         color: Colors.white,
                                         fontSize: 14,
                                       ),
@@ -1359,7 +1405,7 @@ class _SocialScreenState extends State<SocialScreen> {
                                     const SizedBox(height: 4),
                                     Text(
                                       titleText,
-                                      style: GoogleFonts.plusJakartaSans(
+                                      style: TextStyle(fontFamily: 'Plus Jakarta Sans', 
                                         color: Colors.white,
                                         fontSize: 14,
                                       ),
@@ -1368,7 +1414,8 @@ class _SocialScreenState extends State<SocialScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     timeago.format(date),
-                                    style: GoogleFonts.plusJakartaSans(
+                                    style: TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
                                       color: Colors.grey[600],
                                       fontSize: 12,
                                     ),
@@ -1446,13 +1493,14 @@ class _SocialScreenState extends State<SocialScreen> {
                                                   const SizedBox(width: 16),
                                                   Text(
                                                     'Hapus Postingan',
-                                                    style:
-                                                        GoogleFonts.plusJakartaSans(
-                                                          color: Colors.red,
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
+                                                    style: const TextStyle(
+                                                      fontFamily:
+                                                          'Plus Jakarta Sans',
+                                                      color: Colors.red,
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
                                                   ),
                                                 ],
                                               ),
@@ -1568,7 +1616,8 @@ class _SocialScreenState extends State<SocialScreen> {
                                     const SizedBox(width: 6),
                                     Text(
                                       '${reactions.length}',
-                                      style: GoogleFonts.spaceGrotesk(
+                                      style: TextStyle(
+                                        fontFamily: 'Space Grotesk',
                                         color: hasReacted
                                             ? const Color(0xFFFF5757)
                                             : Colors.grey,
@@ -1706,7 +1755,10 @@ class _SocialScreenState extends State<SocialScreen> {
                   child: Text(
                     'Belum ada bestie nih 😔\nTap + buat nambah temen!',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               );
@@ -1780,7 +1832,8 @@ class _SocialScreenState extends State<SocialScreen> {
                         Expanded(
                           child: Text(
                             friend.username ?? 'User',
-                            style: GoogleFonts.plusJakartaSans(
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
                               fontSize: 16,
@@ -1884,7 +1937,8 @@ class _SocialScreenState extends State<SocialScreen> {
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.white70,
                 fontSize: 13,
               ),

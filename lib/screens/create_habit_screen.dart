@@ -4,7 +4,6 @@ import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/widgets/custom_text_field.dart';
 import 'package:strik_app/widgets/primary_button.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/controllers/create_habit_controller.dart';
 
 class CreateHabitScreen extends StatelessWidget {
@@ -30,7 +29,8 @@ class CreateHabitScreen extends StatelessWidget {
         ),
         title: RichText(
           text: TextSpan(
-            style: GoogleFonts.outfit(
+            style: const TextStyle(
+              fontFamily: 'Outfit',
               fontSize: 24,
               fontWeight: FontWeight.w400,
               color: Colors.white,
@@ -106,7 +106,8 @@ class CreateHabitScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   'Pilih Warna',
-                                  style: GoogleFonts.spaceGrotesk(
+                                  style: const TextStyle(
+                                    fontFamily: 'Space Grotesk',
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,

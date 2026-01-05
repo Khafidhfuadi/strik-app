@@ -6,7 +6,6 @@ import 'package:strik_app/data/repositories/habit_repository.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:strik_app/core/theme.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 
@@ -149,7 +148,7 @@ class CreateHabitController extends GetxController {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -157,7 +156,8 @@ class CreateHabitController extends GetxController {
             const SizedBox(height: 24),
             Text(
               'Izin Notifikasi Dulu Dong! \u{1F514}',
-              style: GoogleFonts.outfit(
+              style: const TextStyle(
+                fontFamily: 'Outfit',
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -166,7 +166,8 @@ class CreateHabitController extends GetxController {
             const SizedBox(height: 12),
             Text(
               'Supaya Striks bisa ingetin kamu buat ngerjain habit, aktifin dulu ya izin notifikasinya.',
-              style: GoogleFonts.inter(
+              style: const TextStyle(
+                fontFamily: 'Inter',
                 fontSize: 14,
                 color: Colors.white70,
                 height: 1.5,
@@ -197,9 +198,10 @@ class CreateHabitController extends GetxController {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Nanti Aja Deh',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
+                    fontFamily: 'Inter',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.white54,

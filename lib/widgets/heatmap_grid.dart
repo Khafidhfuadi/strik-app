@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:strik_app/core/theme.dart';
 
 class HeatmapGrid extends StatelessWidget {
@@ -104,7 +103,8 @@ class HeatmapGrid extends StatelessWidget {
           children: [
             Text(
               'Less',
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.white38,
                 fontSize: 10,
               ),
@@ -118,7 +118,8 @@ class HeatmapGrid extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               'More',
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.white38,
                 fontSize: 10,
               ),

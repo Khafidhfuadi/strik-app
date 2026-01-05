@@ -4,7 +4,7 @@ import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:strik_app/main.dart'; // Access global supabase client
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Removed
 // import 'package:lottie/lottie.dart'; // Unused for now
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/widgets/primary_button.dart';
@@ -92,8 +92,9 @@ class FriendController extends GetxController {
                   const SizedBox(height: 16),
                   Text(
                     'JUARA MINGGU LALU! 👑',
-                    style: GoogleFonts.spaceGrotesk(
-                      color: const Color(0xFFFFD700),
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      color: Color(0xFFFFD700),
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
@@ -129,7 +130,8 @@ class FriendController extends GetxController {
                   const SizedBox(height: 16),
                   Text(
                     winner.username ?? 'Unknown',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -138,7 +140,10 @@ class FriendController extends GetxController {
                   const SizedBox(height: 8),
                   Text(
                     'Menyala abangkuh! 🔥',
-                    style: GoogleFonts.plusJakartaSans(color: Colors.grey),
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      color: Colors.grey,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   PrimaryButton(text: 'Keren!', onPressed: () => Get.back()),
@@ -425,21 +430,28 @@ class FriendController extends GetxController {
         backgroundColor: AppTheme.surface,
         title: Text(
           'Hapus Teman?',
-          style: GoogleFonts.spaceGrotesk(
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
           'Yakin mau hapus $friendName dari daftar teman? Kalian bakal ga bisa liat aktivitas satu sama lain lagi.',
-          style: GoogleFonts.plusJakartaSans(color: Colors.white70),
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            color: Colors.white70,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
               'Gajadi',
-              style: GoogleFonts.plusJakartaSans(color: Colors.white54),
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white54,
+              ),
             ),
           ),
           TextButton(
@@ -454,7 +466,8 @@ class FriendController extends GetxController {
             },
             child: Text(
               'Hapus',
-              style: GoogleFonts.plusJakartaSans(
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
                 color: Colors.red,
                 fontWeight: FontWeight.bold,
               ),

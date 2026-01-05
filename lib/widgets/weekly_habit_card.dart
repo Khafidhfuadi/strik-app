@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
@@ -54,7 +53,8 @@ class WeeklyHabitCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     habit.title,
-                    style: GoogleFonts.plusJakartaSans(
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
                       color: Colors.white, // Dark text on colored card
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -88,7 +88,8 @@ class WeeklyHabitCard extends StatelessWidget {
                               margin: const EdgeInsets.only(right: 6),
                               child: Text(
                                 '$completedCount/${habit.frequencyCount}',
-                                style: GoogleFonts.plusJakartaSans(
+                                style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
                                   color: isTargetReached
                                       ? const Color(
                                           0xFFFCD34D,
@@ -104,7 +105,8 @@ class WeeklyHabitCard extends StatelessWidget {
                       ],
                       Text(
                         _getFrequencyText(habit),
-                        style: GoogleFonts.plusJakartaSans(
+                        style: const TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -143,12 +145,13 @@ class WeeklyHabitCard extends StatelessWidget {
                       children: [
                         Text(
                           DateFormat('E').format(date).substring(0, 1),
-                          style: GoogleFonts.plusJakartaSans(
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
                             color: Colors.white.withOpacity(
                               isToday ? 1.0 : 0.6,
                             ),
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 8),
