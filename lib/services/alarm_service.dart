@@ -16,7 +16,7 @@ class AlarmService {
         title: title,
         body: body,
         stopButton: 'Stop',
-        icon: 'notification_icon',
+        icon: '@mipmap/ic_launcher',
       ),
       // enableNotificationOnKill is handled by warningNotificationOnKill in v5 if needed, default is usually false but we can ignore for now or check docs.
       // Default behavior is usually good.

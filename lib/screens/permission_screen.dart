@@ -15,6 +15,11 @@ class PermissionScreen extends StatelessWidget {
       await Permission.scheduleExactAlarm.request();
     }
 
+    // Request ignore battery optimizations to ensure alarms work extensively in background
+    if (await Permission.ignoreBatteryOptimizations.isDenied) {
+      await Permission.ignoreBatteryOptimizations.request();
+    }
+
     // After permissions are asked (regardless of o utcome), go to AuthGate
     Get.offAll(() => const AuthGate());
   }

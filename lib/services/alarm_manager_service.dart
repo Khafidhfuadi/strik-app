@@ -21,9 +21,11 @@ class AlarmManagerService {
   Future<void> _startListening() async {
     _ringSubscription = Alarm.ringStream.stream.listen((alarmSettings) async {
       final alarmId = alarmSettings.id;
+      // Derive base ID (ensure it's the even number of the pair)
+      final baseId = alarmId & ~1;
 
-      // Get metadata
-      final metadata = await _getAlarmMetadata(alarmId);
+      // Get metadata using baseId
+      final metadata = await _getAlarmMetadata(baseId);
       if (metadata == null) {
         return;
       }
@@ -39,9 +41,12 @@ class AlarmManagerService {
       );
 
       if (nextDateTime != null) {
+        // Toggle ID: if current is even (baseId), next is odd (baseId + 1), and vice versa
+        final nextAlarmId = (alarmId == baseId) ? baseId + 1 : baseId;
+
         // Reschedule alarm
         final newAlarmSettings = AlarmSettings(
-          id: alarmId,
+          id: nextAlarmId,
           dateTime: nextDateTime,
           assetAudioPath: 'assets/src/alarm.mp3',
           volumeSettings: VolumeSettings.fixed(volume: 0.8),
@@ -49,12 +54,12 @@ class AlarmManagerService {
             title: metadata['habitTitle'],
             body: 'Yuk semangat kerjain habit kamu! 🔥',
             stopButton: 'Stop',
-            icon: 'notification_icon',
+            icon: '@mipmap/ic_launcher',
           ),
         );
 
         await Alarm.set(alarmSettings: newAlarmSettings);
-        print('Alarm rescheduled for: $nextDateTime');
+        print('Alarm rescheduled for: $nextDateTime with ID: $nextAlarmId');
       }
     });
   }
@@ -138,9 +143,10 @@ class AlarmManagerService {
     required List<int>? daysOfWeek,
     required TimeOfDay reminderTime,
   }) async {
-    // Generate alarm ID from habit ID
-    int alarmId = habitId.hashCode;
-    if (alarmId < 0) alarmId = -alarmId;
+    // Generate base alarm ID from habit ID (ensure it's even)
+    int baseId = habitId.hashCode;
+    if (baseId < 0) baseId = -baseId;
+    baseId = baseId & ~1; // Force even number
 
     // Calculate first occurrence
     final firstDateTime = _calculateNextOccurrence(
@@ -154,8 +160,8 @@ class AlarmManagerService {
       return;
     }
 
-    // Save metadata
-    await _saveAlarmMetadata(alarmId, {
+    // Save metadata using baseId
+    await _saveAlarmMetadata(baseId, {
       'habitId': habitId,
       'habitTitle': 'Waktunya $habitTitle!',
       'frequency': frequency,
@@ -166,9 +172,9 @@ class AlarmManagerService {
       },
     });
 
-    // Schedule alarm
+    // Schedule alarm using baseId
     final alarmSettings = AlarmSettings(
-      id: alarmId,
+      id: baseId,
       dateTime: firstDateTime,
       assetAudioPath: 'assets/src/alarm.mp3',
       volumeSettings: VolumeSettings.fixed(volume: 0.8),
@@ -176,7 +182,7 @@ class AlarmManagerService {
         title: 'Waktunya $habitTitle!',
         body: 'Yuk semangat kerjain habit kamu! 🔥',
         stopButton: 'Stop',
-        icon: 'notification_icon',
+        icon: '@mipmap/ic_launcher',
       ),
     );
 
@@ -184,11 +190,15 @@ class AlarmManagerService {
   }
 
   Future<void> cancelHabitAlarm(String habitId) async {
-    int alarmId = habitId.hashCode;
-    if (alarmId < 0) alarmId = -alarmId;
+    int baseId = habitId.hashCode;
+    if (baseId < 0) baseId = -baseId;
+    baseId = baseId & ~1; // Force even number
 
-    await Alarm.stop(alarmId);
-    await _deleteAlarmMetadata(alarmId);
+    // Cancel both potential IDs (base and base+1)
+    await Alarm.stop(baseId);
+    await Alarm.stop(baseId + 1);
+
+    await _deleteAlarmMetadata(baseId);
     print('Alarm cancelled for habit $habitId');
   }
 
@@ -238,9 +248,11 @@ class AlarmManagerService {
         }
 
         // Check if metadata already exists (already migrated)
-        int alarmId = habitId.hashCode;
-        if (alarmId < 0) alarmId = -alarmId;
-        final existingMetadata = await _getAlarmMetadata(alarmId);
+        int baseId = habitId.hashCode;
+        if (baseId < 0) baseId = -baseId;
+        baseId = baseId & ~1;
+
+        final existingMetadata = await _getAlarmMetadata(baseId);
 
         if (existingMetadata != null) {
           continue;

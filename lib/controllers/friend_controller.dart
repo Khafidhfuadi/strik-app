@@ -1028,8 +1028,6 @@ class FriendController extends GetxController {
       }
       notifications.refresh();
       unreadNotificationCount.value = 0;
-
-      Get.snackbar('Sip!', 'Semua notifikasi udah ditandain baca! ✅');
     } catch (e) {
       Get.snackbar('Waduh', 'Gagal update status notifikasi: $e');
     }
