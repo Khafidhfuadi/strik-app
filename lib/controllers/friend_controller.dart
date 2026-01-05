@@ -478,6 +478,10 @@ class FriendController extends GetxController {
   var hasMoreActivity = true.obs;
   var isLoadingMoreActivity = false.obs;
 
+  // Notification Pagination State
+  var hasMoreNotifications = true.obs;
+  var isLoadingMoreNotifications = false.obs;
+
   // Duplicates removed
 
   var newFeedCount = 0.obs;
@@ -794,21 +798,74 @@ class FriendController extends GetxController {
     }
   }
 
-  Future<void> fetchNotifications() async {
+  Future<void> fetchNotifications({bool refresh = false}) async {
     try {
-      final data = await _friendRepository.getNotifications();
+      if (refresh) {
+        notifications.clear();
+        hasMoreNotifications.value = true;
+      }
+
+      final data = await _friendRepository.getNotifications(limit: 10);
       notifications.value = data;
+      hasMoreNotifications.value = data.length >= 10;
 
       // Calculate unread count
       unreadNotificationCount.value = data
           .where((notif) => notif['is_read'] == false)
           .length;
     } catch (e) {
+      print('Error fetching notifications: $e');
       Get.snackbar(
         'Error',
         'Gagal load notifikasi: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
+    }
+  }
+
+  Future<void> loadMoreNotifications() async {
+    if (isLoadingMoreNotifications.value || !hasMoreNotifications.value) return;
+
+    try {
+      isLoadingMoreNotifications.value = true;
+
+      DateTime? lastTimestamp;
+      if (notifications.isNotEmpty) {
+        final lastItem = notifications.last;
+        lastTimestamp = DateTime.parse(lastItem['created_at']);
+      }
+
+      final newItems = await _friendRepository.getNotifications(
+        limit: 10,
+        beforeDate: lastTimestamp,
+      );
+
+      if (newItems.isEmpty) {
+        hasMoreNotifications.value = false;
+      } else {
+        notifications.addAll(newItems);
+        if (newItems.length < 10) {
+          hasMoreNotifications.value = false;
+        }
+      }
+    } catch (e) {
+      print('Error loading more notifications: $e');
+    } finally {
+      isLoadingMoreNotifications.value = false;
+    }
+  }
+
+  Future<void> deleteNotification(String id) async {
+    // Optimistic update
+    final originalList = List<Map<String, dynamic>>.from(notifications);
+    notifications.removeWhere((n) => n['id'] == id);
+
+    try {
+      await _friendRepository.deleteNotification(id);
+    } catch (e) {
+      print('Error deleting notification: $e');
+      notifications.value = originalList; // Revert
+      Get.snackbar('Gagal', 'Gagal menghapus notifikasi');
     }
   }
 
@@ -883,7 +940,7 @@ class FriendController extends GetxController {
     }
   }
 
-  Future<void> markAllAsRead() async {
+  Future<void> markAllNotificationsAsRead() async {
     try {
       if (unreadNotificationCount.value == 0) return;
 

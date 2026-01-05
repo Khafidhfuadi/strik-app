@@ -158,19 +158,35 @@ class FriendRepository {
     });
   }
 
-  // Get notifications
-  Future<List<Map<String, dynamic>>> getNotifications() async {
+  // Get notifications (Paginated)
+  Future<List<Map<String, dynamic>>> getNotifications({
+    int limit = 10,
+    DateTime? beforeDate,
+  }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return [];
 
-    final response = await _supabase
+    // filters first
+    var query = _supabase
         .from('notifications')
         .select('*, sender:profiles!sender_id(*)')
-        .eq('recipient_id', user.id)
+        .eq('recipient_id', user.id);
+
+    if (beforeDate != null) {
+      query = query.lt('created_at', beforeDate.toUtc().toIso8601String());
+    }
+
+    // modifiers last
+    final response = await query
         .order('created_at', ascending: false)
-        .limit(20);
+        .limit(limit);
 
     return List<Map<String, dynamic>>.from(response);
+  }
+
+  // Delete a notification
+  Future<void> deleteNotification(String id) async {
+    await _supabase.from('notifications').delete().eq('id', id);
   }
 
   // Mark notification as read
