@@ -63,14 +63,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _onTabTapped(int index) {
-    // Sync PageView from tab tap
+    // 1. Update state IMMEDIATELY for snappy UI
+    final homeController = Get.find<HomeController>();
+    final tabs = ['Harian', 'Mingguan'];
+    if (index >= 0 && index < tabs.length) {
+      homeController.currentTab.value = tabs[index];
+    }
+
+    // 2. Animate PageView
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
-    // State update happens via PageView listener or manually if needed,
-    // but PageView's onPageChanged will fire and update controller.
   }
 
   @override
