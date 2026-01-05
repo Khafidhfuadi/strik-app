@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Added for HapticFeedback
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
@@ -275,6 +276,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Dismissible(
                   key: Key(habit.id!),
                   confirmDismiss: (direction) async {
+                    HapticFeedback.lightImpact();
                     await controller.toggleHabitStatus(
                       habit,
                       status,
@@ -410,7 +412,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       selectedItemColor: AppTheme.primary,
       unselectedItemColor: Colors.white54,
       currentIndex: homeController.selectedIndex.value,
-      onTap: (index) => homeController.selectedIndex.value = index,
+      onTap: (index) {
+        HapticFeedback.lightImpact();
+        homeController.selectedIndex.value = index;
+      },
       showSelectedLabels: false,
       showUnselectedLabels: false,
       items: const [

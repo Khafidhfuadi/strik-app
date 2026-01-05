@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart'; // Added for HapticFeedback
 
 import 'package:strik_app/controllers/friend_controller.dart';
 import 'package:strik_app/core/theme.dart';
@@ -52,6 +53,7 @@ class _SocialScreenState extends State<SocialScreen> {
   }
 
   void _onTabTapped(int index) {
+    HapticFeedback.lightImpact(); // Haptic feedback
     setState(() {
       _selectedIndex = index;
     });
@@ -137,8 +139,10 @@ class _SocialScreenState extends State<SocialScreen> {
                                   color: Colors.white,
                                 ),
                               ),
-                              onPressed: () =>
-                                  Get.to(() => const NotificationsScreen()),
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                Get.to(() => const NotificationsScreen());
+                              },
                             );
                           })
                         : _selectedIndex == 1
@@ -849,7 +853,10 @@ class _SocialScreenState extends State<SocialScreen> {
             final index = entry.key + 3; // 4th place onwards
             final data = entry.value;
             return GestureDetector(
-              onTap: () => _showUserDetailDialog(data, index + 1),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _showUserDetailDialog(data, index + 1);
+              },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.symmetric(
@@ -967,7 +974,10 @@ class _SocialScreenState extends State<SocialScreen> {
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => _showUserDetailDialog(data, place),
+        onTap: () {
+          HapticFeedback.lightImpact();
+          _showUserDetailDialog(data, place);
+        },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -1645,6 +1655,7 @@ class _SocialScreenState extends State<SocialScreen> {
                           children: [
                             GestureDetector(
                               onTap: () {
+                                HapticFeedback.lightImpact();
                                 if (type == 'habit_log') {
                                   _controller.toggleReaction(
                                     habitLogId: data['id'],
