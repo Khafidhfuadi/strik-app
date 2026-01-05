@@ -16,6 +16,7 @@ import 'package:strik_app/widgets/custom_loading_indicator.dart';
 import 'package:strik_app/controllers/update_profile_controller.dart';
 import 'package:strik_app/widgets/custom_text_field.dart';
 import 'package:strik_app/widgets/primary_button.dart';
+import 'package:strik_app/screens/notification_debug_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -535,6 +536,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onTap: () {
                 Get.back(); // Close view profile sheet
                 _showEditProfileBottomSheet(context);
+              },
+            ),
+
+            // Alarm Schedule
+            ListTile(
+              leading: const Icon(Icons.alarm, color: AppTheme.primary),
+              title: Text(
+                'Alarm Mendatang',
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white54,
+              ),
+              onTap: () {
+                Get.back(); // Close profile sheet
+                Get.to(() => const AlarmManagementScreen());
               },
             ),
 

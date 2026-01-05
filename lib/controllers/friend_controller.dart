@@ -35,7 +35,7 @@ class FriendController extends GetxController {
     // fetchPendingRequests(); // Remove duplicate if present (checked in previous view)
     _subscribeToRealtime();
     fetchNotifications();
-    checkWeeklyWinner();
+    // checkWeeklyWinner(); // Removed - popup dialog disabled
     _loadLastViewedTime();
   }
 

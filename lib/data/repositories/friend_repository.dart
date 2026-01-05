@@ -254,6 +254,10 @@ class FriendRepository {
       startOfWeek = calendarMonday8am;
     }
 
+    // Calculate end of week for habit filtering
+    // The scoring period is from startOfWeek up to (but not necessarily including) the next Monday 8am
+    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+
     List<Map<String, dynamic>> leaderboard = [];
 
     for (var u in allUsers) {
@@ -269,15 +273,21 @@ class FriendRepository {
         continue;
       }
 
-      // Get all habits for this user to calculate expected completions
+      // Get habits that existed during this scoring period
+      // Only include habits created BEFORE or DURING this period
       final habitsRes = await _supabase
           .from('habits')
-          .select('frequency, days_of_week, frequency_count')
-          .eq('user_id', u.id);
+          .select('id, frequency, days_of_week, frequency_count, created_at')
+          .eq('user_id', u.id)
+          .lte('created_at', endOfWeek.toUtc().toIso8601String());
 
       // Calculate expected completions for the week
       int totalExpected = 0;
+      final List<String> activeHabitIds = [];
+
       for (var habit in habitsRes) {
+        activeHabitIds.add(habit['id'] as String);
+
         final frequency = habit['frequency'] as String;
         if (frequency == 'daily') {
           // Check if specific days are selected
@@ -297,13 +307,26 @@ class FriendRepository {
         }
       }
 
+      // Skip if no active habits during that period
+      if (activeHabitIds.isEmpty) {
+        leaderboard.add({
+          'user': u,
+          'score': 0.0,
+          'completionRate': 0.0,
+          'totalCompleted': 0,
+          'totalExpected': 0,
+        });
+        continue;
+      }
+
       // Count actual completions using the new startOfWeek
+      // Only count completions for habits that existed during that time
       final completedRes = await _supabase
           .from('habit_logs')
           .select('id')
           .eq('status', 'completed')
           .gte('completed_at', startOfWeek.toUtc().toIso8601String())
-          .inFilter('habit_id', habitIds);
+          .inFilter('habit_id', activeHabitIds);
 
       final totalCompleted = (completedRes as List).length;
 
@@ -331,10 +354,17 @@ class FriendRepository {
   }
 
   Future<UserModel?> getPreviousWeekWinner() async {
-    // 1. Determine Effective Previous Cycle
+    // ONLY show winner during FREEZE TIME (Monday 08:00-12:00)
     final now = DateTime.now();
+
+    // Check if we're in freeze time
+    if (now.weekday != DateTime.monday || now.hour < 8 || now.hour >= 12) {
+      return null; // Not in freeze time, don't show winner
+    }
+
+    // We're in freeze time. Calculate the cycle that JUST ended at 08:00 today.
     final calendarWeekStart = now.subtract(Duration(days: now.weekday - 1));
-    final calendarMonday8am = DateTime(
+    final todayMonday8am = DateTime(
       calendarWeekStart.year,
       calendarWeekStart.month,
       calendarWeekStart.day,
@@ -342,24 +372,9 @@ class FriendRepository {
       0,
     );
 
-    DateTime startOfCurrentProcessingCycle;
-    if (now.isBefore(calendarMonday8am)) {
-      // Currently in a cycle that started Last Week Monday 8 AM
-      startOfCurrentProcessingCycle = calendarMonday8am.subtract(
-        const Duration(days: 7),
-      );
-    } else {
-      // Currently in a cycle that started This Week Monday 8 AM
-      startOfCurrentProcessingCycle = calendarMonday8am;
-    }
-
-    // The "Previous" cycle is simply 7 days before the "Current" one
-    final startOfLastCycle = startOfCurrentProcessingCycle.subtract(
-      const Duration(days: 7),
-    );
-    final endOfLastCycle = startOfCurrentProcessingCycle.subtract(
-      const Duration(seconds: 1),
-    ); // Up to boundary
+    // The previous cycle ended at todayMonday8am, and started 7 days before
+    final startOfLastCycle = todayMonday8am.subtract(const Duration(days: 7));
+    final endOfLastCycle = todayMonday8am.subtract(const Duration(seconds: 1));
 
     // 2. Get all friends + self
     final friends = await getFriends();
@@ -379,14 +394,20 @@ class FriendRepository {
       final habitIds = await _getHabitIdsForUser(u.id);
       if (habitIds.isEmpty) continue;
 
-      // Get habits to calculate expected
+      // Get habits that existed during the previous cycle
+      // Only include habits created BEFORE the end of last cycle
       final habitsRes = await _supabase
           .from('habits')
-          .select('frequency, days_of_week, frequency_count')
-          .eq('user_id', u.id);
+          .select('id, frequency, days_of_week, frequency_count, created_at')
+          .eq('user_id', u.id)
+          .lte('created_at', endOfLastCycle.toUtc().toIso8601String());
 
       int totalExpected = 0;
+      final List<String> activeHabitIds = [];
+
       for (var habit in habitsRes) {
+        activeHabitIds.add(habit['id'] as String);
+
         final frequency = habit['frequency'] as String;
         if (frequency == 'daily') {
           final daysOfWeek = habit['days_of_week'] as List?;
@@ -404,14 +425,18 @@ class FriendRepository {
         }
       }
 
+      // Skip if no active habits during that period
+      if (activeHabitIds.isEmpty) continue;
+
       // Count actual completions in PREVIOUS CYCLE
+      // Only count completions for habits that existed during that time
       final countRes = await _supabase
           .from('habit_logs')
           .select('id')
           .eq('status', 'completed')
           .gte('completed_at', startOfLastCycle.toUtc().toIso8601String())
           .lte('completed_at', endOfLastCycle.toUtc().toIso8601String())
-          .inFilter('habit_id', habitIds);
+          .inFilter('habit_id', activeHabitIds);
 
       final totalCompleted = (countRes as List).length;
 

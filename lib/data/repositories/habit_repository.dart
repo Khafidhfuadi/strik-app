@@ -2,9 +2,14 @@ import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/main.dart';
 
 class HabitRepository {
-  Future<void> createHabit(Habit habit) async {
+  Future<Habit> createHabit(Habit habit) async {
     try {
-      await supabase.from('habits').insert(habit.toJson());
+      final response = await supabase
+          .from('habits')
+          .insert(habit.toJson())
+          .select()
+          .single();
+      return Habit.fromJson(response);
     } catch (e) {
       throw Exception('Failed to create habit: $e');
     }

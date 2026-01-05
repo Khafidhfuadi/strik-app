@@ -11,6 +11,7 @@ import 'package:strik_app/screens/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:alarm/alarm.dart';
+import 'package:strik_app/services/alarm_manager_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,9 @@ Future<void> main() async {
 
     // Initialize Alarm
     await Alarm.init();
+
+    // Initialize AlarmManagerService for recurring alarms
+    await AlarmManagerService.init();
 
     // Initialize Firebase
     await Firebase.initializeApp();

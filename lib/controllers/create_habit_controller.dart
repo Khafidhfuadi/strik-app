@@ -9,7 +9,7 @@ import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 
-import 'package:strik_app/services/alarm_service.dart';
+import 'package:strik_app/services/alarm_manager_service.dart';
 
 class CreateHabitController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
@@ -303,6 +303,8 @@ class CreateHabitController extends GetxController {
         isPublic: isPublic.value,
       );
 
+      String? createdHabitId;
+
       if (isEdit) {
         await _habitRepository.updateHabit(habit);
         // Update local list in HabitController
@@ -312,9 +314,12 @@ class CreateHabitController extends GetxController {
           habitController.habits[idx] = habit;
           habitController.habits.refresh();
         }
+        createdHabitId = habit.id;
         Get.back(); // Return to Detail screen
       } else {
-        await _habitRepository.createHabit(habit);
+        // createHabit now returns the created habit with ID
+        final createdHabit = await _habitRepository.createHabit(habit);
+        createdHabitId = createdHabit.id;
       }
 
       // Auto-create post if habit is public
@@ -330,58 +335,17 @@ class CreateHabitController extends GetxController {
         }
       }
 
-      /* Native Alarm Support */
-      if (isReminder.value && reminderTime.value != null) {
-        /* Native Alarm Support (using alarm package) */
-        if (isReminder.value && reminderTime.value != null) {
-          // Calculate next occurrence
-          DateTime now = DateTime.now();
-          DateTime scheduledDate = DateTime(
-            now.year,
-            now.month,
-            now.day,
-            reminderTime.value!.hour,
-            reminderTime.value!.minute,
-          );
-
-          // Adjust day based on frequency
-          bool dayFound = false;
-
-          // Loop for next 7 days to find next valid day
-          for (int i = 0; i <= 8; i++) {
-            DateTime candidate = scheduledDate.add(Duration(days: i));
-            // If today, check if time has passed
-            if (i == 0 && candidate.isBefore(now)) continue;
-
-            // Check habit days (0=Mon...6=Sun)
-            // If 'daily' or not set, it runs every day (daysOfWeek usually [0..6])
-            // If 'weekly', check if candidate.weekday-1 is in daysOfWeek
-            int candidateDayIndex = candidate.weekday - 1;
-
-            if (daysOfWeek != null && daysOfWeek.contains(candidateDayIndex)) {
-              scheduledDate = candidate;
-              dayFound = true;
-              break;
-            }
-          }
-
-          // Use scheduledDate if found, else just tomorrow (fallback)
-          if (!dayFound && scheduledDate.isBefore(now)) {
-            scheduledDate = scheduledDate.add(const Duration(days: 1));
-          }
-
-          // Generate ID from habit UUID hash (ensure positive)
-          int alarmId = (habit.id ?? DateTime.now().toIso8601String()).hashCode;
-          if (alarmId < 0) alarmId = -alarmId;
-
-          // Set the alarm
-          await AlarmService.setAlarm(
-            id: alarmId,
-            dateTime: scheduledDate,
-            title: 'Waktunya ${titleController.text}!',
-            body: 'Yuk semangat kerjain habit kamu! 🔥',
-          );
-        }
+      /* Recurring Alarm Support */
+      if (isReminder.value &&
+          reminderTime.value != null &&
+          createdHabitId != null) {
+        await AlarmManagerService.instance.scheduleRecurringAlarm(
+          habitId: createdHabitId,
+          habitTitle: titleController.text,
+          frequency: frequency,
+          daysOfWeek: daysOfWeek,
+          reminderTime: reminderTime.value!,
+        );
       }
 
       Get.back(); // Navigate back

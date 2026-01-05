@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
+import 'package:strik_app/services/alarm_manager_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HabitController extends GetxController {
@@ -23,6 +24,7 @@ class HabitController extends GetxController {
   }
 
   DateTime? _lastFetchTime;
+  bool _hasRunMigration = false;
 
   Future<void> fetchHabitsAndLogs({bool isRefresh = false}) async {
     try {
@@ -50,6 +52,13 @@ class HabitController extends GetxController {
       todayLogs.value = logs;
       weeklyLogs.value = rangeLogs;
       _lastFetchTime = DateTime.now();
+
+      // Run migration once on first fetch
+      if (!_hasRunMigration && !isRefresh) {
+        _hasRunMigration = true;
+        // Pass Habit objects directly (not JSON) since toJson() doesn't include id
+        await AlarmManagerService.instance.migrateExistingHabits(fetchedHabits);
+      }
     } catch (e) {
       if (!isRefresh) {
         // Only show snackbar if not pull-to-refresh to avoid spamming
@@ -317,6 +326,9 @@ class HabitController extends GetxController {
 
   Future<void> deleteHabit(String id) async {
     try {
+      // Cancel alarm and remove metadata
+      await AlarmManagerService.instance.cancelHabitAlarm(id);
+
       await _habitRepository.deleteHabit(id);
       habits.removeWhere((h) => h.id == id);
       todayLogs.remove(id);
