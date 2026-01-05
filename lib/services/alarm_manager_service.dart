@@ -21,12 +21,10 @@ class AlarmManagerService {
   Future<void> _startListening() async {
     _ringSubscription = Alarm.ringStream.stream.listen((alarmSettings) async {
       final alarmId = alarmSettings.id;
-      print('Alarm rang: $alarmId');
 
       // Get metadata
       final metadata = await _getAlarmMetadata(alarmId);
       if (metadata == null) {
-        print('No metadata found for alarm $alarmId');
         return;
       }
 
@@ -177,7 +175,6 @@ class AlarmManagerService {
     );
 
     await Alarm.set(alarmSettings: alarmSettings);
-    print('Alarm scheduled for $habitTitle at $firstDateTime');
   }
 
   Future<void> cancelHabitAlarm(String habitId) async {
@@ -215,20 +212,13 @@ class AlarmManagerService {
 
   // Migration: Schedule alarms for existing habits
   Future<void> migrateExistingHabits(List<Habit> habits) async {
-    print('Starting alarm migration for ${habits.length} habits...');
-    int migrated = 0;
-
     for (var habit in habits) {
       try {
         // Expect Habit object, not JSON
         final String title = habit.title;
         final bool reminderEnabled = habit.reminderEnabled;
 
-        print('Checking habit: $title');
-        print('  reminder_enabled: $reminderEnabled');
-
         if (!reminderEnabled) {
-          print('  Skipping - reminder not enabled');
           continue;
         }
 
@@ -237,13 +227,7 @@ class AlarmManagerService {
         final List<int>? daysOfWeek = habit.daysOfWeek;
         final TimeOfDay? reminderTime = habit.reminderTime;
 
-        print('  habitId: $habitId');
-        print('  frequency: $frequency');
-        print('  daysOfWeek: $daysOfWeek');
-        print('  reminderTime: $reminderTime');
-
         if (habitId == null || reminderTime == null) {
-          print('  Skipping - missing required fields');
           continue;
         }
 
@@ -253,7 +237,6 @@ class AlarmManagerService {
         final existingMetadata = await _getAlarmMetadata(alarmId);
 
         if (existingMetadata != null) {
-          print('  Alarm already migrated, skipping');
           continue;
         }
 
@@ -265,16 +248,9 @@ class AlarmManagerService {
           daysOfWeek: daysOfWeek,
           reminderTime: reminderTime,
         );
-
-        migrated++;
-        print('  ✓ Migrated alarm for habit: $title');
-      } catch (e, stackTrace) {
-        print('  Error migrating habit: $e');
-        print('  Stack trace: $stackTrace');
+      } catch (e) {
         continue;
       }
     }
-
-    print('Migration complete: $migrated habits migrated');
   }
 }
