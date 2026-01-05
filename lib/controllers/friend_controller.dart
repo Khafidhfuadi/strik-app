@@ -630,7 +630,6 @@ class FriendController extends GetxController {
       );
 
       await _friendRepository.deletePost(postId);
-      Get.snackbar('Sip!', 'Postingan udah dihapus! 🗑️');
     } catch (e) {
       Get.snackbar('Waduh', 'Gagal hapus postingan, error nih! 😵');
       fetchActivityFeed(); // Revert

@@ -60,9 +60,43 @@ class _AlarmManagementScreenState extends State<AlarmManagementScreen> {
               onRefresh: _loadAlarms,
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: _activeAlarms.length,
+                itemCount: _activeAlarms.length + 1, // +1 for info text
                 itemBuilder: (context, index) {
-                  final alarm = _activeAlarms[index];
+                  if (index == 0) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.1),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            color: AppTheme.textSecondary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Disini lo bisa ngeliat alarm terdekat yang bakal ingetin kalo remindernya di aktifin! Alarm gabisa dihapus kecuali lo edit habitnya atau hapus.',
+                              style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
+                                color: AppTheme.textSecondary,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  final alarm = _activeAlarms[index - 1];
                   return _buildAlarmCard(alarm);
                 },
               ),

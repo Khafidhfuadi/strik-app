@@ -336,16 +336,20 @@ class CreateHabitController extends GetxController {
       }
 
       /* Recurring Alarm Support */
-      if (isReminder.value &&
-          reminderTime.value != null &&
-          createdHabitId != null) {
-        await AlarmManagerService.instance.scheduleRecurringAlarm(
-          habitId: createdHabitId,
-          habitTitle: titleController.text,
-          frequency: frequency,
-          daysOfWeek: daysOfWeek,
-          reminderTime: reminderTime.value!,
-        );
+      /* Recurring Alarm Support */
+      if (createdHabitId != null) {
+        if (isReminder.value && reminderTime.value != null) {
+          await AlarmManagerService.instance.scheduleRecurringAlarm(
+            habitId: createdHabitId,
+            habitTitle: titleController.text,
+            frequency: frequency,
+            daysOfWeek: daysOfWeek,
+            reminderTime: reminderTime.value!,
+          );
+        } else {
+          // If reminder is disabled (or removed during edit), cancel the alarm
+          await AlarmManagerService.instance.cancelHabitAlarm(createdHabitId);
+        }
       }
 
       Get.back(); // Navigate back

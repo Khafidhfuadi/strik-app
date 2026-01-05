@@ -541,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
             // Alarm Schedule
             ListTile(
-              leading: const Icon(Icons.alarm, color: AppTheme.primary),
+              leading: const Icon(Icons.alarm),
               title: Text(
                 'Alarm Mendatang',
                 style: const TextStyle(
