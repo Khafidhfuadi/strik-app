@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:strik_app/data/models/user_model.dart';
@@ -244,42 +245,54 @@ class FriendRepository {
     );
 
     // Determine scoring cycle start:
-    // If we are BEFORE Monday 08:00 AM, we are still in the PREVIOUS cycle.
-    // E.g., Monday 05:00 AM -> Cycle started LAST Monday 08:00 AM.
-    // If we are AFTER Monday 08:00 AM (e.g. 09:00, 13:00, Tuesday...), cycle started THIS Monday 08:00 AM.
+    // If we are BEFORE Monday 12:00 PM (Freeze Time ends), we show the PREVIOUS cycle.
+    // Freeze Time: Mon 08:00 - 12:00. During this time, we show the results of the cycle that ended at 08:00.
+    final freezeEnd = calendarMonday8am.add(const Duration(hours: 4));
+
     DateTime startOfWeek;
-    if (now.isBefore(calendarMonday8am)) {
+    if (now.isBefore(freezeEnd)) {
+      // Still in previous cycle view (including freeze time)
       startOfWeek = calendarMonday8am.subtract(const Duration(days: 7));
     } else {
+      // New cycle started
       startOfWeek = calendarMonday8am;
     }
 
-    // Calculate end of week for habit filtering
-    // The scoring period is from startOfWeek up to (but not necessarily including) the next Monday 8am
+    // Calculate end of week for habit filtering and log bounding
     final endOfWeek = startOfWeek.add(const Duration(days: 7));
+
+    print('--- GET LEADERBOARD DEBUG ---');
+    print('Ref Date: $now');
+    print('Scoring Cycle: $startOfWeek TO $endOfWeek');
 
     List<Map<String, dynamic>> leaderboard = [];
 
     for (var u in allUsers) {
       final habitIds = await _getHabitIdsForUser(u.id);
       if (habitIds.isEmpty) {
+        // print('User ${u.username} has no habits.');
         leaderboard.add({
           'user': u,
           'score': 0.0,
           'completionRate': 0.0,
           'totalCompleted': 0,
           'totalExpected': 0,
+          'totalHabits': 0,
         });
         continue;
       }
 
       // Get habits that existed during this scoring period
-      // Only include habits created BEFORE or DURING this period
+      // Only include habits created BEFORE the end of this period
       final habitsRes = await _supabase
           .from('habits')
           .select('id, frequency, days_of_week, frequency_count, created_at')
           .eq('user_id', u.id)
           .lte('created_at', endOfWeek.toUtc().toIso8601String());
+
+      print(
+        'User ${u.username}: Found ${habitsRes.length} active habits for period.',
+      );
 
       // Calculate expected completions for the week
       int totalExpected = 0;
@@ -315,20 +328,35 @@ class FriendRepository {
           'completionRate': 0.0,
           'totalCompleted': 0,
           'totalExpected': 0,
+          'totalHabits': 0,
         });
         continue;
       }
 
-      // Count actual completions using the new startOfWeek
-      // Only count completions for habits that existed during that time
+      // Count actual completions strictly within the week window
+      // [startOfWeek, endOfWeek)
+      print(
+        'Querying logs for ${u.username}: >= $startOfWeek AND < $endOfWeek',
+      );
+
       final completedRes = await _supabase
           .from('habit_logs')
-          .select('id')
+          .select('id, completed_at') // Select completed_at for validation
           .eq('status', 'completed')
           .gte('completed_at', startOfWeek.toUtc().toIso8601String())
+          .lt(
+            'completed_at',
+            endOfWeek.toUtc().toIso8601String(),
+          ) // Strict upper bound!
           .inFilter('habit_id', activeHabitIds);
 
       final totalCompleted = (completedRes as List).length;
+      print('User ${u.username}: Total Completed = $totalCompleted');
+      if (totalCompleted > 0) {
+        print(
+          'Sample log dates: ${completedRes.take(3).map((e) => e['completed_at'])}',
+        );
+      }
 
       // Calculate completion rate and hybrid score
       final completionRate = totalExpected > 0
@@ -336,12 +364,17 @@ class FriendRepository {
           : 0.0;
       final hybridScore = (completionRate * 1.0) + (totalCompleted * 0.5);
 
+      print(
+        'User ${u.username}: Score = $hybridScore (Rate: $completionRate%, Count: $totalCompleted/$totalExpected)',
+      );
+
       leaderboard.add({
         'user': u,
         'score': hybridScore,
         'completionRate': completionRate,
         'totalCompleted': totalCompleted,
         'totalExpected': totalExpected,
+        'totalHabits': habitsRes.length,
       });
     }
 
@@ -350,7 +383,65 @@ class FriendRepository {
       (a, b) => (b['score'] as double).compareTo(a['score'] as double),
     );
 
+    print('--- END LEADERBOARD DEBUG ---');
     return leaderboard;
+  }
+
+  // Snapshot the current (last week's) leaderboard to history
+  Future<void> snapshotWeeklyLeaderboard(DateTime weekStartDate) async {
+    // Get the leaderboard AS OF that week
+    // We pass the reference date to ensure we get that specific week's data
+    // Reference date: Add enough buffer to be safely AFTER the freeze period (Mon 08:00-12:00).
+    // +12 hours puts us at Mon 20:00, which is safe.
+    final leaderboard = await getLeaderboard(
+      referenceDate: weekStartDate.add(const Duration(hours: 12)),
+    );
+
+    final dateStr = DateFormat('yyyy-MM-dd').format(weekStartDate);
+
+    final totalParticipants = leaderboard.length;
+
+    for (int i = 0; i < leaderboard.length; i++) {
+      final entry = leaderboard[i];
+      final user = entry['user'] as UserModel;
+
+      try {
+        await _supabase.from('weekly_leaderboards').insert({
+          'week_start_date': dateStr,
+          'user_id': user.id,
+          'rank': i + 1,
+          'total_points': double.parse(
+            (entry['score'] as double).toStringAsFixed(1),
+          ),
+          'completion_rate': double.parse(
+            (entry['completionRate'] as double).toStringAsFixed(1),
+          ),
+          'total_completed': entry['totalCompleted'],
+          'total_participants': totalParticipants,
+          'total_habits':
+              entry['totalExpected'] ??
+              0, // Changed to totalExpected as per user request
+        });
+      } catch (e) {
+        // Ignore duplicate key errors if already snapshotted
+        print('Error snapshotting for ${user.username}: $e');
+      }
+    }
+  }
+
+  // Fetch Leaderboard History
+  Future<List<Map<String, dynamic>>> getLeaderboardHistory() async {
+    final response = await _supabase
+        .from('weekly_leaderboards')
+        .select('*, user:profiles(*)')
+        .order('week_start_date', ascending: false)
+        .order('rank', ascending: true);
+
+    // Group by week
+    // But since we want to display a list of weeks, maybe just return raw for now
+    // Or return unique weeks?
+    // Let's return raw list, controller can process.
+    return List<Map<String, dynamic>>.from(response);
   }
 
   Future<UserModel?> getPreviousWeekWinner() async {

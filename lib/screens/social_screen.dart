@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:intl/intl.dart';
 
 import 'package:strik_app/controllers/friend_controller.dart';
 import 'package:strik_app/core/theme.dart';
@@ -113,28 +114,52 @@ class _SocialScreenState extends State<SocialScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Obx(() {
-                    final unreadCount =
-                        _controller.unreadNotificationCount.value;
-                    return IconButton(
-                      icon: Badge(
-                        label: Text('$unreadCount'),
-                        isLabelVisible: unreadCount > 0,
-                        child: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                        ),
-                      ),
-                      onPressed: () =>
-                          Get.to(() => const NotificationsScreen()),
-                    );
-                  }),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.person_add_alt_1_rounded,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => Get.to(() => const AddFriendScreen()),
+                  const Spacer(),
+                  // Dynamic Action Button based on Tab with Animation
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: _selectedIndex == 0
+                        ? Obx(() {
+                            final unreadCount =
+                                _controller.unreadNotificationCount.value;
+                            return IconButton(
+                              key: const ValueKey(
+                                0,
+                              ), // Unique key for animation
+                              icon: Badge(
+                                label: Text('$unreadCount'),
+                                isLabelVisible: unreadCount > 0,
+                                child: const Icon(
+                                  Icons.notifications_outlined,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              onPressed: () =>
+                                  Get.to(() => const NotificationsScreen()),
+                            );
+                          })
+                        : _selectedIndex == 1
+                        ? IconButton(
+                            key: const ValueKey(1),
+                            icon: const Icon(
+                              Icons.history_rounded,
+                              color: Colors.white,
+                            ),
+                            onPressed: _showHistorySheet,
+                            tooltip: 'Riwayat Mingguan',
+                          )
+                        : IconButton(
+                            key: const ValueKey(2),
+                            icon: const Icon(
+                              Icons.person_add_alt_1_rounded,
+                              color: Colors.white,
+                            ),
+                            onPressed: () =>
+                                Get.to(() => const AddFriendScreen()),
+                          ),
                   ),
                 ],
               ),
@@ -311,15 +336,31 @@ class _SocialScreenState extends State<SocialScreen> {
               padding: const EdgeInsets.all(20),
               children: [
                 // Transition Title
-                Text(
-                  'Juara Minggu Lalu!',
-                  style: const TextStyle(
-                    fontFamily: 'Space Grotesk',
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Text(
+                      'Leaderboard Mingguan',
+                      style: TextStyle(
+                        fontFamily: 'Space Grotesk',
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: IconButton(
+                        onPressed: _showHistorySheet,
+                        icon: const Icon(
+                          Icons.history_rounded,
+                          color: AppTheme.primary,
+                        ),
+                        tooltip: 'Riwayat Mingguan',
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Center(
@@ -584,9 +625,9 @@ class _SocialScreenState extends State<SocialScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           // Title Section
-          Text(
+          const Text(
             'Leaderboard Mingguan',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Space Grotesk',
               color: Colors.white,
               fontSize: 24,
@@ -2037,6 +2078,186 @@ class _SocialScreenState extends State<SocialScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showHistorySheet() {
+    _controller.fetchLeaderboardHistory();
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.6,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Riwayat Peringkat',
+                  style: TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Get.back(),
+                  icon: const Icon(Icons.close, color: Colors.grey),
+                ),
+              ],
+            ),
+
+            // DEBUG BUTTON
+            // TextButton(
+            //   onPressed: _controller.debugBackfillLastWeekHistory,
+            //   child: const Text(
+            //     'Debug: Generate Data Minggu Lalu',
+            //     style: TextStyle(color: Colors.white24),
+            //   ),
+            // ),
+            // const SizedBox(height: 16),
+            Expanded(
+              child: Obx(() {
+                if (_controller.isLoadingHistory.value) {
+                  return const Center(child: CustomLoadingIndicator());
+                }
+
+                if (_controller.leaderboardHistory.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.history_toggle_off,
+                          size: 48,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Belum ada riwayat mingguan.',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final myId = Supabase.instance.client.auth.currentUser?.id;
+                final myHistory = _controller.leaderboardHistory
+                    .where((e) => e['user_id'] == myId)
+                    .toList();
+
+                if (myHistory.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Belum ada data visual.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: myHistory.length,
+                  itemBuilder: (context, index) {
+                    final data = myHistory[index];
+                    final date = DateTime.parse(data['week_start_date']);
+                    final endDate = date.add(const Duration(days: 6));
+                    final dateStr =
+                        '${DateFormat('d MMM').format(date)} - ${DateFormat('d MMM yyyy').format(endDate)}';
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[900],
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.emoji_events_outlined,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  dateStr,
+                                  style: const TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  data['total_participants'] != null
+                                      ? 'Rank #${data['rank']} dari ${data['total_participants']}'
+                                      : 'Rank #${data['rank']}',
+                                  style: const TextStyle(
+                                    fontFamily: 'Space Grotesk',
+                                    color: AppTheme.secondary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${data['total_points']} pts',
+                                style: const TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${(data['completion_rate'] as num).toStringAsFixed(0)}% Rate • ${data['total_habits'] ?? 0} Habits',
+                                style: const TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
     );
   }
 }

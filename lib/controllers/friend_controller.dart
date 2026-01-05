@@ -1,15 +1,16 @@
+import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:strik_app/data/models/user_model.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:strik_app/main.dart'; // Access global supabase client
 
-import 'package:flutter/material.dart';
 // import 'package:google_fonts/google_fonts.dart'; // Removed
 // import 'package:lottie/lottie.dart'; // Unused for now
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FriendController extends GetxController {
   final FriendRepository _friendRepository = FriendRepository(supabase);
@@ -57,6 +58,22 @@ class FriendController extends GetxController {
     try {
       final winner = await _friendRepository.getPreviousWeekWinner();
       if (winner != null) {
+        // Since we are showing the winner, it means we are in the freeze period
+        // Trigger a snapshot of the leaderboard for history
+        // Use a safe reference date (Last Monday 08:00)
+        final now = DateTime.now();
+        final calendarWeekStart = now.subtract(Duration(days: now.weekday - 1));
+        final lastWeekStart = DateTime(
+          calendarWeekStart.year,
+          calendarWeekStart.month,
+          calendarWeekStart.day,
+          8,
+          0,
+        ).subtract(const Duration(days: 7));
+
+        // This is fire-and-forget to avoid blocking the UI
+        _friendRepository.snapshotWeeklyLeaderboard(lastWeekStart);
+
         _hasShownWinner = true;
 
         // Wait a bit for app to settle
@@ -73,7 +90,7 @@ class FriendController extends GetxController {
                 border: Border.all(color: const Color(0xFFFFD700), width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFFD700).withOpacity(0.3),
+                    color: const Color(0xFFFFD700).withValues(alpha: 0.3),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -155,6 +172,52 @@ class FriendController extends GetxController {
       }
     } catch (e) {
       print('Error checking winner: $e');
+    }
+  }
+
+  // History Logic
+  var leaderboardHistory = <Map<String, dynamic>>[].obs;
+  var isLoadingHistory = false.obs;
+
+  Future<void> fetchLeaderboardHistory() async {
+    isLoadingHistory.value = true;
+    try {
+      leaderboardHistory.value = await _friendRepository
+          .getLeaderboardHistory();
+    } catch (e) {
+      print('Error fetching history: $e');
+    } finally {
+      isLoadingHistory.value = false;
+    }
+  }
+
+  // DEBUG: Force backfill for last week
+  Future<void> debugBackfillLastWeekHistory() async {
+    try {
+      final now = DateTime.now();
+
+      // Calculate "Last Monday 08:00" relative to now
+      // First find current week's Monday 08:00
+      final calendarWeekStart = now.subtract(Duration(days: now.weekday - 1));
+      final thisMonday8am = DateTime(
+        calendarWeekStart.year,
+        calendarWeekStart.month,
+        calendarWeekStart.day,
+        8,
+        0,
+      );
+
+      // Backfill for the previous week (7 days before this Monday)
+      final lastWeekStart = thisMonday8am.subtract(const Duration(days: 7));
+
+      await _friendRepository.snapshotWeeklyLeaderboard(lastWeekStart);
+      Get.snackbar(
+        'Success',
+        'Backfill history completed for ${DateFormat('dd MMM yyyy').format(lastWeekStart)}!',
+      );
+      fetchLeaderboardHistory();
+    } catch (e) {
+      Get.snackbar('Error', 'Backfill failed: $e');
     }
   }
 
