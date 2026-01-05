@@ -322,8 +322,8 @@ class CreateHabitController extends GetxController {
         createdHabitId = createdHabit.id;
       }
 
-      // Auto-create post if habit is public
-      if (isPublic.value) {
+      // Auto-create post if habit is public AND it's a new habit
+      if (!isEdit && isPublic.value) {
         try {
           final friendRepo = FriendRepository(Supabase.instance.client);
           await friendRepo.createPost(

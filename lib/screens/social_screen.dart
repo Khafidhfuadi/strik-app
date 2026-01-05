@@ -615,7 +615,7 @@ class _SocialScreenState extends State<SocialScreen> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
           ],

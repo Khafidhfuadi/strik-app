@@ -79,8 +79,14 @@ class AlarmManagerService {
         daysOfWeek = [0, 1, 2, 3, 4, 5, 6]; // All days
       }
 
-      for (int i = 1; i <= 14; i++) {
+      for (int i = 0; i <= 14; i++) {
         final candidate = nextTime.add(Duration(days: i));
+
+        // If it's today, make sure time hasn't passed
+        if (i == 0 && candidate.isBefore(now)) {
+          continue;
+        }
+
         final dayIndex = candidate.weekday - 1; // 0=Mon, 6=Sun
 
         if (daysOfWeek.contains(dayIndex)) {
