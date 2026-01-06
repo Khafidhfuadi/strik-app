@@ -90,32 +90,23 @@ async function createSignedJwt(email: string, privateKeyPem: string): Promise<st
 
 // --- Main Handler ---
 
+// --- Main Handler ---
+
 serve(async (req: Request) => {
   try {
     const payload = await req.json()
-    const record = payload.record
-    const userId = record.recipient_id // Column name in DB is recipient_id, not user_id
+    console.log('Webhook Payload:', JSON.stringify(payload))
 
-    console.log(`Processing notification for user ${userId}`)
-
-    // 1. Get User's FCM Token from Supabase
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('fcm_token')
-      .eq('id', userId)
-      .single()
-
-    console.log(`Found token for user ${userId}: ${profile.fcm_token.substring(0, 10)}...`)
-
-    if (!profile?.fcm_token) {
-      console.log(`Skipping: User ${userId} has no FCM token.`)
-      return new Response(JSON.stringify({ message: 'No FCM token' }), { status: 200 })
+    const { table, record, type } = payload
+    
+    // Only handle INSERT events for now
+    if (type !== 'INSERT') {
+      return new Response(JSON.stringify({ message: 'Ignored: Not an INSERT event' }), { status: 200 })
     }
 
-    console.log(`Found token for user ${userId}: ${profile.fcm_token.substring(0, 10)}...`)
-
-    // 2. Generate Google OAuth2 Access Token
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    
+    // -- 2. Generate Google OAuth2 Access Token (Do this once) --
     const jwt = await createSignedJwt(
       FIREBASE_SERVICE_ACCOUNT.client_email,
       FIREBASE_SERVICE_ACCOUNT.private_key
@@ -132,41 +123,190 @@ serve(async (req: Request) => {
       throw new Error('Failed to get Google access token: ' + JSON.stringify(tokenData))
     }
     const accessToken = tokenData.access_token
-
-    // 3. Send Notification via FCM V1 API
     const projectId = FIREBASE_SERVICE_ACCOUNT.project_id
-    const fcmResponse = await fetch(
-      `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          message: {
-            token: profile.fcm_token,
-            notification: {
-              title: record.title || "Strik!",
-              body: record.body || "Ada sesuatu nih buat kamu!",
-            },
-            data: {
-              click_action: "FLUTTER_NOTIFICATION_CLICK",
-              post_id: record.post_id || "",
-              habit_log_id: record.habit_log_id || "",
-            },
+
+
+    // Helper to send FCM
+    const sendFCM = async (token: string, title: string, body: string, data: any = {}) => {
+      const resp = await fetch(
+        `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
           },
-        }),
+          body: JSON.stringify({
+            message: {
+              token: token,
+              notification: { title, body },
+              data: {
+                click_action: "FLUTTER_NOTIFICATION_CLICK",
+                ...data
+              },
+            },
+          }),
+        }
+      )
+      return resp.json()
+    }
+
+
+    // --- LOGIC DISTRIBUTOR ---
+
+    // CASE A: NEW STORY (Table: stories)
+    // Notify all accepted friends
+    if (table === 'stories') {
+      const creatorId = record.user_id
+      
+      // 1. Get Creator Profile (for username)
+      const { data: creator } = await supabaseAdmin
+        .from('profiles')
+        .select('username')
+        .eq('id', creatorId)
+        .single()
+      
+      const creatorName = creator?.username || 'Someone'
+
+      // 2. Find Friends
+      // Friends are in 'friendships' where status='accepted' AND (requester_id=creator OR receiver_id=creator)
+      const { data: friendships } = await supabaseAdmin
+        .from('friendships')
+        .select('requester_id, receiver_id')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${creatorId},receiver_id.eq.${creatorId}`)
+      
+      if (!friendships || friendships.length === 0) {
+        return new Response(JSON.stringify({ message: 'No friends to notify' }), { status: 200 })
       }
-    )
 
-    const fcmResult = await fcmResponse.json()
-    console.log('FCM Send Result:', fcmResult)
+      // Extract Friend IDs
+      const friendIds = friendships.map((f: any) => 
+        f.requester_id === creatorId ? f.receiver_id : f.requester_id
+      )
 
-    return new Response(JSON.stringify(fcmResult), {
-      headers: { "Content-Type": "application/json" },
-      status: 200 
-    })
+      console.log(`Found ${friendIds.length} friends for user ${creatorId}`)
+
+      // 3. Get FCM Tokens for Friends
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, fcm_token')
+        .in('id', friendIds)
+        .not('fcm_token', 'is', null) // Only those with tokens
+
+      if (!profiles || profiles.length === 0) {
+        return new Response(JSON.stringify({ message: 'No friends have FCM tokens' }), { status: 200 })
+      }
+
+      // 4. Send Notifications in Loop (or Promise.all)
+      const promises = profiles.map((p: any) => {
+        if (!p.fcm_token) return Promise.resolve(null);
+        return sendFCM(
+          p.fcm_token, 
+          `${creatorName} bikin story baru!`, 
+          'Liat yuk sebelum ilang 24 jam.',
+          { story_id: record.id, type: 'new_story' }
+        )
+      })
+
+      await Promise.all(promises)
+      
+      return new Response(JSON.stringify({ message: `Sent ${promises.length} notifications` }), { status: 200 })
+
+    } 
+    
+    // CASE B: STORY REACTION (Table: reactions)
+    // Notify Story Owner
+    else if (table === 'reactions') {
+      const reactorId = record.user_id
+      const storyId = record.story_id
+      const reactionType = record.type // e.g., '❤️'
+
+      // 1. Fetch Story to find Owner
+      const { data: story } = await supabaseAdmin
+        .from('stories')
+        .select('user_id')
+        .eq('id', storyId)
+        .single()
+      
+      if (!story) {
+        throw new Error('Story not found')
+      }
+
+      const ownerId = story.user_id
+
+      // Don't notify if reacting to own story (though UI hinders this)
+      if (ownerId === reactorId) {
+        return new Response(JSON.stringify({ message: 'Self-reaction ignored' }), { status: 200 })
+      }
+
+      // 2. Fetch Reactor Name
+      const { data: reactor } = await supabaseAdmin
+        .from('profiles')
+        .select('username')
+        .eq('id', reactorId)
+        .single()
+      
+      const reactorName = reactor?.username || 'Someone'
+
+      // 3. Fetch Owner Token
+      const { data: owner } = await supabaseAdmin
+        .from('profiles')
+        .select('fcm_token')
+        .eq('id', ownerId)
+        .single()
+      
+      if (!owner?.fcm_token) {
+        return new Response(JSON.stringify({ message: 'Owner has no FCM token' }), { status: 200 })
+      }
+
+      // 4. Send Notification
+      const result = await sendFCM(
+        owner.fcm_token,
+        'Strik!',
+        `${reactorName} menanggapi storymu: ${reactionType}`,
+        { story_id: storyId, type: 'story_reaction' }
+      )
+
+      return new Response(JSON.stringify(result), { status: 200 })
+    }
+
+    // DEFAULT / LEGACY HANDLER (Direct Call with recipient_id)
+    // If payload has 'recipient_id', fall back to old logic? 
+    // Or just assume this function is now exclusively for Webhooks?
+    // Let's keep a small fallback for direct calls if 'record' has 'recipient_id' 
+    // AND 'table' is undefined (Direct invocation)
+    if (!table && record?.recipient_id) {
+       // ... (Old Logic - condensed for brevity) ...
+       // For now, let's just return to avoid complex fallback unless requested. 
+       // The prompt specifically asked for Story notifications.
+       // But wait, the friend request logic uses this too!
+       // FriendRepository lines 23 and 51 call `sendNotification`.
+       // Those calls likely do NOT send `table`. They send specific body.
+       // So we MUST PRESERVE the `recipient_id` direct call logic.
+       
+       const userId = record.recipient_id
+       console.log(`Direct Call for user ${userId}`)
+       
+       const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('fcm_token')
+        .eq('id', userId)
+        .single()
+
+       if (profile?.fcm_token) {
+          const result = await sendFCM(
+            profile.fcm_token,
+            record.title || "Strik!",
+            record.body || "Notification",
+            { ...record.data }
+          )
+          return new Response(JSON.stringify(result), { status: 200 })
+       }
+       return new Response(JSON.stringify({message: 'User no token'}), {status:200})
+    }
+
+    return new Response(JSON.stringify({ message: 'Unhandled event/payload' }), { status: 200 })
 
   } catch (error: any) {
     console.error('Edge Function Error:', error)
