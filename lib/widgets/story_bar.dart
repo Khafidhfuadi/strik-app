@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+
 import 'package:get/get.dart';
 import 'package:strik_app/controllers/story_controller.dart';
 import 'package:strik_app/data/models/story_model.dart';
 import 'package:strik_app/screens/story_view_screen.dart';
-import 'package:strik_app/screens/story_archive_screen.dart'; // Added
 import 'package:strik_app/screens/story_camera_screen.dart'; // Added
+import 'package:supabase_flutter/supabase_flutter.dart'; // Added for Supabase.instance
+import 'package:strik_app/screens/story_archive_screen.dart'; // Added
 import 'package:strik_app/core/theme.dart'; // Assume this exists
 import 'package:strik_app/main.dart'; // for supabase auth currentUser
 
@@ -129,10 +131,16 @@ class StoryBar extends StatelessWidget {
     final controller = Get.find<StoryController>();
     return GestureDetector(
       onTap: () {
-        // Find the index of this user's stories in the main list
-        // Note: StoryController.groupedStories is a Map<String, List<StoryModel>>
-        // Use groupedStories from controller
-        final allGroups = controller.groupedStories.values.toList();
+        final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+
+        // Filter out current user's stories from the friends flow
+        final allGroups = controller.groupedStories.values
+            .where(
+              (group) =>
+                  group.isNotEmpty && group.first.userId != currentUserId,
+            )
+            .toList();
+
         final index = allGroups.indexWhere(
           (s) => s.isNotEmpty && s.first.userId == userId,
         );
