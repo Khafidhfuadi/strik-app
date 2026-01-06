@@ -78,22 +78,14 @@ class StoryBar extends StatelessWidget {
                         ) // Active border
                       : Border.all(color: Colors.transparent),
                   image: DecorationImage(
-                    // TODO: Replace with Real User Avatar
                     image: _getUserAvatar(
-                      null,
-                    ), // Null for self if checking locally or need to fetch
+                      supabase.auth.currentUser?.userMetadata?['avatar_url'],
+                    ),
                     fit: BoxFit.cover,
                   ),
                 ),
-                child: !hasStory
-                    ? Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[800],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.person, color: Colors.white70),
-                      )
-                    : null,
+                child:
+                    null, // Removed the grey overlay to prevent stacking. The background image handles the avatar.
               ),
               if (!hasStory)
                 Positioned(

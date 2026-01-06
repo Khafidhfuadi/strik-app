@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart'; // Added for Colors in ImageCropper settings
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Added for Realtime
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -25,17 +26,45 @@ class StoryController extends GetxController {
   void onInit() {
     super.onInit();
     fetchStories();
+    _subscribeToStories();
+  }
+
+  @override
+  void onClose() {
+    supabase.removeAllChannels();
+    super.onClose();
+  }
+
+  void _subscribeToStories() {
+    supabase
+        .channel('public:stories')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'stories',
+          callback: (payload) {
+            // Simple approach: Refetch all when any new story is added.
+            // Optimizations can include adding the payload directly if it matches criteria.
+            print('New story detected! Refetching...');
+            fetchStories();
+          },
+        )
+        .subscribe();
   }
 
   // Fetch both active (feed) and archive
   Future<void> fetchStories() async {
     try {
-      isLoading.value = true;
+      // isLoading.value = true; // Don't show global loading for background refresh
       // Fetch Active Stories (Global for now, simpler)
-      activeStories.value = await _repository.getActiveStories();
+      final active = await _repository.getActiveStories();
+      activeStories.assignAll(
+        active,
+      ); // Use assignAll for better GetX reactivity
 
       // Fetch My Archive
-      myArchive.value = await _repository.getMyArchive();
+      final archive = await _repository.getMyArchive();
+      myArchive.assignAll(archive);
     } catch (e) {
       print('Error fetching stories in controller: $e');
     } finally {

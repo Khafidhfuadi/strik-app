@@ -20,6 +20,7 @@ class StoryRepository {
             'created_at',
             DateTime.now()
                 .subtract(const Duration(hours: 24))
+                .toUtc()
                 .toIso8601String(),
           );
 
