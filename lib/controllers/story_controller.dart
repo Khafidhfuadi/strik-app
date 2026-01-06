@@ -12,6 +12,7 @@ import 'package:strik_app/main.dart';
 import 'package:path/path.dart' as p;
 import 'package:image_cropper/image_cropper.dart'; // Added
 import 'package:strik_app/core/theme.dart'; // Needed for AppTheme
+import 'package:strik_app/services/home_widget_service.dart';
 
 class StoryController extends GetxController {
   final StoryRepository _repository = StoryRepository(supabase);
@@ -75,10 +76,43 @@ class StoryController extends GetxController {
       // Fetch My Archive
       final archive = await _repository.getMyArchive();
       myArchive.assignAll(archive);
+
+      // Update Android Widget
+      await _updateHomeWidget(active);
     } catch (e) {
       print('Error fetching stories in controller: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> _updateHomeWidget(List<StoryModel> stories) async {
+    try {
+      final myId = supabase.auth.currentUser?.id;
+      // Get latest story from a friend (not me)
+      final friendStories = stories.where((s) => s.userId != myId).toList();
+
+      // Sort by created_at desc (newest first)
+      friendStories.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      if (friendStories.isNotEmpty) {
+        final latest = friendStories.first;
+        final user = latest.user;
+        final username = user?.username ?? 'Friend';
+
+        await HomeWidgetService.updateWidget(
+          title: "Momentz: $username",
+          subtitle: "Baru aja upload!",
+          imageUrl: latest.mediaUrl,
+        );
+      } else {
+        await HomeWidgetService.updateWidget(
+          title: "Strik Momentz",
+          subtitle: "Belum ada story baru.",
+        );
+      }
+    } catch (e) {
+      print("Widget Update Error: $e");
     }
   }
 

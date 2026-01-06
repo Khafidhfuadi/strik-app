@@ -7,11 +7,13 @@ import 'package:get/get.dart';
 import 'package:strik_app/core/auth_gate.dart';
 import 'package:strik_app/services/notification_service.dart';
 import 'package:strik_app/services/push_notification_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:strik_app/screens/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:alarm/alarm.dart';
 import 'package:strik_app/services/alarm_manager_service.dart';
+import 'package:strik_app/services/home_widget_service.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -20,6 +22,90 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint("Handling a background message: ${message.messageId}");
+
+  try {
+    debugPrint("Background Handler Data: ${message.data}"); // LOG DATA PAYLOAD
+    if (message.data['type'] == 'new_story') {
+      final String? username = message.data['username'];
+      final String? mediaUrl = message.data['media_url'];
+      final String? createdAt = message.data['created_at'];
+
+      debugPrint(
+        "Found new_story from: $username, url: $mediaUrl, time: $createdAt",
+      ); // LOG EXTRACTED DATA
+
+      if (username != null && mediaUrl != null) {
+        debugPrint("Updating widget from background...");
+
+        String timeString = "Baru aja";
+        if (createdAt != null) {
+          try {
+            final date = DateTime.parse(createdAt).toLocal();
+            // Safe manual formatting HH:mm
+            final hour = date.hour.toString().padLeft(2, '0');
+            final minute = date.minute.toString().padLeft(2, '0');
+            timeString = "$hour:$minute";
+          } catch (e) {
+            print("Date parse error: $e");
+          }
+        }
+
+        await HomeWidgetService.updateWidget(
+          title: "Momentz: $username",
+          subtitle: timeString,
+          imageUrl: mediaUrl,
+        );
+        debugPrint("Background widget update called");
+
+        // Show Local Notification manually (since we sent Data-Only)
+        final String? title = message.data['title'];
+        final String? body = message.data['body'];
+        if (title != null && body != null) {
+          await _showLocalNotification(title, body);
+        }
+      } else {
+        debugPrint("Missing username or mediaUrl in payload");
+      }
+    } else {
+      debugPrint("Message type is not new_story: ${message.data['type']}");
+    }
+  } catch (e) {
+    debugPrint("Error in background widget update: $e");
+  }
+}
+
+// Helper for Background Notification
+Future<void> _showLocalNotification(String title, String body) async {
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  const AndroidNotificationDetails
+  androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    'high_importance_channel', // Must match channel ID in Manifest if defined
+    'High Importance Notifications',
+    importance: Importance.max,
+    priority: Priority.high,
+    showWhen: true,
+  );
+
+  const NotificationDetails platformChannelSpecifics = NotificationDetails(
+    android: androidPlatformChannelSpecifics,
+  );
+
+  await flutterLocalNotificationsPlugin.show(
+    0, // Notification ID
+    title,
+    body,
+    platformChannelSpecifics,
+  );
 }
 
 Future<void> main() async {

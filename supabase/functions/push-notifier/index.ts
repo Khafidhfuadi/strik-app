@@ -128,6 +128,26 @@ serve(async (req: Request) => {
 
     // Helper to send FCM
     const sendFCM = async (token: string, title: string, body: string, data: any = {}) => {
+      // Construct message payload
+      const payload: any = {
+        token: token,
+        data: {
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+          ...data
+        },
+      }
+
+      // Only add "notification" block if NOT a 'new_story' type
+      // For 'new_story', we want SILENT DATA so Flutter Background Handler wakes up
+      // and updates the Widget + Shows Local Notification manually.
+      if (data.type !== 'new_story') {
+        payload.notification = { title, body }
+      } else {
+        // Embed title/body in data for manual display
+        payload.data.title = title
+        payload.data.body = body
+      }
+
       const resp = await fetch(
         `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
         {
@@ -136,16 +156,7 @@ serve(async (req: Request) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({
-            message: {
-              token: token,
-              notification: { title, body },
-              data: {
-                click_action: "FLUTTER_NOTIFICATION_CLICK",
-                ...data
-              },
-            },
-          }),
+          body: JSON.stringify({ message: payload }),
         }
       )
       return resp.json()
@@ -206,7 +217,13 @@ serve(async (req: Request) => {
           p.fcm_token, 
           `${creatorName} bikin momentz baru!`, 
           'gas liat sekarang!',
-          { story_id: record.id, type: 'new_story' }
+          { 
+            story_id: record.id, 
+            type: 'new_story',
+            username: creatorName,
+            media_url: record.media_url,
+            created_at: record.created_at
+          }
         )
       })
 
@@ -273,16 +290,19 @@ serve(async (req: Request) => {
       
       return new Response(JSON.stringify({ message: `Sent ${promises.length} notifications (post)` }), { status: 200 })
     }
-    // Notify Story Owner
+    // Notify Story/Post Owner
     else if (table === 'reactions') {
       const reactorId = record.user_id
       const storyId = record.story_id
+      const postId = record.post_id // Added capture
       const reactionType = record.type // e.g., '❤️'
       
-      console.log(`Processing Reaction: reactor=${reactorId}, story=${storyId}, type=${reactionType}`)
+      console.log(`Processing Reaction: reactor=${reactorId}, story=${storyId}, post=${postId}, type=${reactionType}`)
 
-      // 1. Fetch Story to find Owner
-      const { data: story, error: storyError } = await supabaseAdmin
+      // CASE B.1: STORY REACTION
+      if (storyId) {
+        // 1. Fetch Story to find Owner
+        const { data: story, error: storyError } = await supabaseAdmin
         .from('stories')
         .select('user_id')
         .eq('id', storyId)
@@ -333,6 +353,18 @@ serve(async (req: Request) => {
       )
 
       return new Response(JSON.stringify(result), { status: 200 })
+      } 
+      
+      // CASE B.2: POST REACTION or OTHER
+      else if (postId) {
+        console.log('Skipping Post Reaction notification (not implemented yet)')
+        return new Response(JSON.stringify({ message: 'Post reaction skipped' }), { status: 200 })
+      } 
+      
+      else {
+        console.log('Unknown reaction target')
+         return new Response(JSON.stringify({ message: 'Unknown reaction target' }), { status: 200 })
+      }
     }
 
     // DEFAULT / LEGACY HANDLER (Direct Call with recipient_id)

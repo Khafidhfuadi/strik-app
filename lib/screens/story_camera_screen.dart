@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,13 +10,6 @@ import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/screens/story_archive_screen.dart';
 import 'package:image/image.dart' as img; // Added for silent cropping
 import 'package:flutter/foundation.dart'; // for compute // Added
-
-class CropRequest {
-  final File file;
-  final bool mirror;
-
-  CropRequest(this.file, {this.mirror = false});
-}
 
 class StoryCameraScreen extends StatefulWidget {
   const StoryCameraScreen({super.key});
@@ -89,11 +81,21 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
     try {
       _cameras = await availableCameras();
       if (_cameras != null && _cameras!.isNotEmpty) {
-        // Find back camera first, or default
-        _selectedCameraIndex = _cameras!.indexWhere(
-          (c) => c.lensDirection == CameraLensDirection.back,
+        // Find back camera. Priority:
+        // 1. Back camera with name "0" (Standard Main Camera on Android)
+        // 2. Any back camera
+
+        int backCameraIndex = _cameras!.indexWhere(
+          (c) => c.lensDirection == CameraLensDirection.back && c.name == '0',
         );
-        if (_selectedCameraIndex == -1) _selectedCameraIndex = 0;
+
+        if (backCameraIndex == -1) {
+          backCameraIndex = _cameras!.indexWhere(
+            (c) => c.lensDirection == CameraLensDirection.back,
+          );
+        }
+
+        _selectedCameraIndex = backCameraIndex != -1 ? backCameraIndex : 0;
 
         await _onNewCameraSelected(_cameras![_selectedCameraIndex]);
       }
@@ -136,17 +138,17 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
     try {
       final XFile file = await _controller!.takePicture();
-
-      // Auto-Crop to Square 1:1
-      final File rawImage = File(file.path);
-
-      final isFront =
+      final isFrontCamera =
           _cameras![_selectedCameraIndex].lensDirection ==
           CameraLensDirection.front;
-      final request = CropRequest(rawImage, mirror: isFront);
 
+      // Auto-Crop to Square 1:1 and Flip if Front Camera
+      final File rawImage = File(file.path);
       // Run heavy image processing in a separate isolate
-      final File croppedImage = await compute(_cropSquareImage, request);
+      final File croppedImage = await compute(_cropSquareImage, {
+        'file': rawImage,
+        'isFrontCamera': isFrontCamera,
+      });
 
       setState(() {
         _capturedImage = croppedImage;
@@ -157,19 +159,18 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   }
 
   // Static function for isolate
-  static Future<File> _cropSquareImage(CropRequest request) async {
-    final imageFile = request.file;
+  static Future<File> _cropSquareImage(Map<String, dynamic> params) async {
+    final File imageFile = params['file'];
+    final bool isFrontCamera = params['isFrontCamera'] ?? false;
+
     final bytes = await imageFile.readAsBytes();
     img.Image? originalImage = img.decodeImage(bytes);
 
     if (originalImage == null) return imageFile;
 
-    // Mirror if requested (Front Camera)
-    if (request.mirror) {
-      originalImage = img.flip(
-        originalImage,
-        direction: img.FlipDirection.horizontal,
-      );
+    // Flip if Front Camera (Mirror effect)
+    if (isFrontCamera) {
+      originalImage = img.flipHorizontal(originalImage);
     }
 
     // Determine crop area (Center Square)
@@ -208,14 +209,8 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
       source: ImageSource.gallery,
     );
     if (image != null) {
-      final File rawImage = File(image.path);
-      // Run heavy image processing in a separate isolate
-      // Mirror is false for gallery
-      final request = CropRequest(rawImage, mirror: false);
-      final File croppedImage = await compute(_cropSquareImage, request);
-
       setState(() {
-        _capturedImage = croppedImage;
+        _capturedImage = File(image.path);
       });
     }
   }
@@ -489,15 +484,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                 width:
                     _controller!.value.previewSize!.height, // Swap for portrait
                 height: _controller!.value.previewSize!.width,
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform:
-                      _cameras![_selectedCameraIndex].lensDirection ==
-                          CameraLensDirection.front
-                      ? Matrix4.rotationY(math.pi)
-                      : Matrix4.identity(),
-                  child: CameraPreview(_controller!),
-                ),
+                child: CameraPreview(_controller!),
               ),
             ),
 
@@ -563,103 +550,117 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Column(
-          children: [
-            const Spacer(),
-            // 1:1 Image Preview
-            Container(
-              width: side,
-              height: side,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: Image.file(_capturedImage!, fit: BoxFit.cover),
-              ),
-            ),
-            // Caption Input
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: TextField(
-                controller: _captionController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'isi dulu captionnya...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                maxLines: 3,
-                minLines: 1,
-              ),
-            ),
-            const Spacer(),
-            // Buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Column(
                 children: [
-                  // Retake
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _capturedImage = null;
-                        _captionController.clear(); // Clear caption on retake
-                      });
-                    },
-                    icon: const Icon(Icons.refresh, color: Colors.white),
-                    label: const Text(
-                      'Retake',
-                      style: TextStyle(color: Colors.white),
+                  const Spacer(),
+                  // 1:1 Image Preview
+                  Container(
+                    width: side,
+                    height: side,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.black54,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(32),
+                      child: Image.file(_capturedImage!, fit: BoxFit.cover),
                     ),
                   ),
+                  // Caption Input
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    child: TextField(
+                      controller: _captionController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'isi dulu captionnya...',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.1),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                      maxLines: 3,
+                      minLines: 1,
+                    ),
+                  ),
+                  const Spacer(),
+                  // Buttons
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 20,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Retake
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _capturedImage = null;
+                              _captionController
+                                  .clear(); // Clear caption on retake
+                            });
+                          },
+                          icon: const Icon(Icons.refresh, color: Colors.white),
+                          label: const Text(
+                            'Retake',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.black54,
+                          ),
+                        ),
 
-                  // Post
-                  ElevatedButton.icon(
-                    onPressed: _uploadStory,
-                    icon: const Icon(Icons.send, color: Colors.black),
-                    label: const Text(
-                      'Post Strike Momentz',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
+                        // Post
+                        ElevatedButton.icon(
+                          onPressed: _uploadStory,
+                          icon: const Icon(Icons.send, color: Colors.black),
+                          label: const Text(
+                            'Post Strike Momentz',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
