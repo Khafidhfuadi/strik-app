@@ -472,8 +472,19 @@ class FriendController extends GetxController {
     try {
       await _friendRepository.acceptRequest(friendshipId);
       Get.snackbar('Gas!', 'Udah temenan nih! Yuk, compete! 🤩');
+
+      // Refresh all data
       fetchPendingRequests();
-      fetchFriends();
+      await fetchFriends(); // Await to ensure we have friends list
+      fetchActivityFeed();
+      fetchLeaderboard();
+
+      // Also refresh stories
+      try {
+        Get.find<StoryController>().fetchStories();
+      } catch (e) {
+        print('Error refreshing stories: $e');
+      }
     } catch (e) {
       Get.snackbar('Ups...', 'Gagal nerima request, coba lagi dong! 😢');
     }

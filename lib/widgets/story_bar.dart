@@ -129,30 +129,70 @@ class StoryBar extends StatelessWidget {
     final avatarUrl = user?.avatarUrl;
 
     final controller = Get.find<StoryController>();
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+
+    // Helper to check if a single story is viewed
+    bool isViewed(StoryModel s) => s.viewers.contains(currentUserId);
+
+    // Helper to check if a user box is fully viewed
+    bool isFullyViewed(List<StoryModel> userStories) =>
+        userStories.every(isViewed);
+
     return GestureDetector(
       onTap: () {
-        final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+        // 1. Determine if Target User is Fully Viewed
+        final targetIsFullyViewed = isFullyViewed(stories);
 
-        // Filter out current user's stories from the friends flow
-        final allGroups = controller.groupedStories.values
-            .where(
-              (group) =>
-                  group.isNotEmpty && group.first.userId != currentUserId,
-            )
-            .toList();
+        List<List<StoryModel>> playlist;
+        int initialUserIndex = 0;
+        int initialStoryIndex = 0;
 
-        final index = allGroups.indexWhere(
-          (s) => s.isNotEmpty && s.first.userId == userId,
-        );
+        if (targetIsFullyViewed) {
+          // Case A: Tapped a Grey Ring (Fully Viewed)
+          // Action: Show ONLY this user's stories, start from 0.
+          playlist = [stories];
+          initialUserIndex = 0;
+          initialStoryIndex = 0;
+        } else {
+          // Case B: Tapped a Colorful Ring (Has Unviewed)
+          // Action: Show THIS user + ALL OTHER users who have unviewed stories.
+          // Skip fully viewed users.
 
-        if (index != -1) {
-          Get.to(
-            () => StoryViewScreen(
-              groupedStories: allGroups,
-              initialUserIndex: index,
-            ),
+          final allGroups = controller.groupedStories.values.toList();
+
+          // Filter: Keep only groups that have at least one unviewed story
+          // AND include the target group (which we know has unviewed).
+          // Actually, just filter all by !isFullyViewed.
+          // BUT ensure the target is in there (it should be).
+
+          playlist = allGroups.where((group) {
+            // Keep if NOT fully viewed, OR if it's the target user (just in case logic differs, but !fully covers it)
+            return group.isNotEmpty && !isFullyViewed(group);
+          }).toList();
+
+          // Find target in the new playlist
+          initialUserIndex = playlist.indexWhere(
+            (g) => g.first.userId == userId,
           );
+
+          // If for some reason target got filtered out (shouldn't happen if logic holds), fallback
+          if (initialUserIndex == -1) {
+            playlist = [stories];
+            initialUserIndex = 0;
+          }
+
+          // Determine Start Story Index (First Unviewed)
+          initialStoryIndex = stories.indexWhere((s) => !isViewed(s));
+          if (initialStoryIndex == -1) initialStoryIndex = 0;
         }
+
+        Get.to(
+          () => StoryViewScreen(
+            groupedStories: playlist,
+            initialUserIndex: initialUserIndex,
+            initialStoryIndex: initialStoryIndex,
+          ),
+        );
       },
       child: Column(
         children: [
@@ -160,11 +200,18 @@ class StoryBar extends StatelessWidget {
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Colors.amber, Colors.orange, Colors.purple],
-                begin: Alignment.bottomLeft,
-                end: Alignment.topRight,
-              ),
+              gradient:
+                  stories.every(
+                    (s) => s.viewers.contains(
+                      Supabase.instance.client.auth.currentUser?.id,
+                    ),
+                  )
+                  ? const LinearGradient(colors: [Colors.grey, Colors.grey])
+                  : const LinearGradient(
+                      colors: [Colors.amber, Colors.orange, Colors.purple],
+                      begin: Alignment.bottomLeft,
+                      end: Alignment.topRight,
+                    ),
             ),
             child: Container(
               padding: const EdgeInsets.all(2),

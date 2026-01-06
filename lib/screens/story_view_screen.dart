@@ -12,11 +12,15 @@ import 'package:timeago/timeago.dart' as timeago;
 class StoryViewScreen extends StatefulWidget {
   final List<List<StoryModel>> groupedStories;
   final int initialUserIndex;
+  final int initialStoryIndex; // Added for smart start
+  final bool smartNavigation; // Added to stop on viewed stories
 
   const StoryViewScreen({
     super.key,
     required this.groupedStories,
     required this.initialUserIndex,
+    this.initialStoryIndex = 0, // Default to 0
+    this.smartNavigation = false,
   });
 
   @override
@@ -99,6 +103,10 @@ class _StoryViewScreenState extends State<StoryViewScreen> {
             final stories = widget.groupedStories[index];
             return StoryUserPlayer(
               stories: stories,
+              initialIndex: index == widget.initialUserIndex
+                  ? widget.initialStoryIndex
+                  : null,
+              smartNavigation: widget.smartNavigation,
               onComplete: _onUserStoryComplete,
               onPrevUser: _onPrevUser,
             );
@@ -113,12 +121,16 @@ class StoryUserPlayer extends StatefulWidget {
   final List<StoryModel> stories;
   final VoidCallback onComplete;
   final VoidCallback onPrevUser;
+  final int? initialIndex;
+  final bool smartNavigation;
 
   const StoryUserPlayer({
     super.key,
     required this.stories,
     required this.onComplete,
     required this.onPrevUser,
+    this.initialIndex,
+    this.smartNavigation = false,
   });
 
   @override
@@ -140,7 +152,20 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
     // Sort logic should ideally be passed in, but safe to repeat here if raw list order unknown
     widget.stories.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-    _loadStory(0);
+    // Smart Start Logic
+    int startIndex = widget.initialIndex ?? 0;
+    if (widget.initialIndex == null) {
+      // Auto-detect first unviewed for next users
+      final uid = Supabase.instance.client.auth.currentUser?.id;
+      final firstUnviewed = widget.stories.indexWhere(
+        (s) => uid != null && !s.viewers.contains(uid),
+      );
+      if (firstUnviewed != -1) {
+        startIndex = firstUnviewed;
+      }
+    }
+
+    _loadStory(startIndex);
   }
 
   @override
@@ -194,7 +219,19 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
 
   void _nextStory() {
     if (_currentIndex < widget.stories.length - 1) {
-      // INSTANT CUT (User requested)
+      // Smart Navigation Check
+      if (widget.smartNavigation) {
+        final nextStory = widget.stories[_currentIndex + 1];
+        final uid = Supabase.instance.client.auth.currentUser?.id;
+        final isNextViewed = uid != null && nextStory.viewers.contains(uid);
+
+        if (isNextViewed) {
+          // If next is viewed and we are in smart mode, stop here.
+          widget.onComplete();
+          return;
+        }
+      }
+
       _loadStory(_currentIndex + 1);
     } else {
       // Last story of this user

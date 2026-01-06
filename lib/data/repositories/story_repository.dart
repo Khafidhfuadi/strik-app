@@ -20,13 +20,13 @@ class StoryRepository {
 
       var builder = _supabase
           .from('stories')
-          .select('*, user:profiles(*)')
+          .select('*, user:profiles(*), story_views(viewer_id)')
           .gt('created_at', isoDate);
 
       print('DEBUG: Fetching active stories gt than $isoDate');
 
       // 2. Friend Filter
-      if (friendIds != null && friendIds.isNotEmpty) {
+      if (friendIds != null) {
         final visibleIds = [...friendIds, _supabase.auth.currentUser!.id];
         builder = builder.filter('user_id', 'in', '(${visibleIds.join(',')})');
       }
@@ -155,7 +155,6 @@ class StoryRepository {
       });
     } catch (e) {
       // Ignore unique violation (already viewed)
-      // code 23505 is unique violation in Postgres
     }
   }
 

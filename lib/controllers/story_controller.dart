@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:strik_app/data/models/story_model.dart';
 import 'package:strik_app/data/repositories/story_repository.dart';
+import 'package:strik_app/data/repositories/friend_repository.dart'; // Added
 import 'package:strik_app/main.dart';
 import 'package:path/path.dart' as p;
 import 'package:image_cropper/image_cropper.dart'; // Added
@@ -56,8 +57,14 @@ class StoryController extends GetxController {
   Future<void> fetchStories() async {
     try {
       // isLoading.value = true; // Don't show global loading for background refresh
-      // Fetch Active Stories (Global for now, simpler)
-      final active = await _repository.getActiveStories();
+      // Fetch Friends first to filter stories
+      // We use a local instance of FriendRepository to avoid circular controller dependencies
+      final friendRepo = FriendRepository(supabase);
+      final friends = await friendRepo.getFriends();
+      final friendIds = friends.map((f) => f.id).toList();
+
+      // Fetch Active Stories (Filtered by friends)
+      final active = await _repository.getActiveStories(friendIds: friendIds);
       activeStories.assignAll(
         active,
       ); // Use assignAll for better GetX reactivity
@@ -201,6 +208,35 @@ class StoryController extends GetxController {
   }
 
   Future<void> markAsViewed(String storyId) async {
+    // 1. Optimistic Local Update
+    // Wrap in microtask to avoid setState during build error if called from initState
+    Future.microtask(() {
+      final index = activeStories.indexWhere((s) => s.id == storyId);
+      if (index != -1) {
+        final story = activeStories[index];
+        final currentUserId = supabase.auth.currentUser?.id;
+
+        if (currentUserId != null && !story.viewers.contains(currentUserId)) {
+          final updatedViewers = List<String>.from(story.viewers)
+            ..add(currentUserId);
+
+          final updatedStory = StoryModel(
+            id: story.id,
+            userId: story.userId,
+            mediaUrl: story.mediaUrl,
+            mediaType: story.mediaType,
+            createdAt: story.createdAt,
+            viewers: updatedViewers,
+            user: story.user,
+          );
+
+          activeStories[index] = updatedStory;
+          activeStories.refresh(); // Force GetX update
+        }
+      }
+    });
+
+    // 2. API Call
     await _repository.markAsViewed(storyId);
   }
 

@@ -1492,7 +1492,6 @@ class _SocialScreenState extends State<SocialScreen> {
       children: [
         // Stories
         StoryBar(),
-        const SizedBox(height: 8),
 
         // Feed List
         Expanded(
@@ -1517,7 +1516,7 @@ class _SocialScreenState extends State<SocialScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 16,
+                  vertical: 0,
                 ),
                 itemCount:
                     _controller.activityFeed.length +

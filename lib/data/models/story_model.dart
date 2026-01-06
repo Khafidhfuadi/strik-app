@@ -27,7 +27,11 @@ class StoryModel {
       mediaUrl: json['media_url'] ?? '',
       mediaType: json['media_type'] ?? 'image',
       createdAt: DateTime.parse(json['created_at']).toLocal(),
-      viewers: List<String>.from(json['viewers'] ?? []),
+      viewers:
+          (json['story_views'] as List?)
+              ?.map((e) => e['viewer_id'] as String)
+              .toList() ??
+          [],
       user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
     );
   }
