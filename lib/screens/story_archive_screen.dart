@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:strik_app/screens/story_view_screen.dart';
 
 class StoryArchiveScreen extends StatelessWidget {
-  StoryArchiveScreen({Key? key}) : super(key: key);
+  StoryArchiveScreen({super.key});
   final StoryController _controller =
       Get.find<StoryController>(); // Should be alive from SocialScreen
 

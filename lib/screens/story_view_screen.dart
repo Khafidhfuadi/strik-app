@@ -9,7 +9,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 class StoryViewScreen extends StatefulWidget {
   final List<StoryModel> stories;
-  const StoryViewScreen({Key? key, required this.stories}) : super(key: key);
+  const StoryViewScreen({super.key, required this.stories});
 
   @override
   State<StoryViewScreen> createState() => _StoryViewScreenState();

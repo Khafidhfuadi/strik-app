@@ -9,7 +9,7 @@ import 'package:strik_app/core/theme.dart'; // Assume this exists
 import 'package:strik_app/main.dart'; // for supabase auth currentUser
 
 class StoryBar extends StatelessWidget {
-  StoryBar({Key? key}) : super(key: key);
+  StoryBar({super.key});
   final StoryController _controller = Get.put(StoryController());
 
   @override
@@ -42,7 +42,7 @@ class StoryBar extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 12),
                 child: _buildStoryAvatar(context, entry.key, entry.value),
               );
-            }).toList(),
+            }),
           ],
         );
       }),
@@ -113,7 +113,7 @@ class StoryBar extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Cerita Anda',
+            'Strik Momentz',
             style: TextStyle(
               color: Colors.white,
               fontSize: 12,

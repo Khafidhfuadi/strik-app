@@ -37,7 +37,7 @@ class PermissionScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                Icons.notifications_active_outlined,
+                Icons.lock_open,
                 size: 80,
                 color: Color(0xFFCCFF00), // Neon Lime from theme
               ),

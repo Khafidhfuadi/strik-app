@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart'; // Added for Colors in ImageCropper settings
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,6 +8,8 @@ import 'package:strik_app/data/models/story_model.dart';
 import 'package:strik_app/data/repositories/story_repository.dart';
 import 'package:strik_app/main.dart';
 import 'package:path/path.dart' as p;
+import 'package:image_cropper/image_cropper.dart'; // Added
+import 'package:strik_app/core/theme.dart'; // Needed for AppTheme
 
 class StoryController extends GetxController {
   final StoryRepository _repository = StoryRepository(supabase);
@@ -59,7 +62,29 @@ class StoryController extends GetxController {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image == null) return;
 
-      await uploadStoryFile(File(image.path));
+      // 1b. Crop Image (Square 1:1)
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Story',
+            toolbarColor: AppTheme.primary,
+            toolbarWidgetColor: Colors.black,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Story',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+          ),
+        ],
+      );
+
+      if (croppedFile != null) {
+        await uploadStoryFile(File(croppedFile.path));
+      }
     } catch (e) {
       Get.snackbar('Error', 'Gagal memilih gambar: $e');
     }

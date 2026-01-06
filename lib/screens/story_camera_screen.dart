@@ -3,12 +3,16 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lottie/lottie.dart' show Lottie;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:strik_app/controllers/story_controller.dart';
 import 'package:strik_app/core/theme.dart';
+import 'package:strik_app/screens/story_archive_screen.dart';
+import 'package:image/image.dart' as img; // Added for silent cropping
+import 'package:flutter/foundation.dart'; // for compute // Added
 
 class StoryCameraScreen extends StatefulWidget {
-  const StoryCameraScreen({Key? key}) : super(key: key);
+  const StoryCameraScreen({super.key});
 
   @override
   State<StoryCameraScreen> createState() => _StoryCameraScreenState();
@@ -21,6 +25,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   int _selectedCameraIndex = 0;
   bool _isInitialized = false;
   bool _isPermissionDenied = false; // Added
+  FlashMode _flashMode = FlashMode.off; // Added
   File? _capturedImage;
   final StoryController _storyController = Get.find<StoryController>();
 
@@ -121,12 +126,50 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
     try {
       final XFile file = await _controller!.takePicture();
+
+      // Auto-Crop to Square 1:1
+      final File rawImage = File(file.path);
+      // Run heavy image processing in a separate isolate
+      final File croppedImage = await compute(_cropSquareImage, rawImage);
+
       setState(() {
-        _capturedImage = File(file.path);
+        _capturedImage = croppedImage;
       });
     } catch (e) {
       print(e);
     }
+  }
+
+  // Static function for isolate
+  static Future<File> _cropSquareImage(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    img.Image? originalImage = img.decodeImage(bytes);
+
+    if (originalImage == null) return imageFile;
+
+    // Determine crop area (Center Square)
+    final size = originalImage.width < originalImage.height
+        ? originalImage.width
+        : originalImage.height;
+
+    final x = (originalImage.width - size) ~/ 2;
+    final y = (originalImage.height - size) ~/ 2;
+
+    // Crop
+    final img.Image cropped = img.copyCrop(
+      originalImage,
+      x: x,
+      y: y,
+      width: size,
+      height: size,
+    );
+
+    // Save back to file (overwrite or new temp?)
+    // Overwriting is fine for temp capture
+    final jpg = img.encodeJpg(cropped, quality: 90); // Use high quality
+    await imageFile.writeAsBytes(jpg);
+
+    return imageFile;
   }
 
   Future<void> _switchCamera() async {
@@ -144,6 +187,36 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
         _capturedImage = File(image.path);
       });
     }
+  }
+
+  Future<void> _toggleFlash() async {
+    if (_controller == null) return;
+
+    FlashMode nextMode;
+    if (_flashMode == FlashMode.off) {
+      nextMode = FlashMode
+          .torch; // Use torch for constant light in preview, or auto/always for capture?
+      // User usually expects simple On/Off or Auto.
+      // Let's toggle Off -> Torch (On) -> Off for simplicity in stories?
+      // Or Off -> Auto -> On -> Off.
+      // Let's stick to Off -> On (Torch) -> Off for now as it's cleaner for preview.
+      // Actually, camera package has setFlashMode.
+    } else {
+      nextMode = FlashMode.off;
+    }
+
+    try {
+      await _controller!.setFlashMode(nextMode);
+      setState(() {
+        _flashMode = nextMode;
+      });
+    } catch (e) {
+      print('Error toggling flash: $e');
+    }
+  }
+
+  void _onSwipeUp() {
+    Get.to(() => StoryArchiveScreen());
   }
 
   void _uploadStory() {
@@ -214,179 +287,315 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. Camera Preview (Full Cover)
-          _buildCameraPreview(),
+      body: GestureDetector(
+        onVerticalDragEnd: (details) {
+          if (details.primaryVelocity! < -500) {
+            // Threshold for swipe up
+            _onSwipeUp();
+          }
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. Camera Preview (Centered 1:1)
+            Center(child: _buildCameraPreview()),
 
-          // 2. Top Bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center, // Center text
-                  children: [
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 28,
+            // 2. Top Bar
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Strik Momentz',
+                            style: const TextStyle(
+                              fontFamily: 'Space Grotesk',
+                              fontWeight: FontWeight.bold,
+                              fontSize: 28,
+                              color: Colors.white,
+                            ),
                           ),
-                          onPressed: () => Get.back(),
+                          const SizedBox(width: 4),
+                          Lottie.asset(
+                            'assets/src/strik-logo.json',
+                            width: 35,
+                            height: 35,
+                            repeat: false,
+                          ),
+                        ],
+                      ),
+
+                      const Spacer(),
+
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 28,
                         ),
+                        onPressed: () => Get.back(),
                       ),
-                    ),
-                    const Text(
-                      'Strik Stories',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontFamily: 'Space Grotesk',
-                        fontWeight: FontWeight.bold,
-                        shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
-                      ),
-                    ),
-                    const Spacer(), // Balance center
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // 3. Bottom Controls
-          Positioned(
-            bottom: 40,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // Gallery
-                IconButton(
-                  onPressed: _pickFromGallery,
-                  icon: const Icon(
-                    Icons.photo_library,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ),
-
-                // Shutter Button
-                GestureDetector(
-                  onTap: _takePicture,
-                  child: Container(
-                    height: 80,
-                    width: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                    ),
-                    child: Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+            // 3. Bottom Controls
+            Positioned(
+              bottom: 40,
+              left: 0,
+              right: 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Gallery
+                      IconButton(
+                        onPressed: _pickFromGallery,
+                        icon: const Icon(
+                          Icons.photo_library_outlined,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
-                    ),
-                  ),
-                ),
 
-                // Switch Camera
-                IconButton(
-                  onPressed: _switchCamera,
-                  icon: const Icon(
-                    Icons.cameraswitch,
-                    color: Colors.white,
-                    size: 32,
+                      // Shutter Button
+                      GestureDetector(
+                        onTap: _takePicture,
+                        child: Container(
+                          height: 80,
+                          width: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                          ),
+                          child: Container(
+                            margin: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Switch Camera
+                      IconButton(
+                        onPressed: _switchCamera,
+                        icon: const Icon(
+                          Icons.flip_camera_ios_outlined,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  const Column(
+                    children: [
+                      Text(
+                        'History',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Icon(Icons.keyboard_arrow_down, color: Colors.white70),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCameraPreview() {
-    return Transform.scale(
-      scale:
-          1.0, // Standard scale, let CameraPreview handle aspect ratio letterboxing if needed or use Transform to cover
-      // To strictly cover, we need complex math. Basic CameraPreview is usually fine or slightly letterboxed on long phones.
-      // For a "Story" feel, usually we want to fill.
-      // Simplified cover logic:
-      child: Center(child: CameraPreview(_controller!)),
+    final size = MediaQuery.of(context).size;
+    final double side = size.width - 32; // Padding 16 each side
+
+    // Aspect Ratio 1:1
+    return Container(
+      width: side,
+      height: side, // Square
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Camera Stream
+            FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width:
+                    _controller!.value.previewSize!.height, // Swap for portrait
+                height: _controller!.value.previewSize!.width,
+                child: CameraPreview(_controller!),
+              ),
+            ),
+
+            // Flash Button (Top Left)
+            Positioned(
+              top: 16,
+              left: 16,
+              child: GestureDetector(
+                onTap: _toggleFlash,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black26,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _flashMode == FlashMode.off
+                        ? Icons.flash_off
+                        : Icons.flash_on,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+
+            // Zoom/Settings? (Top Right usually, or just keep it simple)
+
+            // Simple camera/video tint overlay at bottom?
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFC107), // Amber
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.black,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.videocam, color: Colors.white54, size: 20),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildPreviewUI() {
+    final size = MediaQuery.of(context).size;
+    final double side = size.width - 32; // Padding 16 each side
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.file(_capturedImage!, fit: BoxFit.cover),
-
-          // Buttons
-          Positioned(
-            bottom: 40,
-            left: 20,
-            right: 20,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Retake
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _capturedImage = null;
-                    });
-                  },
-                  icon: const Icon(Icons.refresh, color: Colors.white),
-                  label: const Text(
-                    'Retake',
-                    style: TextStyle(color: Colors.white),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Spacer(),
+            // 1:1 Image Preview
+            Container(
+              width: side,
+              height: side,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
                   ),
-                  style: TextButton.styleFrom(backgroundColor: Colors.black54),
-                ),
-
-                // Post
-                ElevatedButton.icon(
-                  onPressed: _uploadStory,
-                  icon: const Icon(Icons.send, color: Colors.black),
-                  label: const Text(
-                    'Post Story',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: Image.file(_capturedImage!, fit: BoxFit.cover),
+              ),
             ),
-          ),
-        ],
+            const Spacer(),
+            // Buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Retake
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _capturedImage = null;
+                      });
+                    },
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    label: const Text(
+                      'Retake',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.black54,
+                    ),
+                  ),
+
+                  // Post
+                  ElevatedButton.icon(
+                    onPressed: _uploadStory,
+                    icon: const Icon(Icons.send, color: Colors.black),
+                    label: const Text(
+                      'Post Strike Momentz',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
