@@ -126,9 +126,25 @@ class StoryBar extends StatelessWidget {
     final username = user?.username ?? 'User';
     final avatarUrl = user?.avatarUrl;
 
+    final controller = Get.find<StoryController>();
     return GestureDetector(
       onTap: () {
-        Get.to(() => StoryViewScreen(stories: stories));
+        // Find the index of this user's stories in the main list
+        // Note: StoryController.groupedStories is a Map<String, List<StoryModel>>
+        // Use groupedStories from controller
+        final allGroups = controller.groupedStories.values.toList();
+        final index = allGroups.indexWhere(
+          (s) => s.isNotEmpty && s.first.userId == userId,
+        );
+
+        if (index != -1) {
+          Get.to(
+            () => StoryViewScreen(
+              groupedStories: allGroups,
+              initialUserIndex: index,
+            ),
+          );
+        }
       },
       child: Column(
         children: [
@@ -200,7 +216,21 @@ class StoryBar extends StatelessWidget {
               ),
               onTap: () {
                 Get.back();
-                Get.to(() => StoryViewScreen(stories: stories));
+                final controller = Get.find<StoryController>();
+                final allGroups = controller.groupedStories.values.toList();
+                final myId = supabase.auth.currentUser?.id;
+                final index = allGroups.indexWhere(
+                  (s) => s.isNotEmpty && s.first.userId == myId,
+                );
+
+                if (index != -1) {
+                  Get.to(
+                    () => StoryViewScreen(
+                      groupedStories: allGroups,
+                      initialUserIndex: index,
+                    ),
+                  );
+                }
               },
             ),
             ListTile(

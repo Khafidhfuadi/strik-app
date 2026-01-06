@@ -67,7 +67,14 @@ class StoryArchiveScreen extends StatelessWidget {
                 // View Archive (Single story or list starting from here?)
                 // Let's passed single story or list to viewer.
                 // Viewing archive usually just shows that one story.
-                Get.to(() => StoryViewScreen(stories: [story])); // View single
+                Get.to(
+                  () => StoryViewScreen(
+                    groupedStories: [
+                      [story],
+                    ], // Archive views single story context
+                    initialUserIndex: 0,
+                  ),
+                ); // View single
               },
               child: Stack(
                 fit: StackFit.expand,
