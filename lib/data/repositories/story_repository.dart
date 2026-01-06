@@ -130,35 +130,84 @@ class StoryRepository {
     if (user == null) return;
 
     // Send reaction.
-    await _supabase.from('reactions').insert({
-      'user_id': user.id,
-      'story_id': storyId,
-      'type': reactionType,
-    });
+    // If unique constraint exists, this handles it.
+    // We should probably catch error if they try again, or UI should prevent.
+    try {
+      await _supabase.from('reactions').insert({
+        'user_id': user.id,
+        'story_id': storyId,
+        'type': reactionType,
+      });
+    } catch (e) {
+      // Ignore if duplicate
+      print('Reaction already sent or error: $e');
+    }
   }
 
   Future<void> markAsViewed(String storyId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
     try {
-      // Postgres array append: viewers || {userId}
-      // However, standard Postgrest usage might be tricky for array unique append without RPC.
-      // We will just do a check first or ignore duplicates if robust.
-      // Simple way: RPC is best. Or if we don't care about duplicates (handled in UI).
-      // Let's use a raw RPC query or just append.
-      // Supabase Dart SDK doesn't support 'array_append' directly easily in update without getting current first.
-
-      // For simplicity/MVP: We won't strictly enforce unique in backend here without RPC.
-      // We assume client won't call it if already viewed.
-      // Actually, we can assume 'stories' are immutable mostly.
-
-      // Let's try to invoke an RPC?
-      // Or simpler: don't track viewers in array for this MVP if not critical.
-      // "Keep stories 24h" is main req. Viewer list is extra.
-      // I will SKIP viewer tracking implementation in DB for now to keep it simpler and avoid race conditions,
-      // unless I create an RPC function.
-      // User asked "simple feature".
-      // I'll leave the method empty-ish or TODO.
+      await _supabase.from('story_views').insert({
+        'story_id': storyId,
+        'viewer_id': user.id,
+      });
     } catch (e) {
-      print('Error marking view: $e');
+      // Ignore unique violation (already viewed)
+      // code 23505 is unique violation in Postgres
     }
+  }
+
+  // Get viewers for a story (Owner only)
+  // Returns List of {user: Profile, reaction: Reaction?}
+  Future<List<Map<String, dynamic>>> getViewers(String storyId) async {
+    try {
+      final response = await _supabase
+          .from('story_views')
+          .select('''
+            *,
+            viewer:profiles(*)
+          ''')
+          .eq('story_id', storyId)
+          .order('created_at', ascending: false);
+
+      // Fetch reactions for this story separately to merge
+      final reactionsRes = await _supabase
+          .from('reactions')
+          .select('user_id, type')
+          .eq('story_id', storyId);
+
+      final Map<String, String> reactionMap = {
+        for (var r in reactionsRes) r['user_id'] as String: r['type'] as String,
+      };
+
+      return (response as List).map((view) {
+        final viewerId = view['viewer_id'];
+        return {
+          'user': view['viewer'], // Profile object
+          'viewed_at': view['created_at'],
+          'reaction': reactionMap[viewerId], // String? (e.g., '❤️')
+        };
+      }).toList();
+    } catch (e) {
+      print('Error fetching viewers: $e');
+      return [];
+    }
+  }
+
+  // Check if I have reacted (for UI state)
+  Future<String?> getMyReaction(String storyId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return null;
+
+    final res = await _supabase
+        .from('reactions')
+        .select('type')
+        .eq('story_id', storyId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    return res?['type'] as String?;
   }
 }

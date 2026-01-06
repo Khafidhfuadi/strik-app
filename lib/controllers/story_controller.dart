@@ -199,4 +199,16 @@ class StoryController extends GetxController {
   Future<void> sendReaction(String storyId, String type) async {
     await _repository.sendReaction(storyId, type);
   }
+
+  Future<void> markAsViewed(String storyId) async {
+    await _repository.markAsViewed(storyId);
+  }
+
+  Future<List<Map<String, dynamic>>> getViewers(String storyId) async {
+    return await _repository.getViewers(storyId);
+  }
+
+  Future<String?> getMyReaction(String storyId) async {
+    return await _repository.getMyReaction(storyId);
+  }
 }

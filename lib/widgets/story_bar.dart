@@ -211,7 +211,7 @@ class StoryBar extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.visibility, color: Colors.white),
               title: const Text(
-                'Lihat Story',
+                'Lihat Momentz',
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {

@@ -1,6 +1,7 @@
 // import 'dart:async'; // Unused
 import 'dart:ui'; // Added for ImageFilter
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart' show Lottie;
 import 'package:supabase_flutter/supabase_flutter.dart'; // Added
 import 'package:get/get.dart';
 import 'package:strik_app/data/models/story_model.dart';
@@ -129,6 +130,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
   late AnimationController _animController;
   int _currentIndex = 0;
   final StoryController _storyController = Get.find<StoryController>();
+  bool _hasReacted = false; // State to disable reaction bar
 
   @override
   void initState() {
@@ -150,7 +152,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
   // When parent PageView recycles this widget, we might want to reset?
   // PageView.builder keeps state for visible items.
 
-  void _loadStory(int index) {
+  void _loadStory(int index) async {
     if (index >= widget.stories.length) {
       widget.onComplete();
       return;
@@ -158,7 +160,25 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
 
     setState(() {
       _currentIndex = index;
+      _hasReacted = false; // Reset first
     });
+
+    final story = widget.stories[index];
+    final currentUser = _storyController.supabase.auth.currentUser;
+
+    // 1. Mark as viewed (if not own story)
+    if (currentUser != null && story.userId != currentUser.id) {
+      // Fire and forget (don't await animation)
+      _storyController.markAsViewed(story.id);
+
+      // 2. Check if I reacted
+      final myReaction = await _storyController.getMyReaction(story.id);
+      if (mounted && myReaction != null) {
+        setState(() {
+          _hasReacted = true;
+        });
+      }
+    }
 
     _animController.stop();
     _animController.reset();
@@ -211,10 +231,99 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
     _animController.forward();
   }
 
+  void _showViewers(StoryModel story) {
+    _animController.stop(); // Pause story
+    Get.bottomSheet(
+      Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E1E1E), // Dark background
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Text(
+              'Yang ngeliat Momentz lo',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white, // White text
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _storyController.getViewers(story.id),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: Lottie.asset(
+                        'assets/src/loading.json',
+                        width: 150,
+                        height: 150,
+                      ),
+                    );
+                  }
+                  final viewers = snapshot.data ?? [];
+                  if (viewers.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Belum ada yang lihat nih',
+                        style: TextStyle(
+                          color: Colors.white70, // Light grey text
+                        ),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    itemCount: viewers.length,
+                    itemBuilder: (context, index) {
+                      final v = viewers[index];
+                      final user = v['user']; // Profile JSON
+                      final reaction = v['reaction']; // String?
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: user['avatar_url'] != null
+                              ? NetworkImage(user['avatar_url'])
+                              : null,
+                          child: user['avatar_url'] == null
+                              ? const Icon(Icons.person)
+                              : null,
+                        ),
+                        title: Text(
+                          user['username'] ?? 'User',
+                          style: const TextStyle(
+                            color: Colors.white,
+                          ), // White text
+                        ),
+                        trailing: reaction != null
+                            ? Text(
+                                reaction,
+                                style: const TextStyle(fontSize: 24),
+                              )
+                            : null,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(() {
+      _animController.forward(); // Resume on close
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final story = widget.stories[_currentIndex];
     final user = story.user;
+    final isMyStory =
+        user?.id == _storyController.supabase.auth.currentUser?.id;
 
     // Use Stack for Instant Cut transitions
     return GestureDetector(
@@ -230,8 +339,12 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
               fit: BoxFit.contain,
               loadingBuilder: (ctx, child, progress) {
                 if (progress == null) return child;
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                return Center(
+                  child: Lottie.asset(
+                    'assets/src/loading.json',
+                    width: 150,
+                    height: 150,
+                  ),
                 );
               },
               errorBuilder: (ctx, err, trace) =>
@@ -322,8 +435,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                   timeago.format(story.createdAt),
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
-                if (user?.id ==
-                    _storyController.supabase.auth.currentUser?.id) ...[
+                if (isMyStory) ...[
                   const SizedBox(width: 10),
                   GestureDetector(
                     onTap: () async {
@@ -342,8 +454,28 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
             ),
           ),
 
-          // Reaction Bar (Floating at bottom if not my story)
-          if (user?.id != _storyController.supabase.auth.currentUser?.id)
+          // Viewers Eye Icon (Only for My Story)
+          if (isMyStory)
+            Positioned(
+              bottom: 40,
+              left: 20,
+              child: GestureDetector(
+                onTap: () => _showViewers(story),
+                child: Column(
+                  children: [
+                    const Icon(Icons.remove_red_eye, color: Colors.white),
+                    // We could fetch count here, but maybe just show icon
+                    const Text(
+                      "Stalker",
+                      style: TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Reaction Bar (Floating at bottom if NOT my story)
+          if (!isMyStory)
             Positioned(
               bottom: 20,
               left: 0,
@@ -353,36 +485,44 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Reaction Input Bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          height: 60,
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(
-                              0.1,
-                            ), // Translucent white for glass effect
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(
-                                0.2,
-                              ), // Subtle border
-                              width: 0.5,
+                    // Disable if reacted
+                    IgnorePointer(
+                      ignoring: _hasReacted, // Disable interactions
+                      child: Opacity(
+                        opacity: _hasReacted ? 0.5 : 1.0, // Grey out
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              height: 60,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  _buildReactionButton('❤️'),
+                                  _buildReactionButton('😂'),
+                                  _buildReactionButton('😮'),
+                                  _buildReactionButton('😢'),
+                                  _buildReactionButton('👏'),
+                                  _buildReactionButton('🔥'),
+                                ],
+                              ),
                             ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildReactionButton('❤️'),
-                              _buildReactionButton('😂'),
-                              _buildReactionButton('😮'),
-                              _buildReactionButton('😢'),
-                              _buildReactionButton('👏'),
-                              _buildReactionButton('🔥'),
-                            ],
                           ),
                         ),
                       ),
@@ -411,33 +551,37 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
     );
   }
 
-  void _sendReaction(String emoji) {
+  void _sendReaction(String emoji) async {
+    setState(() {
+      _hasReacted = true; // Optimistic update to disable bar
+    });
+
     // 1. API Call
-    final story = widget.stories[_currentIndex];
-    _storyController.sendReaction(story.id, emoji);
+    await _storyController.sendReaction(
+      widget.stories[_currentIndex].id,
+      emoji,
+    );
 
     // 2. Local Animation
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final animation = _FlyingReaction(
+    final id = DateTime.now().millisecondsSinceEpoch;
+    final reaction = _FlyingReaction(
       id: id,
       emoji: emoji,
       onComplete: () {
-        if (mounted) {
-          setState(() {
-            _flyingReactions.removeWhere((r) => r.id == id);
-          });
-        }
+        setState(() {
+          _flyingReactions.removeWhere((r) => r.id == id);
+        });
       },
     );
 
     setState(() {
-      _flyingReactions.add(animation);
+      _flyingReactions.add(reaction);
     });
   }
 }
 
 class _FlyingReaction {
-  final String id;
+  final int id;
   final String emoji;
   final VoidCallback onComplete;
   late final Widget widget;
