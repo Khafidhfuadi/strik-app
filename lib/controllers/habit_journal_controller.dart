@@ -4,6 +4,11 @@ import 'package:strik_app/data/models/habit_journal.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 
 class HabitJournalController extends GetxController {
   final String habitId;
@@ -104,7 +109,12 @@ class HabitJournalController extends GetxController {
         hasMore.value = false;
       }
 
-      journals.addAll(newJournals);
+      final existingIds = journals.map((j) => j.id).toSet();
+      final uniqueJournals = newJournals
+          .where((j) => !existingIds.contains(j.id))
+          .toList();
+
+      journals.addAll(uniqueJournals);
       _page++;
 
       _checkTodayJournal();
@@ -131,7 +141,11 @@ class HabitJournalController extends GetxController {
     }
   }
 
-  Future<void> addJournal(String content, {DateTime? date}) async {
+  Future<void> addJournal(
+    String content, {
+    DateTime? date,
+    File? imageFile,
+  }) async {
     try {
       final targetDate = date ?? DateTime.now();
 
@@ -153,14 +167,11 @@ class HabitJournalController extends GetxController {
       }
 
       final userId = _supabase.auth.currentUser!.id;
+      String? imageUrl;
 
-      // If date is provided (past date), we need to set created_at explicitly.
-      // If it's today (default), we can let it or set it too.
-      // Let's set it explicitly to be safe and accurate to the target date.
-      // We'll set it to the current time component of that day if user wants,
-      // or just noon to be safe for "day" representaiton?
-      // Actually, if it's a past date "journal", usually we just want the date part to be correct.
-      // Let's use the current time but on that target day, or just that target DateTime object.
+      if (imageFile != null) {
+        imageUrl = await uploadJournalImage(imageFile);
+      }
 
       final response = await _supabase
           .from('habit_journals')
@@ -168,6 +179,7 @@ class HabitJournalController extends GetxController {
             'habit_id': habitId,
             'user_id': userId,
             'content': content,
+            'image_url': imageUrl,
             'created_at': targetDate.toUtc().toIso8601String(),
           })
           .select()
@@ -191,11 +203,24 @@ class HabitJournalController extends GetxController {
     }
   }
 
-  Future<void> updateJournal(String id, String content) async {
+  Future<void> updateJournal(
+    String id,
+    String content, {
+    File? newImageFile,
+  }) async {
     try {
+      final updates = <String, dynamic>{'content': content};
+
+      if (newImageFile != null) {
+        final imageUrl = await uploadJournalImage(newImageFile);
+        if (imageUrl != null) {
+          updates['image_url'] = imageUrl;
+        }
+      }
+
       final response = await _supabase
           .from('habit_journals')
-          .update({'content': content})
+          .update(updates)
           .eq('id', id)
           .select()
           .single();
@@ -228,6 +253,73 @@ class HabitJournalController extends GetxController {
         'Gagal hapus jurnal: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
+    }
+  }
+
+  Future<File?> pickImage({required ImageSource source}) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: source);
+      if (image == null) return null;
+      return File(image.path);
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal mengambil gambar: $e');
+      return null;
+    }
+  }
+
+  Future<File?> _compressImage(File file) async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final targetPath = p.join(
+        dir.path,
+        'journal_${DateTime.now().millisecondsSinceEpoch}.webp',
+      );
+
+      var result = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        minWidth: 1080,
+        minHeight: 1920,
+        quality: 70,
+        format: CompressFormat.webp,
+      );
+
+      if (result == null) return null;
+      return File(result.path);
+    } catch (e) {
+      print('Compression error: $e');
+      return null;
+    }
+  }
+
+  Future<String?> uploadJournalImage(File file) async {
+    try {
+      final compressedFile = await _compressImage(file);
+      if (compressedFile == null) return null;
+
+      final fileExt = p.extension(compressedFile.path);
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}$fileExt';
+      final path = '$habitId/$fileName';
+
+      await _supabase.storage
+          .from('habit-journal-images')
+          .upload(
+            path,
+            compressedFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
+
+      final imageUrl = _supabase.storage
+          .from('habit-journal-images')
+          .getPublicUrl(path);
+
+      return imageUrl;
+    } catch (e) {
+      print('Upload error: $e');
+      // If bucket doesn't exist, we might get an error here.
+      // Ideally we create it if not exists, but usually buckets are pre-created.
+      return null;
     }
   }
 

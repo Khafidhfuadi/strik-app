@@ -3,6 +3,7 @@ class HabitJournal {
   final String habitId;
   final String userId;
   final String content;
+  final String? imageUrl;
   final DateTime createdAt;
 
   HabitJournal({
@@ -10,6 +11,7 @@ class HabitJournal {
     required this.habitId,
     required this.userId,
     required this.content,
+    this.imageUrl,
     required this.createdAt,
   });
 
@@ -19,6 +21,7 @@ class HabitJournal {
       habitId: json['habit_id'],
       userId: json['user_id'],
       content: json['content'],
+      imageUrl: json['image_url'],
       createdAt: DateTime.parse(json['created_at']).toLocal(),
     );
   }
@@ -28,6 +31,7 @@ class HabitJournal {
       'habit_id': habitId,
       'user_id': userId,
       'content': content,
+      'image_url': imageUrl,
       // created_at is handled by DB default or passed if needed
     };
   }

@@ -13,6 +13,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:alarm/alarm.dart';
 import 'package:strik_app/services/alarm_manager_service.dart';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+// Top-level function for handling background messages
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint("Handling a background message: ${message.messageId}");
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
@@ -32,6 +41,7 @@ Future<void> main() async {
 
     // Initialize Firebase
     await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // Initialize notification service
     try {

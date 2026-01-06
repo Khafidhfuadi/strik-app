@@ -180,12 +180,13 @@ serve(async (req: Request) => {
         return new Response(JSON.stringify({ message: 'No friends to notify' }), { status: 200 })
       }
 
-      // Extract Friend IDs
-      const friendIds = friendships.map((f: any) => 
+      // Extract Friend IDs and Deduplicate
+      const rawFriendIds = friendships.map((f: any) => 
         f.requester_id === creatorId ? f.receiver_id : f.requester_id
       )
+      const friendIds = [...new Set(rawFriendIds)] // Remove duplicates
 
-      console.log(`Found ${friendIds.length} friends for user ${creatorId}`)
+      console.log(`Found ${friendIds.length} unique friends (from ${rawFriendIds.length} rows) for user ${creatorId}`)
 
       // 3. Get FCM Tokens for Friends
       const { data: profiles } = await supabaseAdmin
@@ -203,8 +204,8 @@ serve(async (req: Request) => {
         if (!p.fcm_token) return Promise.resolve(null);
         return sendFCM(
           p.fcm_token, 
-          `${creatorName} bikin story baru!`, 
-          'Liat yuk sebelum ilang 24 jam.',
+          `${creatorName} bikin momentz baru!`, 
+          'gas liat sekarang!',
           { story_id: record.id, type: 'new_story' }
         )
       })
@@ -221,22 +222,28 @@ serve(async (req: Request) => {
       const reactorId = record.user_id
       const storyId = record.story_id
       const reactionType = record.type // e.g., '❤️'
+      
+      console.log(`Processing Reaction: reactor=${reactorId}, story=${storyId}, type=${reactionType}`)
 
       // 1. Fetch Story to find Owner
-      const { data: story } = await supabaseAdmin
+      const { data: story, error: storyError } = await supabaseAdmin
         .from('stories')
         .select('user_id')
         .eq('id', storyId)
         .single()
       
-      if (!story) {
-        throw new Error('Story not found')
+      if (storyError || !story) {
+        console.error('Error fetching story:', storyError)
+        console.error('Payload Story ID:', storyId)
+        // Try to list recent stories to see available IDs? (optional, maybe too noisy)
+        throw new Error(`Story not found for ID: ${storyId}. Error: ${JSON.stringify(storyError)}`)
       }
 
       const ownerId = story.user_id
 
       // Don't notify if reacting to own story (though UI hinders this)
       if (ownerId === reactorId) {
+        console.log('Skipping self-reaction notification')
         return new Response(JSON.stringify({ message: 'Self-reaction ignored' }), { status: 200 })
       }
 
@@ -257,6 +264,7 @@ serve(async (req: Request) => {
         .single()
       
       if (!owner?.fcm_token) {
+        console.log(`Owner ${ownerId} has no FCM token`)
         return new Response(JSON.stringify({ message: 'Owner has no FCM token' }), { status: 200 })
       }
 
@@ -264,7 +272,7 @@ serve(async (req: Request) => {
       const result = await sendFCM(
         owner.fcm_token,
         'Strik!',
-        `${reactorName} menanggapi storymu: ${reactionType}`,
+        `${reactorName} nge-react momentz lo: ${reactionType}`,
         { story_id: storyId, type: 'story_reaction' }
       )
 
