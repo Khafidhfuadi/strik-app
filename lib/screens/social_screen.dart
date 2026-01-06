@@ -266,6 +266,130 @@ class _SocialScreenState extends State<SocialScreen> {
           ],
         ),
       ),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: _showPostBottomSheet,
+              backgroundColor: AppTheme.primary, // Used AppTheme here
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.edit_outlined),
+            )
+          : null,
+    );
+  }
+
+  void _showPostBottomSheet() {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Buat Feed Baru',
+                  style: TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Get.back(),
+                  icon: const Icon(Icons.close, color: Colors.grey),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _postController,
+              autofocus: true,
+              maxLines: 4,
+              minLines: 2,
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white,
+                fontSize: 16,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Curhat apa tudey?',
+                hintStyle: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.grey[600],
+                ),
+                filled: true,
+                fillColor: Colors.black.withOpacity(0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(16),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: Obx(
+                () => ElevatedButton(
+                  onPressed: _controller.isCreatingPost.value
+                      ? null
+                      : () async {
+                          if (_postController.text.trim().isEmpty) return;
+                          if (await _controller.createPost(
+                            _postController.text,
+                          )) {
+                            _postController.clear();
+                            Get.back(); // Close bottom sheet on success
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _controller.isCreatingPost.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Text(
+                          'Gas Kirim',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+            // Add padding for keyboard
+            SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+          ],
+        ),
+      ),
+      isScrollControlled: true, // Important for full keyboard adjustment
+      enterBottomSheetDuration: const Duration(milliseconds: 300),
+      exitBottomSheetDuration: const Duration(milliseconds: 300),
     );
   }
 
@@ -1369,63 +1493,6 @@ class _SocialScreenState extends State<SocialScreen> {
         // Stories
         StoryBar(),
         const SizedBox(height: 8),
-
-        // Create Post Input
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.grey[900],
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey[800]!),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: AppTheme.primary.withOpacity(0.2),
-                child: const Icon(
-                  Icons.edit,
-                  size: 16,
-                  color: AppTheme.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _postController,
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    color: Colors.white,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Spill kegiatan lo hari ini...',
-                    hintStyle: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      color: Colors.grey[600],
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                  ),
-                  onSubmitted: (value) async {
-                    if (await _controller.createPost(value)) {
-                      _postController.clear();
-                    }
-                  },
-                ),
-              ),
-              Obx(
-                () => _controller.isCreatingPost.value
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          ),
-        ),
 
         // Feed List
         Expanded(

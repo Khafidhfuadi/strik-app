@@ -236,7 +236,7 @@ class StoryBar extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.add_a_photo, color: Colors.white),
               title: const Text(
-                'Tambah Story Baru',
+                'Tambah Momentz Baru',
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {
@@ -248,7 +248,7 @@ class StoryBar extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.archive, color: Colors.white),
               title: const Text(
-                'Arsip Cerita',
+                'Throwback Momentz',
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {

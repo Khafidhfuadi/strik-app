@@ -16,7 +16,7 @@ class StoryArchiveScreen extends StatelessWidget {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text(
-          'Arsip Cerita',
+          'Throwback Momentz',
           style: TextStyle(
             color: Colors.white,
             fontFamily: 'Space Grotesk',
@@ -40,7 +40,7 @@ class StoryArchiveScreen extends StatelessWidget {
                 const Icon(Icons.history, color: Colors.white24, size: 64),
                 const SizedBox(height: 16),
                 const Text(
-                  'Belum ada arsip cerita.',
+                  'Ga ada yang bisa di-throwback :(',
                   style: TextStyle(
                     color: Colors.white54,
                     fontFamily: 'Plus Jakarta Sans',

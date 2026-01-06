@@ -406,7 +406,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                   const Column(
                     children: [
                       Text(
-                        'History',
+                        'Throwback',
                         style: TextStyle(
                           color: Colors.white70,
                           fontWeight: FontWeight.w600,
