@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,6 +11,13 @@ import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/screens/story_archive_screen.dart';
 import 'package:image/image.dart' as img; // Added for silent cropping
 import 'package:flutter/foundation.dart'; // for compute // Added
+
+class CropRequest {
+  final File file;
+  final bool mirror;
+
+  CropRequest(this.file, {this.mirror = false});
+}
 
 class StoryCameraScreen extends StatefulWidget {
   const StoryCameraScreen({super.key});
@@ -131,8 +139,14 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
       // Auto-Crop to Square 1:1
       final File rawImage = File(file.path);
+
+      final isFront =
+          _cameras![_selectedCameraIndex].lensDirection ==
+          CameraLensDirection.front;
+      final request = CropRequest(rawImage, mirror: isFront);
+
       // Run heavy image processing in a separate isolate
-      final File croppedImage = await compute(_cropSquareImage, rawImage);
+      final File croppedImage = await compute(_cropSquareImage, request);
 
       setState(() {
         _capturedImage = croppedImage;
@@ -143,11 +157,20 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   }
 
   // Static function for isolate
-  static Future<File> _cropSquareImage(File imageFile) async {
+  static Future<File> _cropSquareImage(CropRequest request) async {
+    final imageFile = request.file;
     final bytes = await imageFile.readAsBytes();
     img.Image? originalImage = img.decodeImage(bytes);
 
     if (originalImage == null) return imageFile;
+
+    // Mirror if requested (Front Camera)
+    if (request.mirror) {
+      originalImage = img.flip(
+        originalImage,
+        direction: img.FlipDirection.horizontal,
+      );
+    }
 
     // Determine crop area (Center Square)
     final size = originalImage.width < originalImage.height
@@ -185,8 +208,14 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
       source: ImageSource.gallery,
     );
     if (image != null) {
+      final File rawImage = File(image.path);
+      // Run heavy image processing in a separate isolate
+      // Mirror is false for gallery
+      final request = CropRequest(rawImage, mirror: false);
+      final File croppedImage = await compute(_cropSquareImage, request);
+
       setState(() {
-        _capturedImage = File(image.path);
+        _capturedImage = croppedImage;
       });
     }
   }
@@ -460,7 +489,15 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                 width:
                     _controller!.value.previewSize!.height, // Swap for portrait
                 height: _controller!.value.previewSize!.width,
-                child: CameraPreview(_controller!),
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform:
+                      _cameras![_selectedCameraIndex].lensDirection ==
+                          CameraLensDirection.front
+                      ? Matrix4.rotationY(math.pi)
+                      : Matrix4.identity(),
+                  child: CameraPreview(_controller!),
+                ),
               ),
             ),
 
