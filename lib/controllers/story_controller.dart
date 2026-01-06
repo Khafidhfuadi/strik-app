@@ -62,6 +62,9 @@ class StoryController extends GetxController {
         active,
       ); // Use assignAll for better GetX reactivity
 
+      // Toggle this off after debugging
+      // Get.snackbar('Debug', 'Loaded ${active.length} active stories');
+
       // Fetch My Archive
       final archive = await _repository.getMyArchive();
       myArchive.assignAll(archive);

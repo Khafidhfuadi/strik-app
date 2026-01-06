@@ -13,16 +13,17 @@ class StoryRepository {
   Future<List<StoryModel>> getActiveStories({List<String>? friendIds}) async {
     try {
       // 1. Select and Time Filter
+      final isoDate = DateTime.now()
+          .subtract(const Duration(hours: 24))
+          .toUtc()
+          .toIso8601String();
+
       var builder = _supabase
           .from('stories')
-          .select('*, user:users(*)')
-          .gt(
-            'created_at',
-            DateTime.now()
-                .subtract(const Duration(hours: 24))
-                .toUtc()
-                .toIso8601String(),
-          );
+          .select('*, user:profiles(*)')
+          .gt('created_at', isoDate);
+
+      print('DEBUG: Fetching active stories gt than $isoDate');
 
       // 2. Friend Filter
       if (friendIds != null && friendIds.isNotEmpty) {
@@ -35,6 +36,8 @@ class StoryRepository {
         'created_at',
         ascending: false,
       );
+
+      print('DEBUG: Fetched ${response.length} stories');
       return response.map((json) => StoryModel.fromJson(json)).toList();
     } catch (e) {
       print('Error fetching stories: $e');
@@ -48,7 +51,7 @@ class StoryRepository {
       final userId = _supabase.auth.currentUser!.id;
       final List<dynamic> response = await _supabase
           .from('stories')
-          .select('*, user:users(*)')
+          .select('*, user:profiles(*)')
           .eq('user_id', userId)
           .order('created_at', ascending: false)
           .limit(limit);
