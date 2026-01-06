@@ -190,13 +190,24 @@ class StoryController extends GetxController {
 
   // Delete a story
   Future<void> deleteStory(StoryModel story) async {
+    debugPrint("DELETING STORY (Controller): Deleting ${story.id}");
     try {
-      // Optimistic Update: Remove from list immediately
-      activeStories.remove(story);
-      myArchive.remove(story);
+      // Optimistic Update: Remove from list immediately by ID
+      activeStories.removeWhere((s) => s.id == story.id);
+      myArchive.removeWhere((s) => s.id == story.id);
+
+      debugPrint(
+        "DELETING STORY (Controller): Removed from lists and archived.",
+      );
 
       await _repository.deleteStory(story.id, story.mediaUrl);
+
+      debugPrint("DELETING STORY (Controller): Repo delete success.");
+
+      // Force UI update
+      update();
     } catch (e) {
+      debugPrint("DELETING STORY (Controller): FAILED $e");
       // Revert if failed (optional, but good UX)
       // For now just error
       Get.snackbar('Error', 'Failed to delete story');

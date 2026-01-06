@@ -107,9 +107,22 @@ class StoryRepository {
   }
 
   Future<void> deleteStory(String storyId, String url) async {
+    print("DELETING STORY (Repo): ID=$storyId, URL=$url");
     try {
-      // 1. Delete from DB
-      await _supabase.from('stories').delete().eq('id', storyId);
+      // 1. Delete from DB and check if it actually deleted something
+      final deleted = await _supabase
+          .from('stories')
+          .delete()
+          .eq('id', storyId)
+          .select();
+      print("DELETING STORY (Repo): Deleted Rows: ${deleted.length}");
+      if (deleted.isEmpty) {
+        print(
+          "DELETING STORY (Repo): WARNING! No rows deleted. Check RLS Policies.",
+        );
+      } else {
+        print("DELETING STORY (Repo): DB Record Deleted Successfully");
+      }
 
       // 2. Delete from Storage (Extract path from URL)
       // URL: .../storage/v1/object/public/stories/userId/filename.webp
@@ -121,7 +134,11 @@ class StoryRepository {
       final storiesIndex = pathSegments.indexOf('stories');
       if (storiesIndex != -1 && storiesIndex + 1 < pathSegments.length) {
         final storagePath = pathSegments.sublist(storiesIndex + 1).join('/');
+        print("DELETING STORY (Repo): Extracted Path=$storagePath");
         await _supabase.storage.from('stories').remove([storagePath]);
+        print("DELETING STORY (Repo): Storage File Removed");
+      } else {
+        print("DELETING STORY (Repo): Could not extract path from URL");
       }
     } catch (e) {
       print('Error deleting story: $e');

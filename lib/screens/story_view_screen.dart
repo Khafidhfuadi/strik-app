@@ -249,7 +249,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
     }
   }
 
-  void _onTapDown(TapDownDetails details) {
+  void _onTapUp(TapUpDetails details) {
     final screenWidth = MediaQuery.of(context).size.width;
     final dx = details.globalPosition.dx;
 
@@ -364,7 +364,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
 
     // Use Stack for Instant Cut transitions
     return GestureDetector(
-      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
       onLongPress: _onLongPressStart,
       onLongPressUp: _onLongPressEnd,
       child: Stack(
@@ -475,10 +475,48 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                 if (isMyStory) ...[
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: () async {
+                    onTap: () {
                       _animController.stop();
-                      await _storyController.deleteStory(story);
-                      Get.back();
+                      Get.defaultDialog(
+                        title: "Hapus Momentz?",
+                        middleText:
+                            "Yakin mau ngehapus momentz ini? Ga bisa dibalikin loh.",
+                        textConfirm: "Hapus",
+                        textCancel: "Batal",
+                        confirmTextColor: Colors.white,
+                        onCancel: () {
+                          _animController.forward();
+                        },
+                        onConfirm: () async {
+                          // 1. Close Confirmation Dialog
+                          Get.back();
+
+                          // 2. Show Loading
+                          Get.dialog(
+                            const Center(child: CircularProgressIndicator()),
+                            barrierDismissible: false,
+                          );
+
+                          try {
+                            // 3. Perform Delete
+                            debugPrint(
+                              "DELETING STORY: Start UI Delete Flow for ${story.id}",
+                            );
+                            await _storyController.deleteStory(story);
+                            debugPrint(
+                              "DELETING STORY: Finished Controller Delete",
+                            );
+                          } catch (e) {
+                            debugPrint("DELETING STORY: Error in UI: $e");
+                          } finally {
+                            // 4. Close Loading
+                            if (Get.isDialogOpen ?? false) Get.back();
+
+                            // 5. Close Story Viewer
+                            Get.back();
+                          }
+                        },
+                      );
                     },
                     child: const Icon(
                       Icons.delete,
