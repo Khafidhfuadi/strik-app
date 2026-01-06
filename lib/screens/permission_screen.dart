@@ -10,6 +10,9 @@ class PermissionScreen extends StatelessWidget {
     // Request notification permission
     await Permission.notification.request();
 
+    // Request camera permission
+    await Permission.camera.request();
+
     // Request exact alarm permission for notifications
     if (await Permission.scheduleExactAlarm.isDenied) {
       await Permission.scheduleExactAlarm.request();
@@ -40,7 +43,7 @@ class PermissionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               const Text(
-                'Nyalain Notif Dong!',
+                'Izin nya dulu kakaa!',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -50,7 +53,7 @@ class PermissionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Biar lo nggak lupa sama goals lo dan bisa dapet update kalo di-colek bestie circle lo.',
+                'Strik butuh izin Notifikasi & Kamera biar lo bisa dapet update dan share moment seru lo!',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[400],

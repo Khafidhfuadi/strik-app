@@ -20,6 +20,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   List<CameraDescription>? _cameras;
   int _selectedCameraIndex = 0;
   bool _isInitialized = false;
+  bool _isPermissionDenied = false; // Added
   File? _capturedImage;
   final StoryController _storyController = Get.find<StoryController>();
 
@@ -57,10 +58,16 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
     // Request permission
     var status = await Permission.camera.request();
     if (status.isDenied || status.isPermanentlyDenied) {
-      Get.snackbar(
-        'Ijin Ditolak',
-        'Ijin kamera diperlukan untuk mengambil story.',
-      );
+      if (mounted) {
+        setState(() {
+          _isPermissionDenied = true;
+          // We can add a state variable for 'denied' if we want a custom UI,
+          // but seeing the build method, let's just use `_isInitialized = false`
+          // and handle it in build() by checking permission status or adding a flag.
+          // For now, let's add `_isPermissionDenied` flag.
+          // We need to declare it first.
+        });
+      }
       return;
     }
 
@@ -150,6 +157,52 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   Widget build(BuildContext context) {
     if (_capturedImage != null) {
       return _buildPreviewUI();
+    }
+
+    if (_isPermissionDenied) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.videocam_off, color: Colors.grey, size: 64),
+              const SizedBox(height: 16),
+              const Text(
+                'Akses Kamera Ditolak',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Aktifin dulu izin kamera di settings ya!',
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => openAppSettings(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                ),
+                child: const Text(
+                  'Buka Settings',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ),
+              TextButton(
+                onPressed: _initCamera,
+                child: const Text(
+                  'Coba Lagi',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     if (!_isInitialized || _controller == null) {
@@ -267,9 +320,6 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   }
 
   Widget _buildCameraPreview() {
-    final size = MediaQuery.of(context).size;
-    final deviceRatio = size.width / size.height;
-
     return Transform.scale(
       scale:
           1.0, // Standard scale, let CameraPreview handle aspect ratio letterboxing if needed or use Transform to cover

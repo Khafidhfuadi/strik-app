@@ -57,7 +57,8 @@ class StoryBar extends StatelessWidget {
           // Open View or Show Action Sheet (View or Add)
           _showMyStoryOptions(context, stories);
         } else {
-          _controller.pickAndUploadStory();
+          // _controller.pickAndUploadStory();
+          Get.to(() => const StoryCameraScreen());
         }
       },
       child: Column(
@@ -218,7 +219,8 @@ class StoryBar extends StatelessWidget {
               ),
               onTap: () {
                 Get.back();
-                _controller.pickAndUploadStory();
+                // _controller.pickAndUploadStory();
+                Get.to(() => const StoryCameraScreen());
               },
             ),
             ListTile(

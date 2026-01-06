@@ -14,12 +14,15 @@ class PushNotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   Future<void> init() async {
-    // Request permission (Android 13+)
-    NotificationSettings settings = await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    // Request permission (Android 13+) - DISABLED to centralized in PermissionScreen
+    // NotificationSettings settings = await _fcm.requestPermission(
+    //   alert: true,
+    //   badge: true,
+    //   sound: true,
+    // );
+
+    // Check status instead of requesting
+    final settings = await _fcm.getNotificationSettings();
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       if (kDebugMode) {
