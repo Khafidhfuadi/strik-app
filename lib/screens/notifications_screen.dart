@@ -90,34 +90,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 key: Key(notifId),
                 // Allow both directions
                 direction: DismissDirection.horizontal,
-                // Background for Swipe Right -> Mark Read (Green/Blue)
+                // Background for Swipe Right -> Delete (Red)
                 background: Container(
-                  color: Colors.blue,
+                  color: Colors.red,
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.only(left: 20),
-                  child: const Icon(Icons.mark_email_read, color: Colors.white),
-                ),
-                // Background for Swipe Left -> Delete (Red)
-                secondaryBackground: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
+                // Background for Swipe Left -> Mark Read (Green/Blue)
+                secondaryBackground: Container(
+                  color: Colors.blue,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  child: const Icon(Icons.mark_email_read, color: Colors.white),
+                ),
                 confirmDismiss: (direction) async {
-                  if (direction == DismissDirection.startToEnd) {
-                    // Swipe Right: Mark as Read
+                  if (direction == DismissDirection.endToStart) {
+                    // Swipe Left: Mark as Read
                     await controller.markNotificationAsRead(notifId);
                     // Return false so item stays in list (just updates status)
                     return false;
                   } else {
-                    // Swipe Left: Delete
+                    // Swipe Right: Delete
                     // Return true to proceed with dismiss animation and call onDismissed
                     return true;
                   }
                 },
                 onDismissed: (direction) {
-                  if (direction == DismissDirection.endToStart) {
+                  if (direction == DismissDirection.startToEnd) {
                     controller.deleteNotification(notifId);
                   }
                 },

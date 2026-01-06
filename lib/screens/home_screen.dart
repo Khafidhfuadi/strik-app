@@ -237,7 +237,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildTodayList(HabitController controller) {
-    if (controller.habits.isEmpty) {
+    // Check if there are any habits scheduled for today at all
+    if (controller.habitsForToday.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
         child: ListView(
@@ -256,8 +257,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       );
     }
-    // Use sorted habits from controller
+
     final habits = controller.sortedHabits;
+
+    // Check if all habits are completed and hidden
+    if (habits.isEmpty &&
+        controller.isAllHabitsCompletedForToday &&
+        !controller.showCompleted.value) {
+      return RefreshIndicator(
+        onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Lottie.asset(
+                      'assets/src/complete-habit.json',
+                      width: 250,
+                      height: 250,
+                      repeat: false,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Mantap! Semua habit hari ini udah kelar 🎉',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),

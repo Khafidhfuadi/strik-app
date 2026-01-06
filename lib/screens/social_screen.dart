@@ -291,29 +291,36 @@ class _SocialScreenState extends State<SocialScreen> {
   }
 
   Widget _buildLeaderboardTab() {
-    _controller.fetchLeaderboard();
-
     return Obx(() {
       if (_controller.isLoadingLeaderboard.value) {
         return const Center(child: CustomLoadingIndicator());
       }
 
       if (_controller.leaderboard.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+        return RefreshIndicator(
+          onRefresh: () => _controller.fetchLeaderboard(refresh: true),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              const Icon(
-                Icons.emoji_events_outlined,
-                size: 64,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Belum ada suhu nih! 🥶',
-                style: const TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  color: Colors.grey,
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.7,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.emoji_events_outlined,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Belum ada suhu nih! 🥶',
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -336,287 +343,291 @@ class _SocialScreenState extends State<SocialScreen> {
               ),
             ),
             // Content
-            ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                // Transition Title
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    const Text(
-                      'Leaderboard Mingguan',
-                      style: TextStyle(
-                        fontFamily: 'Space Grotesk',
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    Positioned(
-                      right: 0,
-                      child: IconButton(
-                        onPressed: _showHistorySheet,
-                        icon: const Icon(
-                          Icons.history_rounded,
-                          color: AppTheme.primary,
+            RefreshIndicator(
+              onRefresh: () => _controller.fetchLeaderboard(refresh: true),
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  // Transition Title
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Text(
+                        'Leaderboard Mingguan',
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
-                        tooltip: 'Riwayat Mingguan',
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.timer_outlined,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Leaderboard baru dimulai pukul 12:00',
-                          style: const TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            color: Colors.grey,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                      Positioned(
+                        right: 0,
+                        child: IconButton(
+                          onPressed: _showHistorySheet,
+                          icon: const Icon(
+                            Icons.history_rounded,
+                            color: AppTheme.primary,
                           ),
+                          tooltip: 'Riwayat Mingguan',
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 20),
-
-                // Winner Spotlight - Compact Design
-                GestureDetector(
-                  onTap: () => _showUserDetailDialog(winner, 1),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.amber.withValues(alpha: 0.15),
-                          Colors.orange.withValues(alpha: 0.1),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.3),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        // Weekly Title - Gen-Z Style
-                        ShaderMask(
-                          shaderCallback: (bounds) => LinearGradient(
-                            colors: [
-                              Colors.amber.shade300,
-                              Colors.orange.shade400,
-                              Colors.amber.shade200,
-                            ],
-                          ).createShader(bounds),
-                          child: Text(
-                            _getWeeklyWinnerTitle(),
-                            style: const TextStyle(
-                              fontFamily: 'Space Grotesk',
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Trophy (confetti now full-screen)
-                        Lottie.asset(
-                          'assets/src/new-trophy.json',
-                          height: 120,
-                          width: 120,
-                          fit: BoxFit.cover,
-                          repeat: true,
-                        ),
-
-                        // Winner Info
-                        Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.amber, width: 3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.amber.withValues(alpha: 0.4),
-                                blurRadius: 16,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: 40,
-                            backgroundImage: winner['user'].avatarUrl != null
-                                ? NetworkImage(winner['user'].avatarUrl)
-                                : null,
-                            backgroundColor: Colors.grey[800],
-                            child: winner['user'].avatarUrl == null
-                                ? Text(
-                                    winner['user'].username?[0].toUpperCase() ??
-                                        '?',
-                                    style: const TextStyle(
-                                      fontSize: 28,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          winner['user'].username ?? 'Unknown',
-                          style: const TextStyle(
-                            fontFamily: 'Space Grotesk',
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.emoji_events,
-                              color: Colors.amber,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${winner['score'].toStringAsFixed(1)} pts',
-                              style: const TextStyle(
-                                fontFamily: 'Space Grotesk',
-                                color: Colors.amber,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Rest of leaderboard title
-                Text(
-                  'Peringkat Lainnya',
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    color: Colors.white54,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ..._controller.leaderboard.skip(1).map((data) {
-                  final index = _controller.leaderboard.indexOf(data);
-                  return GestureDetector(
-                    onTap: () => _showUserDetailDialog(data, index + 1),
+                  const SizedBox(height: 8),
+                  Center(
                     child: Container(
-                      margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 16,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey[900]!.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(16),
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
                       ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(
-                            width: 30,
+                          const Icon(
+                            Icons.timer_outlined,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Leaderboard baru dimulai pukul 12:00',
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              color: Colors.grey,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Winner Spotlight - Compact Design
+                  GestureDetector(
+                    onTap: () => _showUserDetailDialog(winner, 1),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.amber.withValues(alpha: 0.15),
+                            Colors.orange.withValues(alpha: 0.1),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.amber.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          // Weekly Title - Gen-Z Style
+                          ShaderMask(
+                            shaderCallback: (bounds) => LinearGradient(
+                              colors: [
+                                Colors.amber.shade300,
+                                Colors.orange.shade400,
+                                Colors.amber.shade200,
+                              ],
+                            ).createShader(bounds),
                             child: Text(
-                              '${index + 1}',
+                              _getWeeklyWinnerTitle(),
                               style: const TextStyle(
                                 fontFamily: 'Space Grotesk',
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundImage: data['user'].avatarUrl != null
-                                ? NetworkImage(data['user'].avatarUrl)
-                                : null,
-                            backgroundColor: Colors.grey[800],
-                            child: data['user'].avatarUrl == null
-                                ? Text(
-                                    data['user'].username?[0].toUpperCase() ??
-                                        '?',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : null,
+                          const SizedBox(height: 12),
+
+                          // Trophy (confetti now full-screen)
+                          Lottie.asset(
+                            'assets/src/new-trophy.json',
+                            height: 120,
+                            width: 120,
+                            fit: BoxFit.cover,
+                            repeat: true,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              data['user'].username ?? 'Unknown',
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
+
+                          // Winner Info
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.amber, width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.amber.withValues(alpha: 0.4),
+                                  blurRadius: 16,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 40,
+                              backgroundImage: winner['user'].avatarUrl != null
+                                  ? NetworkImage(winner['user'].avatarUrl)
+                                  : null,
+                              backgroundColor: Colors.grey[800],
+                              child: winner['user'].avatarUrl == null
+                                  ? Text(
+                                      winner['user'].username?[0]
+                                              .toUpperCase() ??
+                                          '?',
+                                      style: const TextStyle(
+                                        fontSize: 28,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
+                          const SizedBox(height: 12),
                           Text(
-                            '${data['score'].toStringAsFixed(1)} pts',
+                            winner['user'].username ?? 'Unknown',
                             style: const TextStyle(
                               fontFamily: 'Space Grotesk',
-                              color: Colors.white54,
+                              color: Colors.white,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.emoji_events,
+                                color: Colors.amber,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${winner['score'].toStringAsFixed(1)} pts',
+                                style: const TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  color: Colors.amber,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  );
-                }),
-              ],
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Rest of leaderboard title
+                  Text(
+                    'Peringkat Lainnya',
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      color: Colors.white54,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ..._controller.leaderboard.skip(1).map((data) {
+                    final index = _controller.leaderboard.indexOf(data);
+                    return GestureDetector(
+                      onTap: () => _showUserDetailDialog(data, index + 1),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900]!.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 30,
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundImage: data['user'].avatarUrl != null
+                                  ? NetworkImage(data['user'].avatarUrl)
+                                  : null,
+                              backgroundColor: Colors.grey[800],
+                              child: data['user'].avatarUrl == null
+                                  ? Text(
+                                      data['user'].username?[0].toUpperCase() ??
+                                          '?',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                data['user'].username ?? 'Unknown',
+                                style: const TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${data['score'].toStringAsFixed(1)} pts',
+                              style: const TextStyle(
+                                fontFamily: 'Space Grotesk',
+                                color: Colors.white54,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
           ],
         );
@@ -625,341 +636,348 @@ class _SocialScreenState extends State<SocialScreen> {
       final topThree = _controller.leaderboard.take(3).toList();
       final rest = _controller.leaderboard.skip(3).toList();
 
-      return ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // Title Section
-          const Text(
-            'Leaderboard Mingguan',
-            style: TextStyle(
-              fontFamily: 'Space Grotesk',
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-
-          // Info Row with Reset Info and Help Icon
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.white54),
-              const SizedBox(width: 6),
-              Text(
-                'Reset setiap Senin pukul 12:00',
-                style: const TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  color: Colors.white54,
-                  fontSize: 12,
-                ),
+      return RefreshIndicator(
+        onRefresh: () => _controller.fetchLeaderboard(refresh: true),
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            // Title Section
+            const Text(
+              'Leaderboard Mingguan',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      backgroundColor: AppTheme.surface,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      title: Text(
-                        'Sistem Scoring Leaderboard',
-                        style: const TextStyle(
-                          fontFamily: 'Space Grotesk',
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+
+            // Info Row with Reset Info and Help Icon
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.info_outline, size: 14, color: Colors.white54),
+                const SizedBox(width: 6),
+                Text(
+                  'Reset setiap Senin pukul 12:00',
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: Colors.white54,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: AppTheme.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      ),
-                      content: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Sistem scoring yang adil untuk semua!',
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Formula:',
-                              style: TextStyle(
-                                fontFamily: 'Space Grotesk',
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[900],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Score = (Completion Rate × 100) + (Total Completed × 0.5)',
+                        title: Text(
+                          'Sistem Scoring Leaderboard',
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sistem scoring yang adil untuk semua!',
                                 style: const TextStyle(
-                                  fontFamily: 'Courier',
-                                  // Keep source code pro or use monospace
-                                  color: Colors.white,
-                                  fontSize: 11,
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  color: Colors.white70,
+                                  fontSize: 14,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Contoh:',
-                              style: TextStyle(
-                                fontFamily: 'Space Grotesk',
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _buildExampleRow(
-                              '7/7 habit (100%)',
-                              '103.5 pts',
-                              true,
-                            ),
-                            const SizedBox(height: 4),
-                            _buildExampleRow(
-                              '11/14 habit (78.6%)',
-                              '84.1 pts',
-                              false,
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                const Text(
-                                  '🔥',
-                                  style: TextStyle(fontSize: 16),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Formula:',
+                                style: TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Perfect week (100% completion)',
-                                    style: const TextStyle(
-                                      fontFamily: 'Plus Jakarta Sans',
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[900],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'Score = (Completion Rate × 100) + (Total Completed × 0.5)',
+                                  style: const TextStyle(
+                                    fontFamily: 'Courier',
+                                    // Keep source code pro or use monospace
+                                    color: Colors.white,
+                                    fontSize: 11,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            const Divider(color: Colors.white24),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Siklus Mingguan:',
-                              style: TextStyle(
-                                fontFamily: 'Space Grotesk',
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            _buildInfoBullet(
-                              'Senin 12:00 - Senin 07:59',
-                              'Masa akumulasi poin.',
-                            ),
-                            const SizedBox(height: 4),
-                            _buildInfoBullet(
-                              'Senin 08:00 - 12:00',
-                              'Freeze Time (Showcase Pemenang).',
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.blue.withOpacity(0.3),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Contoh:',
+                                style: TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              child: Row(
+                              const SizedBox(height: 8),
+                              _buildExampleRow(
+                                '7/7 habit (100%)',
+                                '103.5 pts',
+                                true,
+                              ),
+                              const SizedBox(height: 4),
+                              _buildExampleRow(
+                                '11/14 habit (78.6%)',
+                                '84.1 pts',
+                                false,
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
                                 children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    size: 16,
-                                    color: Colors.blue,
+                                  const Text(
+                                    '🔥',
+                                    style: TextStyle(fontSize: 16),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Habit yang selesai saat Freeze Time akan diakumulasi ke minggu berikutnya.',
-                                      style: TextStyle(
+                                      'Perfect week (100% completion)',
+                                      style: const TextStyle(
                                         fontFamily: 'Plus Jakarta Sans',
-                                        color: Colors.blue[100],
-                                        fontSize: 11,
+                                        color: Colors.white70,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            'Mengerti!',
-                            style: const TextStyle(
-                              fontFamily: 'Plus Jakarta Sans',
-                              color: Colors.amber,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: Icon(Icons.help_outline, size: 16, color: Colors.amber),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Top 3 Podium - Cleaner Design
-          if (topThree.isNotEmpty)
-            Container(
-              height: 200,
-              margin: const EdgeInsets.only(bottom: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (topThree.length >= 2)
-                    _buildMinimalPodiumItem(topThree[1], 2),
-                  _buildMinimalPodiumItem(topThree[0], 1),
-                  if (topThree.length >= 3)
-                    _buildMinimalPodiumItem(topThree[2], 3),
-                ],
-              ),
-            ),
-
-          // Rest of the list
-          ...rest.asMap().entries.map((entry) {
-            final index = entry.key + 3; // 4th place onwards
-            final data = entry.value;
-            return GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                _showUserDetailDialog(data, index + 1);
-              },
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey[900]!.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 30,
-                      child: Text(
-                        '${index + 1}',
-                        style: const TextStyle(
-                          fontFamily: 'Space Grotesk',
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundImage: data['user'].avatarUrl != null
-                          ? NetworkImage(data['user'].avatarUrl)
-                          : null,
-                      backgroundColor: Colors.grey[800],
-                      child: data['user'].avatarUrl == null
-                          ? Text(
-                              data['user'].username?[0].toUpperCase() ?? '?',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        data['user'].username ?? 'Unknown',
-                        style: const TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          children: [
-                            if (data['completionRate'] >= 100)
-                              const Padding(
-                                padding: EdgeInsets.only(right: 4),
-                                child: Text(
-                                  '🔥',
-                                  style: TextStyle(fontSize: 14),
+                              const SizedBox(height: 20),
+                              const Divider(color: Colors.white24),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Siklus Mingguan:',
+                                style: TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            Text(
-                              '${data['score'].toStringAsFixed(1)}',
-                              style: const TextStyle(
-                                fontFamily: 'Space Grotesk',
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                              const SizedBox(height: 8),
+                              _buildInfoBullet(
+                                'Senin 12:00 - Senin 07:59',
+                                'Masa akumulasi poin.',
                               ),
-                            ),
-                            Text(
-                              ' pts',
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                color: Colors.grey,
-                                fontSize: 12,
+                              const SizedBox(height: 4),
+                              _buildInfoBullet(
+                                'Senin 08:00 - 12:00',
+                                'Freeze Time (Showcase Pemenang).',
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${data['completionRate'].toStringAsFixed(0)}% • ${data['totalCompleted']}/${data['totalExpected']}',
-                          style: const TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            color: Colors.grey,
-                            fontSize: 11,
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.blue.withOpacity(0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.info_outline,
+                                      size: 16,
+                                      color: Colors.blue,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Habit yang selesai saat Freeze Time akan diakumulasi ke minggu berikutnya.',
+                                        style: TextStyle(
+                                          fontFamily: 'Plus Jakarta Sans',
+                                          color: Colors.blue[100],
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              'Mengerti!',
+                              style: const TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
+                                color: Colors.amber,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Icon(
+                    Icons.help_outline,
+                    size: 16,
+                    color: Colors.amber,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Top 3 Podium - Cleaner Design
+            if (topThree.isNotEmpty)
+              Container(
+                height: 200,
+                margin: const EdgeInsets.only(bottom: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (topThree.length >= 2)
+                      _buildMinimalPodiumItem(topThree[1], 2),
+                    _buildMinimalPodiumItem(topThree[0], 1),
+                    if (topThree.length >= 3)
+                      _buildMinimalPodiumItem(topThree[2], 3),
                   ],
                 ),
               ),
-            );
-          }),
-        ],
+
+            // Rest of the list
+            ...rest.asMap().entries.map((entry) {
+              final index = entry.key + 3; // 4th place onwards
+              final data = entry.value;
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _showUserDetailDialog(data, index + 1);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900]!.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 30,
+                        child: Text(
+                          '${index + 1}',
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundImage: data['user'].avatarUrl != null
+                            ? NetworkImage(data['user'].avatarUrl)
+                            : null,
+                        backgroundColor: Colors.grey[800],
+                        child: data['user'].avatarUrl == null
+                            ? Text(
+                                data['user'].username?[0].toUpperCase() ?? '?',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          data['user'].username ?? 'Unknown',
+                          style: const TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            children: [
+                              if (data['completionRate'] >= 100)
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 4),
+                                  child: Text(
+                                    '🔥',
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              Text(
+                                '${data['score'].toStringAsFixed(1)}',
+                                style: const TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                ' pts',
+                                style: const TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${data['completionRate'].toStringAsFixed(0)}% • ${data['totalCompleted']}/${data['totalExpected']}',
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              color: Colors.grey,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
       );
     });
   }
@@ -1340,7 +1358,6 @@ class _SocialScreenState extends State<SocialScreen> {
   }
 
   Widget _buildActivityFeedTab() {
-    _controller.fetchActivityFeed();
     final currentUser = Supabase.instance.client.auth.currentUser;
 
     return Column(

@@ -223,12 +223,11 @@ class HabitController extends GetxController {
   var showCompleted = false.obs;
   var showSkipped = false.obs;
 
-  List<Habit> get sortedHabits {
+  List<Habit> get habitsForToday {
     final today = DateTime.now();
     final currentDayIndex = today.weekday - 1; // 0 (Mon) - 6 (Sun)
 
-    // Filter habits relevant for today
-    final relevantHabits = habits.where((habit) {
+    return habits.where((habit) {
       if (habit.frequency == 'daily') {
         if (habit.daysOfWeek != null && habit.daysOfWeek!.isNotEmpty) {
           return habit.daysOfWeek!.contains(currentDayIndex);
@@ -244,9 +243,18 @@ class HabitController extends GetxController {
       }
       return true;
     }).toList();
+  }
 
+  bool get isAllHabitsCompletedForToday {
+    final todaysHabits = habitsForToday;
+    if (todaysHabits.isEmpty) return false;
+
+    return todaysHabits.every((habit) => todayLogs[habit.id] == 'completed');
+  }
+
+  List<Habit> get sortedHabits {
     // Apply status filters
-    final filtered = relevantHabits.where((habit) {
+    final filtered = habitsForToday.where((habit) {
       final status = todayLogs[habit.id];
       if (status == 'completed' && !showCompleted.value) return false;
       if (status == 'skipped' && !showSkipped.value) return false;

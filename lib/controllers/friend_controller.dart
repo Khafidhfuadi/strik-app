@@ -32,12 +32,14 @@ class FriendController extends GetxController {
     super.onInit();
     fetchFriends();
     fetchPendingRequests();
-    fetchFriends();
-    // fetchPendingRequests(); // Remove duplicate if present (checked in previous view)
     _subscribeToRealtime();
     fetchNotifications();
     // checkWeeklyWinner(); // Removed - popup dialog disabled
     _loadLastViewedTime();
+
+    // Initial fetch
+    fetchActivityFeed();
+    fetchLeaderboard();
   }
 
   Future<void> _loadLastViewedTime() async {
@@ -563,9 +565,11 @@ class FriendController extends GetxController {
   var newFeedCount = 0.obs;
   String? _lastViewedFeedMarker;
 
-  Future<void> fetchLeaderboard() async {
+  Future<void> fetchLeaderboard({bool refresh = false}) async {
     try {
-      isLoadingLeaderboard.value = true;
+      if (!refresh) {
+        isLoadingLeaderboard.value = true;
+      }
 
       final now = DateTime.now();
       // Check if it's Monday between 08:00 and 12:00
@@ -593,8 +597,8 @@ class FriendController extends GetxController {
   Future<void> fetchActivityFeed({bool refresh = false}) async {
     try {
       if (refresh) {
-        isLoadingActivity.value = true;
-        activityFeed.clear();
+        // isLoadingActivity.value = true; // Don't show full screen loader on refresh
+        // activityFeed.clear(); // Don't clear list to avoid flicker
         hasMoreActivity.value = true;
       } else {
         isLoadingActivity.value = true;
