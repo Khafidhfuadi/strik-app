@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:strik_app/data/models/user_model.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
+import 'package:strik_app/controllers/story_controller.dart'; // Added
 import 'package:strik_app/main.dart'; // Access global supabase client
 
 // import 'package:google_fonts/google_fonts.dart'; // Removed
@@ -600,6 +601,12 @@ class FriendController extends GetxController {
         // isLoadingActivity.value = true; // Don't show full screen loader on refresh
         // activityFeed.clear(); // Don't clear list to avoid flicker
         hasMoreActivity.value = true;
+        // Refresh stories too if StoryController is initialized
+        if (Get.isRegistered<StoryController>()) {
+          try {
+            Get.find<StoryController>().fetchStories();
+          } catch (_) {}
+        }
       } else {
         isLoadingActivity.value = true;
       }

@@ -11,6 +11,7 @@ import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/screens/add_friend_screen.dart';
 import 'package:strik_app/screens/notifications_screen.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
+import 'package:strik_app/widgets/story_bar.dart';
 
 class SocialScreen extends StatefulWidget {
   final Widget? bottomNavigationBar;
@@ -22,6 +23,9 @@ class SocialScreen extends StatefulWidget {
 
 class _SocialScreenState extends State<SocialScreen> {
   final FriendController _controller = Get.put(FriendController());
+  // Helper for Story refresh if needed, but StoryBar handles its own controller
+  // However, linking refresh is good.
+
   int _selectedIndex = 0;
   final List<String> _tabs = ['Feed', 'Rank', 'Circle'];
   late PageController _pageController;
@@ -1362,6 +1366,10 @@ class _SocialScreenState extends State<SocialScreen> {
 
     return Column(
       children: [
+        // Stories
+        StoryBar(),
+        const SizedBox(height: 8),
+
         // Create Post Input
         Container(
           margin: const EdgeInsets.all(16),

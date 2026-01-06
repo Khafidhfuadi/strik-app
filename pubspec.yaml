@@ -54,6 +54,10 @@ dependencies:
   flutter_timezone: ^5.0.1
   flutter_alarm_clock: ^0.1.2
   alarm: ^5.1.5
+  flutter_image_compress: ^2.4.0
+  path_provider: ^2.1.5
+  uuid: ^4.5.2
+  camera: ^0.11.3
 
 dev_dependencies:
   flutter_test:
