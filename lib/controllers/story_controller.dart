@@ -176,7 +176,7 @@ class StoryController extends GetxController {
         targetPath,
         minWidth: 1080,
         minHeight: 1920,
-        quality: 65,
+        quality: 80,
         format: CompressFormat.webp,
       );
 
