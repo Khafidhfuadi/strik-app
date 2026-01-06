@@ -181,15 +181,22 @@ class StoryController extends GetxController {
     }
   }
 
+  // Delete a story
   Future<void> deleteStory(StoryModel story) async {
     try {
+      // Optimistic Update: Remove from list immediately
+      activeStories.remove(story);
+      myArchive.remove(story);
+
       await _repository.deleteStory(story.id, story.mediaUrl);
-      activeStories.removeWhere((s) => s.id == story.id);
-      myArchive.removeWhere((s) => s.id == story.id);
-      Get.back();
-      Get.snackbar('Deleted', 'Story dihapus');
     } catch (e) {
-      Get.snackbar('Error', 'Gagal hapus story');
+      // Revert if failed (optional, but good UX)
+      // For now just error
+      Get.snackbar('Error', 'Failed to delete story');
     }
+  }
+
+  Future<void> sendReaction(String storyId, String type) async {
+    await _repository.sendReaction(storyId, type);
   }
 }

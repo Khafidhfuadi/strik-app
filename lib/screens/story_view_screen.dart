@@ -1,4 +1,5 @@
 // import 'dart:async'; // Unused
+import 'dart:ui'; // Added for ImageFilter
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Added
 import 'package:get/get.dart';
@@ -328,9 +329,6 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                     onTap: () async {
                       _animController.stop();
                       await _storyController.deleteStory(story);
-                      // Hacky refresh: If deleted, we might mess up indexes.
-                      // Realtime should handle this but locally we might struggle.
-                      // Close for safety.
                       Get.back();
                     },
                     child: const Icon(
@@ -343,8 +341,183 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
               ],
             ),
           ),
+
+          // Reaction Bar (Floating at bottom if not my story)
+          if (user?.id != _storyController.supabase.auth.currentUser?.id)
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Reaction Input Bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          height: 60,
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(
+                              0.1,
+                            ), // Translucent white for glass effect
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(
+                                0.2,
+                              ), // Subtle border
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildReactionButton('❤️'),
+                              _buildReactionButton('😂'),
+                              _buildReactionButton('😮'),
+                              _buildReactionButton('😢'),
+                              _buildReactionButton('👏'),
+                              _buildReactionButton('🔥'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Flying Animations
+          ..._flyingReactions.map((r) => r.widget),
         ],
       ),
+    );
+  }
+
+  // Reaction State
+  final List<_FlyingReaction> _flyingReactions = [];
+
+  Widget _buildReactionButton(String emoji) {
+    return GestureDetector(
+      onTap: () {
+        _sendReaction(emoji);
+      },
+      child: Text(emoji, style: const TextStyle(fontSize: 28)),
+    );
+  }
+
+  void _sendReaction(String emoji) {
+    // 1. API Call
+    final story = widget.stories[_currentIndex];
+    _storyController.sendReaction(story.id, emoji);
+
+    // 2. Local Animation
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final animation = _FlyingReaction(
+      id: id,
+      emoji: emoji,
+      onComplete: () {
+        if (mounted) {
+          setState(() {
+            _flyingReactions.removeWhere((r) => r.id == id);
+          });
+        }
+      },
+    );
+
+    setState(() {
+      _flyingReactions.add(animation);
+    });
+  }
+}
+
+class _FlyingReaction {
+  final String id;
+  final String emoji;
+  final VoidCallback onComplete;
+  late final Widget widget;
+
+  _FlyingReaction({
+    required this.id,
+    required this.emoji,
+    required this.onComplete,
+  }) {
+    widget = _FlyingReactionWidget(
+      key: ValueKey(id),
+      emoji: emoji,
+      onComplete: onComplete,
+    );
+  }
+}
+
+class _FlyingReactionWidget extends StatefulWidget {
+  final String emoji;
+  final VoidCallback onComplete;
+
+  const _FlyingReactionWidget({
+    super.key,
+    required this.emoji,
+    required this.onComplete,
+  });
+
+  @override
+  State<_FlyingReactionWidget> createState() => _FlyingReactionWidgetState();
+}
+
+class _FlyingReactionWidgetState extends State<_FlyingReactionWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+  late Animation<double> _position;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _controller, curve: const Interval(0.5, 1.0)),
+    );
+    _position = Tween<double>(
+      begin: 0.0,
+      end: -300.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _controller.forward().whenComplete(() {
+      widget.onComplete();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Positioned(
+          bottom: 100 + _position.value.abs(), // Start above bar and fly up
+          left: 0,
+          right: 0, // Center horizontally for now, or randomize?
+          child: Opacity(
+            opacity: _opacity.value,
+            child: Center(
+              child: Text(widget.emoji, style: const TextStyle(fontSize: 40)),
+            ),
+          ),
+        );
+      },
     );
   }
 }

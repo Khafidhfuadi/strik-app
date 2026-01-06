@@ -124,6 +124,19 @@ class StoryRepository {
     }
   }
 
+  // Send reaction to a story
+  Future<void> sendReaction(String storyId, String reactionType) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    // Send reaction.
+    await _supabase.from('reactions').insert({
+      'user_id': user.id,
+      'story_id': storyId,
+      'type': reactionType,
+    });
+  }
+
   Future<void> markAsViewed(String storyId) async {
     try {
       // Postgres array append: viewers || {userId}
