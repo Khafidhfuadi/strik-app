@@ -506,9 +506,9 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                   children: [
                     const Icon(Icons.remove_red_eye, color: Colors.white),
                     // We could fetch count here, but maybe just show icon
-                    const Text(
-                      "Stalker",
-                      style: TextStyle(color: Colors.white, fontSize: 10),
+                    Text(
+                      "${story.viewers.length} Stalker",
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
                     ),
                   ],
                 ),
