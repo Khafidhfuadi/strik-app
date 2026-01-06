@@ -66,7 +66,11 @@ class StoryRepository {
   // Upload Story
   // 1. Upload to Storage
   // 2. Insert to DB
-  Future<void> uploadStory(File processedImage, String userId) async {
+  Future<void> uploadStory(
+    File processedImage,
+    String userId, {
+    String? caption,
+  }) async {
     try {
       final fileExt = p.extension(processedImage.path);
       // Create a unique filename: userID/timestamp.jpg
@@ -95,6 +99,7 @@ class StoryRepository {
         'user_id': userId,
         'media_url': publicUrl,
         'media_type': 'image', // Hardcoded for now
+        'caption': caption,
       });
     } catch (e) {
       throw Exception('Failed to upload story: $e');

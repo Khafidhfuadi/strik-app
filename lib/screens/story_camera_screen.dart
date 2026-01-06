@@ -28,6 +28,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   FlashMode _flashMode = FlashMode.off; // Added
   File? _capturedImage;
   final StoryController _storyController = Get.find<StoryController>();
+  final TextEditingController _captionController = TextEditingController();
 
   @override
   void initState() {
@@ -40,6 +41,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
+    _captionController.dispose();
     super.dispose();
   }
 
@@ -221,7 +223,10 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
   void _uploadStory() {
     if (_capturedImage != null) {
-      _storyController.uploadStoryFile(_capturedImage!);
+      final caption = _captionController.text.trim().isEmpty
+          ? null
+          : _captionController.text.trim();
+      _storyController.createStory(_capturedImage!, caption: caption);
       Get.back(); // Close camera screen
     }
   }
@@ -484,7 +489,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
 
             // Zoom/Settings? (Top Right usually, or just keep it simple)
 
-            // Simple camera/video tint overlay at bottom?
+            // Simple camera shutter at bottom
             Positioned(
               bottom: 16,
               left: 0,
@@ -504,8 +509,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                       size: 16,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.videocam, color: Colors.white54, size: 20),
+                  // Removed video icon as requested
                 ],
               ),
             ),
@@ -544,6 +548,30 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                 child: Image.file(_capturedImage!, fit: BoxFit.cover),
               ),
             ),
+            // Caption Input
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: TextField(
+                controller: _captionController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'isi dulu captionnya...',
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                maxLines: 3,
+                minLines: 1,
+              ),
+            ),
             const Spacer(),
             // Buttons
             Padding(
@@ -556,6 +584,7 @@ class _StoryCameraScreenState extends State<StoryCameraScreen>
                     onPressed: () {
                       setState(() {
                         _capturedImage = null;
+                        _captionController.clear(); // Clear caption on retake
                       });
                     },
                     icon: const Icon(Icons.refresh, color: Colors.white),

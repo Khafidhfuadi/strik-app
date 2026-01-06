@@ -122,21 +122,21 @@ class StoryController extends GetxController {
       );
 
       if (croppedFile != null) {
-        await uploadStoryFile(File(croppedFile.path));
+        await createStory(File(croppedFile.path));
       }
     } catch (e) {
       Get.snackbar('Error', 'Gagal memilih gambar: $e');
     }
   }
 
-  Future<void> uploadStoryFile(File file) async {
+  Future<void> createStory(File file, {String? caption}) async {
+    if (isUploading.value) return;
+    isUploading.value = true;
+
     try {
-      isUploading.value = true;
-      Get.snackbar(
-        'Uploading',
-        'Sedang mengupload story...',
-        showProgressIndicator: true,
-      );
+      // 1. Image Processing (Crop) - Optional based on requirements
+      // For stories, usually full screen, but let's assume raw or simple crop.
+      // We can add ImageCropper here if needed.
 
       // 2. Compress Image (Aggressive)
       final File? compressedFile = await _compressImage(file);
@@ -147,7 +147,7 @@ class StoryController extends GetxController {
 
       // 3. Upload
       final userId = supabase.auth.currentUser!.id;
-      await _repository.uploadStory(compressedFile, userId);
+      await _repository.uploadStory(compressedFile, userId, caption: caption);
 
       Get.back(); // Close snackbar
       Get.snackbar('Success', 'Story berhasil diupload!');

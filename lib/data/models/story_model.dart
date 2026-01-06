@@ -9,6 +9,7 @@ class StoryModel {
   final DateTime createdAt;
   final List<String> viewers;
   final UserModel? user;
+  final String? caption;
 
   StoryModel({
     required this.id,
@@ -18,6 +19,7 @@ class StoryModel {
     required this.createdAt,
     required this.viewers,
     this.user,
+    this.caption,
   });
 
   factory StoryModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,7 @@ class StoryModel {
               .toList() ??
           [],
       user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
+      caption: json['caption'],
     );
   }
 
@@ -44,6 +47,7 @@ class StoryModel {
       'media_type': mediaType,
       'created_at': createdAt.toIso8601String(),
       'viewers': viewers,
+      'caption': caption,
     };
   }
 

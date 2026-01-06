@@ -494,7 +494,11 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
           // Viewers Eye Icon (Only for My Story)
           if (isMyStory)
             Positioned(
-              bottom: 40,
+              bottom:
+                  40, // Adjust if caption pushes this? Or maybe let caption flow above/below?
+              // Actually, simpler to keep this absolute and let caption be centered text which might overlap validly or just be short.
+              // But to be safe, maybe we rely on the Column below to respect layout?
+              // No, this is absolute. Let's leave it for now.
               left: 20,
               child: GestureDetector(
                 onTap: () => _showViewers(story),
@@ -511,16 +515,55 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
               ),
             ),
 
-          // Reaction Bar (Floating at bottom if NOT my story)
-          if (!isMyStory)
-            Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+          // Bottom Area: Caption & Reaction Bar
+          Positioned(
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Caption
+                  if (story.caption != null && story.caption!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              story.caption!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Reaction Bar (Floating at bottom if NOT my story)
+                  if (!isMyStory)
                     // Reaction Input Bar
                     // Disable if reacted
                     IgnorePointer(
@@ -564,10 +607,10 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                         ),
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
+          ),
 
           // Flying Animations
           ..._flyingReactions.map((r) => r.widget),
