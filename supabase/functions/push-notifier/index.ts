@@ -215,8 +215,64 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ message: `Sent ${promises.length} notifications` }), { status: 200 })
 
     } 
-    
-    // CASE B: STORY REACTION (Table: reactions)
+
+    // CASE C: NEW FEED POST (Table: posts)
+    // Notify all accepted friends
+    else if (table === 'posts') {
+      const creatorId = record.user_id
+        
+      // 1. Get Creator Profile (for username)
+      const { data: creator } = await supabaseAdmin
+        .from('profiles')
+        .select('username')
+        .eq('id', creatorId)
+        .single()
+      
+      const creatorName = creator?.username || 'Someone'
+
+      // 2. Find Friends
+      const { data: friendships } = await supabaseAdmin
+        .from('friendships')
+        .select('requester_id, receiver_id')
+        .eq('status', 'accepted')
+        .or(`requester_id.eq.${creatorId},receiver_id.eq.${creatorId}`)
+      
+      if (!friendships || friendships.length === 0) {
+        return new Response(JSON.stringify({ message: 'No friends to notify' }), { status: 200 })
+      }
+
+      // Extract Friend IDs and Deduplicate
+      const rawFriendIds = friendships.map((f: any) => 
+        f.requester_id === creatorId ? f.receiver_id : f.requester_id
+      )
+      const friendIds = [...new Set(rawFriendIds)]
+
+      // 3. Get FCM Tokens
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, fcm_token')
+        .in('id', friendIds)
+        .not('fcm_token', 'is', null)
+
+      if (!profiles || profiles.length === 0) {
+        return new Response(JSON.stringify({ message: 'No friends have FCM tokens' }), { status: 200 })
+      }
+
+      // 4. Send Notifications
+      const promises = profiles.map((p: any) => {
+        if (!p.fcm_token) return Promise.resolve(null);
+        return sendFCM(
+          p.fcm_token, 
+          `Feed Baru!`, 
+          `${creatorName} baru aja nge-feed, klik notif biar ga FOMO!`,
+          { post_id: record.id, type: 'new_post' }
+        )
+      })
+
+      await Promise.all(promises)
+      
+      return new Response(JSON.stringify({ message: `Sent ${promises.length} notifications (post)` }), { status: 200 })
+    }
     // Notify Story Owner
     else if (table === 'reactions') {
       const reactorId = record.user_id
