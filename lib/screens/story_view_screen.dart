@@ -143,6 +143,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
   int _currentIndex = 0;
   final StoryController _storyController = Get.find<StoryController>();
   bool _hasReacted = false; // State to disable reaction bar
+  bool _isContentReady = false; // Added to control playback start
 
   @override
   void initState() {
@@ -186,9 +187,15 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
     setState(() {
       _currentIndex = index;
       _hasReacted = false; // Reset first
+      _isContentReady = false; // Reset content ready state
     });
 
     final story = widget.stories[index];
+
+    _animController.stop();
+    _animController.reset();
+    _animController.duration = const Duration(seconds: 5);
+
     final currentUser = _storyController.supabase.auth.currentUser;
 
     // 1. Mark as viewed (if not own story)
@@ -205,10 +212,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
       }
     }
 
-    _animController.stop();
-    _animController.reset();
-    _animController.duration = const Duration(seconds: 5);
-    _animController.forward();
+    // _animController.forward(); // Removed to wait for image load
 
     _animController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -381,6 +385,19 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                   height: 150,
                 ),
               ),
+              imageBuilder: (context, imageProvider) {
+                if (!_isContentReady) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _isContentReady = true;
+                      });
+                      _animController.forward();
+                    }
+                  });
+                }
+                return Image(image: imageProvider, fit: BoxFit.contain);
+              },
               errorWidget: (context, url, error) =>
                   const Center(child: Icon(Icons.error, color: Colors.white)),
               fadeInDuration: const Duration(milliseconds: 200),

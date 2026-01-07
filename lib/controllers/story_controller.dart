@@ -66,6 +66,25 @@ class StoryController extends GetxController {
 
       // Fetch Active Stories (Filtered by friends)
       final active = await _repository.getActiveStories(friendIds: friendIds);
+      // MERGE LOGIC: Preserve local "viewed" status if server misses it (race condition fix)
+      final myId = supabase.auth.currentUser?.id;
+      if (myId != null && activeStories.isNotEmpty) {
+        for (var newStory in active) {
+          final oldStory = activeStories.firstWhereOrNull(
+            (s) => s.id == newStory.id,
+          );
+          if (oldStory != null) {
+            final iAmViewerOld = oldStory.viewers.contains(myId);
+            final iAmViewerNew = newStory.viewers.contains(myId);
+
+            // If I was a viewer locally, but server says no, trust local.
+            if (iAmViewerOld && !iAmViewerNew) {
+              newStory.viewers.add(myId);
+            }
+          }
+        }
+      }
+
       activeStories.assignAll(
         active,
       ); // Use assignAll for better GetX reactivity
