@@ -271,4 +271,88 @@ class AlarmManagerService {
       }
     }
   }
+
+  // Self-Healing: Check and restore missing alarms
+  Future<void> ensureAlarmsAreScheduled(List<Habit> habits) async {
+    final scheduledAlarms = await Alarm.getAlarms();
+    final now = DateTime.now();
+
+    for (var habit in habits) {
+      if (!habit.reminderEnabled ||
+          habit.id == null ||
+          habit.reminderTime == null) {
+        continue;
+      }
+
+      int baseId = habit.id.hashCode;
+      if (baseId < 0) baseId = -baseId;
+      baseId = baseId & ~1; // Even number
+
+      // Calculate when the alarm SHOULD be
+      final expectedTime = _calculateNextOccurrence(
+        habit.frequency,
+        habit.daysOfWeek,
+        habit.reminderTime!,
+      );
+
+      if (expectedTime == null) continue;
+
+      // Check if either ID exists and is valid
+      // Valid means:
+      // 1. Logic ID matches (baseId or baseId+1)
+      // 2. Scheduled time is AFTER now given a small margin (or matches expected)
+      // Actually, simplest check: Do we have ANY future alarm for this habit?
+
+      bool hasValidAlarm = false;
+      bool hasBadAlarm = false;
+
+      for (var alarm in scheduledAlarms) {
+        if (alarm.id == baseId || alarm.id == baseId + 1) {
+          hasBadAlarm = true; // Found something, assumed bad unless valid
+          if (alarm.dateTime.isAfter(now)) {
+            hasValidAlarm = true;
+            hasBadAlarm = false; // It's valid
+            break;
+          }
+        }
+      }
+
+      if (!hasValidAlarm) {
+        print('MISSING ALARM FOUND for ${habit.title}. Restoring...');
+
+        // Remove old ones ONLY if we found them (to avoid "Error in Flutter" log)
+        if (hasBadAlarm) {
+          await Alarm.stop(baseId);
+          await Alarm.stop(baseId + 1);
+        }
+
+        // Reschedule
+        await scheduleRecurringAlarm(
+          habitId: habit.id!,
+          habitTitle: habit.title,
+          frequency: habit.frequency,
+          daysOfWeek: habit.daysOfWeek,
+          reminderTime: habit.reminderTime!,
+        );
+      }
+    }
+  }
+
+  Future<void> cancelAllAlarms() async {
+    // 1. Stop all scheduled alarms
+    final alarms = await Alarm.getAlarms();
+    for (var alarm in alarms) {
+      await Alarm.stop(alarm.id);
+    }
+
+    // 2. Clear all metadata
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    for (var key in keys) {
+      if (key.startsWith('alarm_metadata_')) {
+        await prefs.remove(key);
+      }
+    }
+    print('All alarms and metadata cleared');
+  }
 }

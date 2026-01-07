@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/friend_controller.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:strik_app/services/alarm_manager_service.dart';
 
 class HomeController extends GetxController {
   var selectedIndex = 0.obs;
@@ -32,6 +33,12 @@ class HomeController extends GetxController {
   Future<void> logout() async {
     try {
       // 1. Delete all GetX controllers to clear cached data
+      try {
+        await AlarmManagerService.instance.cancelAllAlarms();
+      } catch (e) {
+        print('Error canceling alarms: $e');
+      }
+
       Get.delete<HabitController>(force: true);
       Get.delete<HomeController>(force: true);
       Get.delete<FriendController>(force: true);

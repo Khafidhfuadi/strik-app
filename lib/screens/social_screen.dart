@@ -351,7 +351,9 @@ class _SocialScreenState extends State<SocialScreen> {
                             _postController.text,
                           )) {
                             _postController.clear();
-                            Get.back(); // Close bottom sheet on success
+                            Navigator.of(
+                              context,
+                            ).pop(); // Close bottom sheet safely
                           }
                         },
                   style: ElevatedButton.styleFrom(

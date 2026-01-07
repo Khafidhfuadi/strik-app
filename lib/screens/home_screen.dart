@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Added for HapticFeedback
 import 'package:get/get.dart';
@@ -29,6 +30,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late PageController _pageController;
 
+  Timer? _alarmCheckTimer;
+
   @override
   void initState() {
     super.initState();
@@ -38,10 +41,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     int initialPage = 0;
     if (homeController.currentTab.value == 'Mingguan') initialPage = 1;
     _pageController = PageController(initialPage: initialPage);
+
+    // Periodic check for alarm consistency (every 1 minute)
+    // This helps catch cases where the alarm might handle execution but fail to reschedule
+    _alarmCheckTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      Get.find<HabitController>().checkAlarmConsistency();
+    });
   }
 
   @override
   void dispose() {
+    _alarmCheckTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();

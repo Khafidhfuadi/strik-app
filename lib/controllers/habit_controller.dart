@@ -59,6 +59,10 @@ class HabitController extends GetxController {
         // Pass Habit objects directly (not JSON) since toJson() doesn't include id
         await AlarmManagerService.instance.migrateExistingHabits(fetchedHabits);
       }
+
+      // Ensure alarms are consistent (run every fetch to be safe, or just occasionally)
+      // Since this is lightweight (just checks memory/prefs), it's fine here.
+      checkAlarmConsistency();
     } catch (e) {
       if (!isRefresh) {
         // Only show snackbar if not pull-to-refresh to avoid spamming
@@ -89,6 +93,12 @@ class HabitController extends GetxController {
     if (todayDate.isAfter(lastFetchDate)) {
       // It's a new day! Refresh everything.
       await fetchHabitsAndLogs(isRefresh: true);
+    }
+  }
+
+  Future<void> checkAlarmConsistency() async {
+    if (habits.isNotEmpty) {
+      await AlarmManagerService.instance.ensureAlarmsAreScheduled(habits);
     }
   }
 
