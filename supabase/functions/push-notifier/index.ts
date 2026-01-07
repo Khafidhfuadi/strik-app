@@ -355,10 +355,57 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify(result), { status: 200 })
       } 
       
-      // CASE B.2: POST REACTION or OTHER
+      // CASE B.2: POST REACTION
       else if (postId) {
-        console.log('Skipping Post Reaction notification (not implemented yet)')
-        return new Response(JSON.stringify({ message: 'Post reaction skipped' }), { status: 200 })
+        console.log(`Processing Post Reaction: reactor=${reactorId}, post=${postId}, type=${reactionType}`)
+
+        // 1. Fetch Post to find Owner
+        const { data: post, error: postError } = await supabaseAdmin
+          .from('posts')
+          .select('user_id')
+          .eq('id', postId)
+          .single()
+        
+        if (postError || !post) {
+          console.error('Error fetching post:', postError)
+          return new Response(JSON.stringify({ error: 'Post not found' }), { status: 404 })
+        }
+
+        const ownerId = post.user_id
+
+        if (ownerId === reactorId) {
+           return new Response(JSON.stringify({ message: 'Self-reaction ignored' }), { status: 200 }) 
+        }
+
+        // 2. Fetch Reactor Name
+        const { data: reactor } = await supabaseAdmin
+          .from('profiles')
+          .select('username')
+          .eq('id', reactorId)
+          .single()
+        
+        const reactorName = reactor?.username || 'Someone'
+
+        // 3. Fetch Owner Token
+        const { data: owner } = await supabaseAdmin
+          .from('profiles')
+          .select('fcm_token')
+          .eq('id', ownerId)
+          .single()
+        
+        if (!owner?.fcm_token) {
+           return new Response(JSON.stringify({ message: 'Owner has no FCM token' }), { status: 200 })
+        }
+
+        // 4. Send Notification
+        const result = await sendFCM(
+          owner.fcm_token,
+          'Strik!',
+          `${reactorName} baru nge-strik feed lo, nih!`,
+          { post_id: postId, type: 'post_reaction' }
+        )
+
+        return new Response(JSON.stringify(result), { status: 200 })
       } 
       
       else {
