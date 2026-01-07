@@ -61,6 +61,7 @@ dependencies:
   image_cropper: ^11.0.0
   image: ^4.7.2
   home_widget: ^0.8.1
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:

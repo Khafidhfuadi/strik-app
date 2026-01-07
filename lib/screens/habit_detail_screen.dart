@@ -10,6 +10,7 @@ import 'package:strik_app/controllers/habit_journal_controller.dart';
 import 'package:strik_app/data/models/habit_journal.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   final Habit habit;
@@ -781,12 +782,17 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  journal.imageUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: journal.imageUrl!,
                   width: double.infinity,
                   height: 150,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
+                  placeholder: (context, url) => Container(
+                    height: 150,
+                    color: Colors.white.withValues(alpha: 0.05),
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) {
                     return Container(
                       height: 150,
                       color: Colors.white.withValues(alpha: 0.05),

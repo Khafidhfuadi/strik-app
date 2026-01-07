@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'; // Added
 import 'package:get/get.dart';
 import 'package:strik_app/data/models/story_model.dart';
 import 'package:strik_app/controllers/story_controller.dart';
-// import 'package:cached_network_image/cached_network_image.dart'; // Suggest adding this dependency if not present, otherwise use NetworkImage
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class StoryViewScreen extends StatefulWidget {
@@ -371,21 +371,19 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
         children: [
           // Image
           Center(
-            child: Image.network(
-              story.mediaUrl,
+            child: CachedNetworkImage(
+              imageUrl: story.mediaUrl,
               fit: BoxFit.contain,
-              loadingBuilder: (ctx, child, progress) {
-                if (progress == null) return child;
-                return Center(
-                  child: Lottie.asset(
-                    'assets/src/loading.json',
-                    width: 150,
-                    height: 150,
-                  ),
-                );
-              },
-              errorBuilder: (ctx, err, trace) =>
+              placeholder: (context, url) => Center(
+                child: Lottie.asset(
+                  'assets/src/loading.json',
+                  width: 150,
+                  height: 150,
+                ),
+              ),
+              errorWidget: (context, url, error) =>
                   const Center(child: Icon(Icons.error, color: Colors.white)),
+              fadeInDuration: const Duration(milliseconds: 200),
             ),
           ),
 
