@@ -538,6 +538,115 @@ class CreateHabitScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
+                          'Kapan Berakhir?',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Obx(
+                          () => Switch(
+                            value: controller.hasEndDate.value,
+                            onChanged: (val) =>
+                                controller.hasEndDate.value = val,
+                            activeThumbColor: Colors.white,
+                            activeTrackColor: AppTheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Obx(() {
+                      if (controller.hasEndDate.value) {
+                        return Column(
+                          children: [
+                            const SizedBox(height: 12),
+                            Divider(color: Colors.grey[800]),
+                            const SizedBox(height: 12),
+                            GestureDetector(
+                              onTap: () async {
+                                final now = DateTime.now();
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate:
+                                      controller.endDate.value ??
+                                      now.add(const Duration(days: 30)),
+                                  firstDate: now,
+                                  lastDate: now.add(
+                                    const Duration(days: 365 * 5),
+                                  ),
+                                  builder: (context, child) {
+                                    return Theme(
+                                      data: ThemeData.dark().copyWith(
+                                        colorScheme: ColorScheme.dark(
+                                          primary: AppTheme.primary,
+                                          onPrimary: Colors.black,
+                                          surface: AppTheme.surface,
+                                          onSurface: Colors.white,
+                                        ),
+                                        dialogTheme: DialogThemeData(
+                                          backgroundColor: AppTheme.surface,
+                                        ),
+                                      ),
+                                      child: child!,
+                                    );
+                                  },
+                                );
+                                if (date != null) {
+                                  controller.endDate.value = date;
+                                }
+                              },
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Pilih Tanggal',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[800],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Obx(
+                                      () => Text(
+                                        controller.endDate.value != null
+                                            ? '${controller.endDate.value!.day}/${controller.endDate.value!.month}/${controller.endDate.value!.year}'
+                                            : 'Pilih',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    }),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildSectionContainer(
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
                           'Ingetin Dong',
                           style: TextStyle(
                             color: Colors.white,

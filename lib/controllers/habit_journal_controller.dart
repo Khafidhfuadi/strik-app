@@ -85,12 +85,25 @@ class HabitJournalController extends GetxController {
       final start = _page * _limit;
       final end = start + _limit - 1;
 
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
+      final endOfMonth = DateTime(
+        now.year,
+        now.month + 1,
+        0,
+        23,
+        59,
+        59,
+      ).toIso8601String();
+
       final count = await _supabase
           .from('habit_journals')
           .count(CountOption.exact)
-          .eq('habit_id', habitId);
+          .eq('habit_id', habitId)
+          .gte('created_at', startOfMonth)
+          .lte('created_at', endOfMonth);
 
-      // Update eligibility based on total count in DB
+      // Update eligibility based on total count THIS MONTH
       isEligibleForAI.value = count >= 10;
 
       final response = await _supabase
@@ -340,65 +353,94 @@ class HabitJournalController extends GetxController {
       aiInsight.value = "";
 
       // 1. Prepare Data
-      // Get last 10-20 journal entries text
-      final recentJournals = journals
-          .take(15)
-          .map(
-            (j) =>
-                "- [${j.createdAt.year}-${j.createdAt.month}-${j.createdAt.day}]: ${j.content}",
-          )
+      // Fetch ALL journals for the current month directly from DB
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
+      final endOfMonth = DateTime(
+        now.year,
+        now.month + 1,
+        0,
+        23,
+        59,
+        59,
+      ).toIso8601String();
+
+      final journalResponse = await _supabase
+          .from('habit_journals')
+          .select()
+          .eq('habit_id', habitId)
+          .gte('created_at', startOfMonth)
+          .lte('created_at', endOfMonth)
+          .order('created_at', ascending: true);
+
+      final monthJournals = (journalResponse as List)
+          .map((data) => HabitJournal.fromJson(data))
+          .toList();
+
+      final recentJournals = monthJournals
+          .map((j) {
+            final d = j.createdAt.toLocal();
+            return "- [${d.year}-${d.month}-${d.day}]: ${j.content}";
+          })
           .join('\n');
 
-      final currentMonth = DateTime.now().month;
-      final journalsThisMonth = journals
-          .where((j) => j.createdAt.month == currentMonth)
-          .length;
+      final journalsThisMonth = monthJournals.length;
 
-      // Fetch user profile for personalization (gender)
+      // Fetch user profile for personalization (gender & name)
       String userGender = 'Unspecified';
+      String userName = 'Teman'; // Default fallback
       try {
         final userId = _supabase.auth.currentUser!.id;
         final profileData = await _supabase
             .from('profiles')
-            .select('gender')
+            .select('gender, username') // Fetch username too
             .eq('id', userId)
             .maybeSingle();
-        if (profileData != null && profileData['gender'] != null) {
-          userGender = profileData['gender'];
+        if (profileData != null) {
+          if (profileData['gender'] != null) {
+            userGender = profileData['gender'];
+          }
+          if (profileData['username'] != null &&
+              profileData['username'].toString().isNotEmpty) {
+            userName = profileData['username'];
+          }
         }
       } catch (e) {
-        // Ignore profile fetch error, default to Unspecified
-        print('Error fetching profile gender: $e');
+        print("Error fetching profile: $e");
       }
 
       final prompt =
           '''
-      You are "Coach Strik", a Gen-Z motivational habit coach (Bahasa Indonesia).
-      
-      USER INFO:
-      - Gender: $userGender 
-      (If Laki-laki: call him "Bro", "Bang", or "Coy". If Perempuan: call her "Sis", "Kak", or "Bestie".)
+      Kamu adalah 'Coach Strik', AI habit coach pribadi di aplikasi Strik.
+      Tugas kamu adalah menganalisis jurnal habit user BULAN INI dan memberikan insight yang personal, suportif, dan actionable.
 
-      HABIT CONTEXT:
+      Disclaimer: Jangan pernah menggunakan kata "gue", "lo", "anda". Gunakan "Aku" (sebagai Coach) dan "Kamu".
+      Panggil user dengan namanya: "$userName".
+
+      Data User:
+      - Nama: $userName
+      - Gender: $userGender
       - Habit: $habitTitle
-      - Total Journals: ${journals.length}
-      - Journals (This Month): $journalsThisMonth
-      - Stats: ${jsonEncode(habitStats)}
-      
-      RECENT USER JOURNALS:
+      - Statistik Bulan Ini: ${jsonEncode(habitStats)}
+      - Jumlah Jurnal Bulan Ini: $journalsThisMonth
+      - Isi Jurnal (Format: [Tahun-Bulan-Tanggal]: Isi):
       $recentJournals
       
+      PERSONALITY & TONE (Critical):
+      - If Gender is "Perempuan": Make the tone EXCITING, WARM, DEEP, and REFLECTIVE. It should feel like a late-night "deeptalk" with a caring best friend. Focus on emotional support and inner growth. Call her calling name.
+      - If Gender is "Laki-laki" (or Unspecified): Make the tone EXCITING, ENERGETIC, BOLD, and STRAIGHTFORWARD. Push him like a gym coach. Call his calling name.
+      
       INSTRUCTION:
-      - Analyze the journals and stats.
-      - Find patterns, mood, or blockers.
-      - Give a HIGHLY DETAILED recommendation (2-3 paragraphs).
-      - Style: Jaksel slang, empathetic but pushy, use emojis.
-      - Structure:
-        1. **Analisis Gue 🧐**: What you observe from their journals.
-        2. **Saran Coach 💡**: Concrete improvement steps.
-        3. **Challenge 🔥**: One specific action for tomorrow.
-      - Speak DIRECTLY to the user ("Lo").
-      - Use **bold** for key terms or section headers.
+      - Analyze the journals and stats to find specific patterns or blockers.
+      - Write a FLUID, DYNAMIC response. DO NOT use rigid headers like "Analisis", "Saran", or "Challenge".
+      - Start by referencing specific details from their recent journals (context is key!).
+      - Weave your analysis and advice into a natural conversation.
+      - Only suggest a specific CHALLENGE if strictly relevant (e.g. if they are stuck). Otherwise, focus on support.
+      - Style: Jaksel slang (Gen Z). FOLLOW THE PERSONALITY & TONE GUIDELINES ABOVE. Use emojis.
+      - IMPORTANT: Do NOT use "gue" or "lo". Use "Aku" (as Coach) and "Kamu".
+      - Do NOT ask questions or ask for feedback. This is a final insight/wrap-up.
+      - Speak DIRECTLY to the user.
+      - Use **bold** to highlight key points or calls to action.
       ''';
 
       // 2. Call API

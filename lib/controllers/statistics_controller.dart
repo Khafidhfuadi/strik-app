@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum StatsFilter { weekly, monthly, yearly, allTime, custom }
 
@@ -23,8 +23,6 @@ class StatisticsController extends GetxController {
   // AI Quota
   var aiQuotaUsed = 0.obs;
   final int aiQuotaLimit = 10;
-  static const String _aiQuotaCountKey = 'stats_ai_quota_count';
-  static const String _aiQuotaMonthKey = 'stats_ai_quota_month';
 
   // Filter State
   var selectedFilter = StatsFilter.weekly.obs;
@@ -64,24 +62,71 @@ class StatisticsController extends GetxController {
   }
 
   Future<void> _loadAiQuota() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedMonth = prefs.getInt(_aiQuotaMonthKey) ?? 0;
-    final currentMonth = DateTime.now().month;
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
 
-    if (savedMonth != currentMonth) {
-      // New month, reset quota
-      await prefs.setInt(_aiQuotaMonthKey, currentMonth);
-      await prefs.setInt(_aiQuotaCountKey, 0);
-      aiQuotaUsed.value = 0;
-    } else {
-      aiQuotaUsed.value = prefs.getInt(_aiQuotaCountKey) ?? 0;
+      final now = DateTime.now();
+      final currentMonth = now.month;
+      final currentYear = now.year;
+
+      final response = await Supabase.instance.client
+          .from('user_ai_quotas')
+          .select()
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (response == null) {
+        // Create new quota record
+        await Supabase.instance.client.from('user_ai_quotas').insert({
+          'user_id': user.id,
+          'count': 0,
+          'month': currentMonth,
+          'year': currentYear,
+          'last_updated': now.toIso8601String(),
+        });
+        aiQuotaUsed.value = 0;
+      } else {
+        // Check if month changed
+        if (response['month'] != currentMonth ||
+            response['year'] != currentYear) {
+          // Reset for new month
+          await Supabase.instance.client
+              .from('user_ai_quotas')
+              .update({
+                'count': 0,
+                'month': currentMonth,
+                'year': currentYear,
+                'last_updated': now.toIso8601String(),
+              })
+              .eq('user_id', user.id);
+          aiQuotaUsed.value = 0;
+        } else {
+          aiQuotaUsed.value = response['count'] as int;
+        }
+      }
+    } catch (e) {
+      print('Error loading AI quota: $e');
     }
   }
 
   Future<void> incrementAiQuota() async {
-    final prefs = await SharedPreferences.getInstance();
-    aiQuotaUsed.value++;
-    await prefs.setInt(_aiQuotaCountKey, aiQuotaUsed.value);
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      aiQuotaUsed.value++;
+
+      await Supabase.instance.client
+          .from('user_ai_quotas')
+          .update({
+            'count': aiQuotaUsed.value,
+            'last_updated': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', user.id);
+    } catch (e) {
+      print('Error incrementing AI quota: $e');
+    }
   }
 
   @override
@@ -152,10 +197,35 @@ class StatisticsController extends GetxController {
       allLogs.value = newAllLogs;
 
       _processData();
+
+      // Fetch today's AI insight if exists
+      _fetchTodayAiInsight();
     } catch (e) {
       Get.snackbar('Error', 'Gagal ambil data statistik: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> _fetchTodayAiInsight() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      final today = DateTime.now().toIso8601String().split('T')[0];
+
+      final response = await Supabase.instance.client
+          .from('ai_coach_messages')
+          .select('message')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .maybeSingle();
+
+      if (response != null) {
+        aiInsight.value = response['message'] as String;
+      }
+    } catch (e) {
+      print('Error fetching today insight: $e');
     }
   }
 
@@ -433,6 +503,8 @@ class StatisticsController extends GetxController {
             content = content.substring(1, content.length - 1);
           }
           aiInsight.value = content;
+          _saveAiInsight(content);
+          incrementAiQuota();
         } else {
           _generateLocalInsight(completedLogs, totalActioned);
         }
@@ -445,6 +517,21 @@ class StatisticsController extends GetxController {
       _generateLocalInsight(completedLogs, totalActioned);
     } finally {
       isGeneratingAI.value = false;
+    }
+  }
+
+  Future<void> _saveAiInsight(String message) async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      await Supabase.instance.client.from('ai_coach_messages').insert({
+        'user_id': user.id,
+        'message': message,
+        'date': DateTime.now().toIso8601String().split('T')[0],
+      });
+    } catch (e) {
+      print('Error saving AI insight: $e');
     }
   }
 
@@ -510,6 +597,8 @@ class StatisticsController extends GetxController {
     }
 
     aiInsight.value = "$vibe$tip Gas terus! 🚀";
+    _saveAiInsight(aiInsight.value);
+    incrementAiQuota();
   }
 
   void _calculateGlobalInsights(List<Map<String, dynamic>> filteredLogs) {

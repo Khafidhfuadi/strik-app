@@ -182,7 +182,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 const SizedBox(height: 32),
 
                 // Stats
-                _buildStats(controller),
+                _buildStats(controller, currentHabit),
 
                 const SizedBox(height: 32),
 
@@ -271,11 +271,94 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  Widget _buildStats(HabitDetailController controller) {
+  Widget _buildStats(HabitDetailController controller, Habit currentHabit) {
     return Obx(() {
       if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
+
+      // Calculate Goal Progress if endDate exists
+      Widget? goalProgress;
+      if (currentHabit.endDate != null && currentHabit.createdAt != null) {
+        final now = DateTime.now();
+        final start = currentHabit.createdAt!;
+        final end = currentHabit.endDate!;
+
+        final totalDuration = end.difference(start).inSeconds;
+        final elapsed = now.difference(start).inSeconds;
+
+        double progress = 0.0;
+        if (totalDuration > 0) {
+          progress = (elapsed / totalDuration).clamp(0.0, 1.0);
+        }
+
+        final percentage = (progress * 100).toInt();
+        final daysLeft = end.difference(now).inDays;
+
+        goalProgress = Column(
+          children: [
+            const SizedBox(height: 24),
+            Divider(color: Colors.white.withValues(alpha: 0.1)),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Progress Goal',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 14,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '$percentage%',
+                  style: const TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  currentHabit.color.startsWith('0x')
+                      ? Color(int.parse(currentHabit.color))
+                      : AppTheme.primary,
+                ),
+                minHeight: 8,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                daysLeft > 0
+                    ? '$daysLeft hari lagi'
+                    : (daysLeft == 0
+                          ? 'Hari ini terakhir!'
+                          : 'Udah lewat deadline'),
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 12,
+                  color: daysLeft >= 0
+                      ? AppTheme.textSecondary
+                      : Colors.redAccent,
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         decoration: BoxDecoration(
@@ -283,14 +366,25 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+        child: Column(
           children: [
-            _buildStatItem('Totalan', '${controller.totalCompletions.value}'),
-            _buildVerticalDivider(),
-            _buildStatItem('Best Streak', '${controller.bestStreak.value}'),
-            _buildVerticalDivider(),
-            _buildStatItem('Streak Aktif', '${controller.currentStreak.value}'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem(
+                  'Totalan',
+                  '${controller.totalCompletions.value}',
+                ),
+                _buildVerticalDivider(),
+                _buildStatItem('Best Streak', '${controller.bestStreak.value}'),
+                _buildVerticalDivider(),
+                _buildStatItem(
+                  'Streak Aktif',
+                  '${controller.currentStreak.value}',
+                ),
+              ],
+            ),
+            if (goalProgress != null) goalProgress,
           ],
         ),
       );
@@ -1105,164 +1199,174 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   Widget _buildAICoachCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: journalController.aiInsight.value.isEmpty,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          title: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.1),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.psychology, color: AppTheme.primary),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Coach Strik AI',
-                      style: const TextStyle(
-                        fontFamily: 'Space Grotesk',
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Coach Strik AI',
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
                     ),
-                    Text(
-                      'Analisis habit kamu',
+                  ),
+                  Obx(
+                    () => Text(
+                      journalController.aiInsight.value.isNotEmpty
+                          ? 'Lihat analisis bulan ini!'
+                          : 'Analisis habit bulanan',
                       style: TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 12,
-                        color: AppTheme.textSecondary,
+                        color: journalController.aiInsight.value.isNotEmpty
+                            ? AppTheme.primary
+                            : AppTheme.textSecondary,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Obx(
-                () => journalController.isEligibleForAI.value
-                    ? const Icon(
-                        Icons.lock_open,
-                        color: AppTheme.primary,
-                        size: 20,
-                      )
-                    : const Icon(Icons.lock, color: Colors.grey, size: 20),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Obx(() {
-            if (journalController.aiInsight.value.isNotEmpty) {
-              // Reuse likely existing logic or simple text
-              return _buildStyledText(journalController.aiInsight.value);
-            } else if (!journalController.isEligibleForAI.value) {
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      color: AppTheme.textSecondary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
+          trailing: Obx(
+            () => journalController.isEligibleForAI.value
+                ? const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppTheme.textSecondary,
+                  )
+                : const Icon(Icons.lock, color: Colors.grey, size: 20),
+          ),
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Obx(() {
+                  if (journalController.aiInsight.value.isNotEmpty) {
+                    return _buildStyledText(journalController.aiInsight.value);
+                  } else if (!journalController.isEligibleForAI.value) {
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: AppTheme.textSecondary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Tulis minimal 10 jurnal bulan ini buat dianalisis sama Coach Strik AI!',
+                              style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
+                                color: AppTheme.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  } else {
+                    return Text(
+                      'Cari tau insight bulan ini buat tau pola habit kamu dan tips memperbaikinya.',
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        color: AppTheme.textSecondary,
+                      ),
+                    );
+                  }
+                }),
+                const SizedBox(height: 20),
+                Obx(() {
+                  if (journalController.isEligibleForAI.value) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: !journalController.isGeneratingAI.value
+                            ? () {
+                                _confirmGenerateAi(context);
+                              }
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: journalController.isGeneratingAI.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : Text(
+                                journalController.aiInsight.value.isEmpty
+                                    ? 'Generate Insight ✨'
+                                    : 'Regenerate Insight 🔄',
+                                style: const TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    );
+                  } else {
+                    return const SizedBox.shrink();
+                  }
+                }),
+                const SizedBox(height: 8),
+                Obx(() {
+                  if (journalController.isEligibleForAI.value) {
+                    return Center(
                       child: Text(
-                        'Tulis minimal 10 jurnal dulu ya buat dianalisis sama Coach Strik AI!',
-                        style: TextStyle(
+                        "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
+                        style: const TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
-                          color: AppTheme.textSecondary,
-                          fontSize: 13,
+                          color: Colors.white38,
+                          fontSize: 10,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              return Text(
-                'Generate insight buat tau pola habit kamu dan tips memperbaikinya.',
-                style: TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  color: AppTheme.textSecondary,
-                ),
-              );
-            }
-          }),
-          const SizedBox(height: 20),
-          Obx(() {
-            if (journalController.isEligibleForAI.value) {
-              return SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: !journalController.isGeneratingAI.value
-                      ? () {
-                          _confirmGenerateAi(context);
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: journalController.isGeneratingAI.value
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.black,
-                          ),
-                        )
-                      : Text(
-                          journalController.aiInsight.value.isEmpty
-                              ? 'Generate Insight ✨'
-                              : 'Regenerate Insight 🔄',
-                          style: const TextStyle(
-                            fontFamily: 'Space Grotesk',
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              );
-            } else {
-              return const SizedBox.shrink();
-            }
-          }),
-          const SizedBox(height: 8),
-          Obx(() {
-            if (journalController.isEligibleForAI.value) {
-              return Center(
-                child: Text(
-                  "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    color: Colors.white38,
-                    fontSize: 10,
-                  ),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-        ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

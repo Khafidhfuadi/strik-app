@@ -12,6 +12,7 @@ class Habit {
   final TimeOfDay? reminderTime;
   final bool reminderEnabled;
   final DateTime? createdAt;
+  final DateTime? endDate;
   final bool isPublic;
   final int? sortOrder;
 
@@ -27,6 +28,7 @@ class Habit {
     this.reminderTime,
     this.reminderEnabled = false,
     this.createdAt,
+    this.endDate,
     this.isPublic = true,
     this.sortOrder,
   });
@@ -66,6 +68,9 @@ class Habit {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at']).toLocal()
           : null,
+      endDate: json['end_date'] != null
+          ? DateTime.parse(json['end_date']).toLocal()
+          : null,
       isPublic: json['is_public'] ?? true,
       sortOrder: json['sort_order'],
     );
@@ -97,6 +102,7 @@ class Habit {
       'frequency_count': frequencyCount,
       'reminder_time': reminderString,
       'reminder_enabled': reminderEnabled,
+      'end_date': endDate?.toUtc().toIso8601String(),
       'is_public': isPublic,
       'sort_order': sortOrder,
     };

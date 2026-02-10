@@ -53,6 +53,9 @@ class CreateHabitController extends GetxController {
   var selectedColorIndex = 0.obs;
   var isPublic = true.obs;
 
+  var hasEndDate = false.obs;
+  var endDate = Rx<DateTime?>(null);
+
   var isLoading = false.obs;
   Habit? _existingHabit;
   bool get isEdit => _existingHabit != null;
@@ -93,6 +96,10 @@ class CreateHabitController extends GetxController {
       if (habit.daysOfWeek != null) {
         selectedMonthlyDates.assignAll(habit.daysOfWeek!);
       }
+    }
+    if (habit.endDate != null) {
+      hasEndDate.value = true;
+      endDate.value = habit.endDate;
     }
     isRepeat.value = true; // For editing existing complex habits
   }
@@ -301,6 +308,7 @@ class CreateHabitController extends GetxController {
         reminderTime: reminderTime.value,
         reminderEnabled: isReminder.value,
         isPublic: isPublic.value,
+        endDate: hasEndDate.value ? endDate.value : null,
       );
 
       String? createdHabitId;
