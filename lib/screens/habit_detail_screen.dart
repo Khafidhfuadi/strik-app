@@ -412,7 +412,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   Icons.chevron_left,
                   color: AppTheme.textSecondary,
                 ),
-                onPressed: () => controller.changeMonth(-1),
+                onPressed: () {
+                  controller.changeMonth(-1);
+                  journalController.updateFocusMonth(
+                    controller.focusedMonth.value,
+                  );
+                },
               ),
               Text(
                 DateFormat('MMM yyyy').format(controller.focusedMonth.value),
@@ -427,7 +432,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   Icons.chevron_right,
                   color: AppTheme.textSecondary,
                 ),
-                onPressed: () => controller.changeMonth(1),
+                onPressed: () {
+                  controller.changeMonth(1);
+                  journalController.updateFocusMonth(
+                    controller.focusedMonth.value,
+                  );
+                },
               ),
             ],
           ),
@@ -550,9 +560,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           if (details.primaryVelocity! > 0) {
             // User swiped Left -> Go to Previous Month
             controller.changeMonth(-1);
+            journalController.updateFocusMonth(controller.focusedMonth.value);
+          } else if (details.primaryVelocity! < 0) {
           } else if (details.primaryVelocity! < 0) {
             // User swiped Right -> Go to Next Month
             controller.changeMonth(1);
+            journalController.updateFocusMonth(controller.focusedMonth.value);
           }
         },
         child: Container(
@@ -1236,7 +1249,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   Obx(
                     () => Text(
                       journalController.aiInsight.value.isNotEmpty
-                          ? 'Lihat analisis bulan ini!'
+                          ? 'Lihat analisis bulan ${DateFormat('MMMM yyyy', 'id_ID').format(journalController.focusedMonth.value)}!'
                           : 'Analisis habit bulanan',
                       style: TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
@@ -1420,7 +1433,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "Sisa Kuota: ${3 - journalController.aiQuotaUsed.value}x lagi",
+                      "Sisa Kuota: ${3 - journalController.aiQuotaUsed.value}x lagi (Bulan ini)",
                       style: const TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
                         color: Colors.amber,

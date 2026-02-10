@@ -70,6 +70,8 @@ class _SocialScreenState extends State<SocialScreen> {
     // Mark feed as viewed when Feed tab is tapped
     if (index == 0) {
       _controller.markFeedAsViewed();
+    } else {
+      _controller.markFeedAsLeft();
     }
   }
 
@@ -216,15 +218,7 @@ class _SocialScreenState extends State<SocialScreen> {
                               ),
                             ),
                             // Badges
-                            if (index == 0)
-                              Obx(
-                                () => _buildBadgeUI(
-                                  _controller.newFeedCount.value,
-                                  index,
-                                  isActive,
-                                ),
-                              )
-                            else if (index == 2)
+                            if (index == 2)
                               Obx(
                                 () => _buildBadgeUI(
                                   _controller.friends.length,
@@ -254,6 +248,8 @@ class _SocialScreenState extends State<SocialScreen> {
                   if (index == 0) {
                     // 0 is now Activity Feed
                     _controller.markFeedAsViewed();
+                  } else {
+                    _controller.markFeedAsLeft();
                   }
                 },
                 children: [

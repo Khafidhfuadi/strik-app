@@ -6,6 +6,7 @@ import 'package:strik_app/data/models/user_model.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:strik_app/controllers/story_controller.dart'; // Added
 import 'package:strik_app/main.dart'; // Access global supabase client
+import 'package:strik_app/controllers/gamification_controller.dart';
 
 // import 'package:google_fonts/google_fonts.dart'; // Removed
 // import 'package:lottie/lottie.dart'; // Unused for now
@@ -240,7 +241,14 @@ class FriendController extends GetxController {
                 final newPost = await _friendRepository.getPostById(newPostId);
                 if (newPost != null) {
                   activityFeed.insert(0, newPost);
-                  newFeedCount.value++;
+                  // Only increment if user is NOT viewing Feed tab
+                  // and the post is NOT from the current user
+                  final postUserId = newPost['data']?['user_id'];
+                  final myId = supabase.auth.currentUser?.id;
+                  if (!_isFeedTabActive && postUserId != myId) {
+                    newFeedCount.value++;
+                    hasNewSocialActivity.value = true;
+                  }
                 }
               }
             } else if (payload.eventType == PostgresChangeEvent.delete) {
@@ -273,7 +281,16 @@ class FriendController extends GetxController {
                 );
                 if (newLog != null) {
                   activityFeed.insert(0, newLog);
-                  newFeedCount.value++;
+                  // Only increment if user is NOT viewing Feed tab
+                  // and the log is NOT from the current user
+                  final logUserId =
+                      payload.newRecord['user_id'] ??
+                      newLog['data']?['habit']?['user']?['id'];
+                  final myId = supabase.auth.currentUser?.id;
+                  if (!_isFeedTabActive && logUserId != myId) {
+                    newFeedCount.value++;
+                    hasNewSocialActivity.value = true;
+                  }
                 }
               }
             }
@@ -326,6 +343,7 @@ class FriendController extends GetxController {
               // Add to local list and increment unread count
               notifications.insert(0, payload.newRecord);
               unreadNotificationCount.value++;
+              hasNewSocialActivity.value = true;
             },
           )
           .subscribe();
@@ -576,6 +594,8 @@ class FriendController extends GetxController {
 
   var newFeedCount = 0.obs;
   String? _lastViewedFeedMarker;
+  bool _isFeedTabActive = false;
+  var hasNewSocialActivity = false.obs;
 
   Future<void> fetchLeaderboard({bool refresh = false}) async {
     try {
@@ -636,7 +656,16 @@ class FriendController extends GetxController {
       }
 
       if (_lastViewedFeedMarker == null) {
-        newFeedCount.value = activityFeed.length;
+        // First time user: don't show badge, auto-save current top as marker
+        newFeedCount.value = 0;
+        if (activityFeed.isNotEmpty) {
+          final item = activityFeed.first;
+          _lastViewedFeedMarker = '${item['type']}_${item['data']['id']}';
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('last_feed_marker', _lastViewedFeedMarker!);
+          } catch (_) {}
+        }
       } else {
         int count = 0;
         bool foundMarker = false;
@@ -766,6 +795,15 @@ class FriendController extends GetxController {
           'type': 'fire',
         });
 
+        // Award XP for reaction
+        try {
+          if (Get.isRegistered<GamificationController>()) {
+            Get.find<GamificationController>().awardXPForInteraction(
+              'react_momentz',
+            );
+          }
+        } catch (_) {}
+
         // --- NEW: Send Notification if not owner ---
         String? ownerId;
         if (postId != null) {
@@ -819,6 +857,7 @@ class FriendController extends GetxController {
   }
 
   Future<void> markFeedAsViewed() async {
+    _isFeedTabActive = true;
     newFeedCount.value = 0;
 
     // Save the top most item as marker
@@ -834,6 +873,14 @@ class FriendController extends GetxController {
         print('Error saving last viewed marker: $e');
       }
     }
+  }
+
+  void markFeedAsLeft() {
+    _isFeedTabActive = false;
+  }
+
+  void clearSocialDot() {
+    hasNewSocialActivity.value = false;
   }
 
   Future<void> pokeUser(String friendId) async {

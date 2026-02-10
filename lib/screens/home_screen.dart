@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
+import 'package:strik_app/controllers/friend_controller.dart';
 import 'package:strik_app/screens/create_habit_screen.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
 import 'package:strik_app/screens/social_screen.dart';
@@ -19,6 +20,8 @@ import 'package:strik_app/controllers/update_profile_controller.dart';
 import 'package:strik_app/widgets/custom_text_field.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 import 'package:strik_app/screens/notification_debug_screen.dart';
+import 'package:strik_app/controllers/gamification_controller.dart';
+import 'package:strik_app/screens/level_progression_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,6 +50,132 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _alarmCheckTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
       Get.find<HabitController>().checkAlarmConsistency();
     });
+
+    // Check for Gamification Intro
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<GamificationController>()) {
+        Get.find<GamificationController>().checkAndShowGamificationIntro();
+      }
+    });
+
+    // Listen to XP events for animation
+    if (Get.isRegistered<GamificationController>()) {
+      Get.find<GamificationController>().xpEventStream.listen((event) {
+        if (mounted) {
+          _showXPAnimation(event['amount'] as int);
+        }
+      });
+    }
+  }
+
+  void _showXPAnimation(int amount) {
+    if (amount == 0) return;
+
+    OverlayEntry? entry;
+    entry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: MediaQuery.of(context).padding.top + 60, // Below header approx
+          left: 0,
+          right: 0,
+          child: Material(
+            color: Colors.transparent,
+            child: Center(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 2000),
+                curve: Curves.linear, // Use linear time for simpler control
+                builder: (context, value, child) {
+                  // 1. Bounce Scale: Fast (first 40% of time)
+                  // 0.0 -> 0.4 mapped to 0.0 -> 1.0 for elastic curve
+                  final scaleCurve = const Interval(
+                    0.0,
+                    0.4,
+                    curve: Curves.elasticOut,
+                  ).transform(value);
+
+                  // 2. Move Up: Slow & Steady (full duration)
+                  final moveCurve = const Interval(
+                    0.0,
+                    1.0,
+                    curve: Curves.easeOutCubic,
+                  ).transform(value);
+
+                  // 3. Opacity: Fade out at end (last 20%)
+                  double opacity = 1.0;
+                  if (value > 0.8) {
+                    opacity = (1.0 - value) * 5;
+                  }
+
+                  return Opacity(
+                    opacity: opacity.clamp(0.0, 1.0),
+                    child: Transform.translate(
+                      offset: Offset(0, -60 * moveCurve), // Move up
+                      child: Transform.scale(
+                        scale: scaleCurve.clamp(
+                          0.0,
+                          2.0,
+                        ), // Prevent extreme overshoot
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: amount > 0
+                                ? const Color(0xFFFFD700)
+                                : const Color(0xFFFF5757),
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    (amount > 0
+                                            ? const Color(0xFFFFD700)
+                                            : const Color(0xFFFF5757))
+                                        .withOpacity(0.4),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                amount > 0
+                                    ? Icons.arrow_upward_rounded
+                                    : Icons.arrow_downward_rounded,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${amount > 0 ? '+' : ''}$amount XP',
+                                style: const TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                onEnd: () {
+                  entry?.remove();
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(entry);
   }
 
   @override
@@ -93,6 +222,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final HabitController controller = Get.find();
     final HomeController homeController = Get.find();
+    final GamificationController gamificationController = Get.find();
 
     return Obx(() {
       final navBar = _buildBottomNavigationBar(homeController);
@@ -153,6 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ? const Center(child: CustomLoadingIndicator())
             : Column(
                 children: [
+                  _buildGamificationHeader(gamificationController),
                   // Tab Bar
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -186,6 +317,89 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         bottomNavigationBar: navBar,
       );
     });
+  }
+
+  Widget _buildGamificationHeader(GamificationController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Get.to(() => const LevelProgressionScreen());
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white10),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700).withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.bolt_rounded,
+                  color: Color(0xFFFFD700),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${controller.currentLevelName} (Lvl ${controller.currentLevel})',
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          '${controller.currentXP} / ${controller.xpToNextLevel} XP',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            color: Colors.grey[400],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: controller.xpProgress),
+                        duration: const Duration(milliseconds: 1000),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, child) {
+                          return LinearProgressIndicator(
+                            value: value,
+                            backgroundColor: Colors.grey[800],
+                            color: const Color(0xFFFFD700),
+                            minHeight: 6,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildTabChip(String label, int index, HomeController homeController) {
@@ -465,16 +679,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onTap: (index) {
         HapticFeedback.lightImpact();
         homeController.selectedIndex.value = index;
+        // Clear red dot when entering Social tab
+        if (index == 1 && Get.isRegistered<FriendController>()) {
+          Get.find<FriendController>().clearSocialDot();
+        }
       },
       showSelectedLabels: false,
       showUnselectedLabels: false,
-      items: const [
-        BottomNavigationBarItem(
+      items: [
+        const BottomNavigationBarItem(
           icon: Icon(Icons.grid_view_rounded),
           label: 'Home',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.wc_rounded), label: 'Social'),
         BottomNavigationBarItem(
+          icon: Obx(() {
+            final hasNew =
+                Get.isRegistered<FriendController>() &&
+                Get.find<FriendController>().hasNewSocialActivity.value;
+            return Badge(
+              isLabelVisible: hasNew,
+              backgroundColor: Colors.red,
+              smallSize: 8,
+              child: const Icon(Icons.wc_rounded),
+            );
+          }),
+          label: 'Social',
+        ),
+        const BottomNavigationBarItem(
           icon: Icon(Icons.bar_chart_rounded),
           label: 'Stats',
         ),

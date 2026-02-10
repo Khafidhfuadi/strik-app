@@ -1,0 +1,591 @@
+import 'dart:async';
+import 'package:get/get.dart';
+import 'package:strik_app/data/repositories/gamification_repository.dart';
+import 'package:strik_app/main.dart'; // To access global supabase client
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class LevelBenefits {
+  final int level;
+  final double completeHabit;
+  final double
+  skipHabit; // Penalty is usually negative in logic, but let's store magnitude or value
+  final double newMomentz;
+  final double react;
+  final double newHabit;
+
+  const LevelBenefits({
+    required this.level,
+    required this.completeHabit,
+    required this.skipHabit,
+    required this.newMomentz,
+    required this.react,
+    required this.newHabit,
+  });
+}
+
+class GamificationController extends GetxController {
+  final GamificationRepository _repository = GamificationRepository(supabase);
+
+  // Level Benefits Configuration
+  LevelBenefits getBenefitsForLevel(int level) {
+    if (level <= 3) {
+      return const LevelBenefits(
+        level: 1, // Represents 1-3
+        completeHabit: 5,
+        skipHabit: -5,
+        newMomentz: 3,
+        react: 1,
+        newHabit: 10,
+      );
+    }
+    switch (level) {
+      case 4:
+        return const LevelBenefits(
+          level: 4,
+          completeHabit: 6,
+          skipHabit: -5,
+          newMomentz: 3.5,
+          react: 1.5,
+          newHabit: 15,
+        );
+      case 5:
+        return const LevelBenefits(
+          level: 5,
+          completeHabit: 7,
+          skipHabit: -5,
+          newMomentz: 4,
+          react: 2,
+          newHabit: 20,
+        );
+      case 6:
+        return const LevelBenefits(
+          level: 6,
+          completeHabit: 8,
+          skipHabit: -5,
+          newMomentz: 4.5,
+          react: 2.5,
+          newHabit: 25,
+        );
+      case 7:
+        return const LevelBenefits(
+          level: 7,
+          completeHabit: 9,
+          skipHabit: -4.5,
+          newMomentz: 5,
+          react: 3,
+          newHabit: 30,
+        );
+      case 8:
+        return const LevelBenefits(
+          level: 8,
+          completeHabit: 10,
+          skipHabit: -4,
+          newMomentz: 5.5,
+          react: 3.5,
+          newHabit: 35,
+        );
+      case 9:
+        return const LevelBenefits(
+          level: 9,
+          completeHabit: 11,
+          skipHabit: -3.5,
+          newMomentz: 6,
+          react: 4,
+          newHabit: 40,
+        );
+      case 10:
+      default: // Cap at level 10 rewards for now
+        return const LevelBenefits(
+          level: 10,
+          completeHabit: 12,
+          skipHabit: -3,
+          newMomentz: 7,
+          react: 4.5,
+          newHabit: 45,
+        );
+    }
+  }
+
+  int getXPReward(String actionType) {
+    final benefits = getBenefitsForLevel(currentLevel.value);
+    switch (actionType) {
+      case 'complete_habit':
+        return benefits.completeHabit.round();
+      case 'skip_habit':
+        return benefits.skipHabit.round(); // Returns negative
+      case 'new_habit':
+        return benefits.newHabit.round();
+      case 'new_momentz':
+        return benefits.newMomentz.round();
+      case 'react_momentz':
+        return benefits.react.round();
+      default:
+        return 0;
+    }
+  }
+
+  Future<void> awardXPForInteraction(String type) async {
+    final amount = getXPReward(type);
+    if (amount != 0) {
+      String reason = 'Activity';
+      if (type == 'new_momentz') reason = 'New Momentz';
+      if (type == 'react_momentz') reason = 'Reaction';
+      if (type == 'new_habit') reason = 'New Habit';
+
+      await awardXP(amount, reason: reason);
+    }
+  }
+
+  var currentXP = 0.obs;
+  var currentLevel = 1.obs;
+  var isLoading = false.obs;
+
+  StreamSubscription<AuthState>? _authSubscription;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchGamificationData();
+
+    // Listen to auth state changes to Handle Logout/Login
+    _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      if (event == AuthChangeEvent.signedIn) {
+        fetchGamificationData();
+        checkAndShowGamificationIntro();
+      } else if (event == AuthChangeEvent.signedOut) {
+        // Reset state on logout
+        currentXP.value = 0;
+        currentLevel.value = 1;
+        isLoading.value = false;
+      }
+    });
+  }
+
+  Future<void> fetchGamificationData() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      currentXP.value = 0;
+      currentLevel.value = 1;
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final userData = await _repository.getCurrentUserGamificationData();
+      if (userData != null) {
+        currentXP.value = userData.xp;
+        currentLevel.value = userData.level;
+      }
+    } catch (e) {
+      print('Error fetching gamification data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> checkAndShowGamificationIntro() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    // Check user_metadata usually contains 'has_seen_gamification_intro'
+    final metadata = user.userMetadata;
+    final hasSeenIntro = metadata?['has_seen_gamification_intro'] == true;
+
+    if (hasSeenIntro) return;
+
+    // Fetch retroactive stats
+    int totalCompleted = 0;
+    try {
+      totalCompleted = await _repository.getTotalCompletedHabitsCount();
+    } catch (e) {
+      print('Error fetching total completed habits: $e');
+    }
+
+    final retroactiveXP = totalCompleted * 5;
+
+    // Calculate potential new level
+    int calcLevel = 1;
+    int calcXP = retroactiveXP;
+    // Basic calculation loop matching awardXP logic
+    while (calcXP >= (calcLevel * 100)) {
+      calcXP -= (calcLevel * 100);
+      calcLevel++;
+    }
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Color(0xFFFFD700), width: 1)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Icon(Icons.bolt_rounded, color: Color(0xFFFFD700), size: 48),
+            const SizedBox(height: 16),
+            const Text(
+              'Introducing XP & Levels!',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Habit yang kamu selesaikan sekarang dapet XP! Karena kamu anak rajin, kita hitungin habit yang udah kelar sebelumnya.',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 16,
+                color: Colors.grey[400],
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Column(
+                    children: [
+                      Text(
+                        '$totalCompleted',
+                        style: const TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Text(
+                        'Habits',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  Container(width: 1, height: 40, color: Colors.white10),
+                  Column(
+                    children: [
+                      Text(
+                        '+$retroactiveXP',
+                        style: const TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFFD700),
+                        ),
+                      ),
+                      const Text(
+                        'XP Earned',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                children: [
+                  _buildRuleItem(
+                    Icons.check_circle_outline,
+                    'Selesain Habit',
+                    '+5 XP',
+                    Colors.greenAccent,
+                  ),
+                  const Divider(color: Colors.white10, height: 24),
+                  _buildRuleItem(
+                    Icons.add_circle_outline,
+                    'Bikin Habit Baru',
+                    '+30 XP',
+                    Colors.blueAccent,
+                  ),
+                  const Divider(color: Colors.white10, height: 24),
+                  _buildRuleItem(
+                    Icons.remove_circle_outline,
+                    'Skip / Lupa',
+                    '-5 XP',
+                    Colors.redAccent,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (retroactiveXP > 0)
+              Text(
+                'Kamu langsung lompat ke Level $calcLevel! 🚀',
+                style: const TextStyle(
+                  color: Color(0xFFFFD700),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () async {
+                  // Apply changes
+                  if (retroactiveXP > 0) {
+                    currentXP.value = calcXP;
+                    currentLevel.value = calcLevel;
+                    await _repository.updateXPAndLevel(calcXP, calcLevel);
+                  }
+
+                  // Update metadata in Supabase
+                  await supabase.auth.updateUser(
+                    UserAttributes(data: {'has_seen_gamification_intro': true}),
+                  );
+
+                  Get.back();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD700),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Klaim XP Gw!',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      enableDrag: false,
+      isDismissible: false,
+    );
+  }
+
+  int get xpToNextLevel => currentLevel.value * 100;
+
+  double get xpProgress {
+    if (xpToNextLevel == 0) return 0.0;
+    return currentXP.value / xpToNextLevel;
+  }
+
+  // Event stream for UI animations
+  final _xpEventController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get xpEventStream => _xpEventController.stream;
+
+  var xpHistory = <Map<String, dynamic>>[].obs;
+
+  Future<void> awardXP(int amount, {String reason = 'Activity'}) async {
+    int newXP = currentXP.value + amount;
+    int newLevel = currentLevel.value;
+    bool leveledUp = false;
+
+    // Check for level up loop (in case of massive XP gain)
+    while (newXP >= (newLevel * 100)) {
+      newXP -= (newLevel * 100);
+      newLevel++;
+      leveledUp = true;
+    }
+
+    // Update state
+    currentXP.value = newXP;
+    currentLevel.value = newLevel;
+
+    // Emit event for UI animations
+    _xpEventController.add({
+      'amount': amount,
+      'newLevel': newLevel,
+      'leveledUp': leveledUp,
+    });
+
+    // Persist
+    try {
+      await _repository.updateXPAndLevel(newXP, newLevel);
+      await _repository.logXP(amount, reason); // Log history
+      fetchXPHistory(); // Refresh history
+
+      if (leveledUp) {
+        _showLevelUpDialog(newLevel);
+      }
+    } catch (e) {
+      print('Error updating XP: $e');
+    }
+  }
+
+  Future<void> fetchXPHistory() async {
+    try {
+      final history = await _repository.getXPHistory();
+      xpHistory.assignAll(history);
+    } catch (e) {
+      print('Error fetching XP history: $e');
+    }
+  }
+
+  @override
+  void onClose() {
+    _authSubscription?.cancel();
+    _xpEventController.close();
+    super.onClose();
+  }
+
+  Widget _buildRuleItem(IconData icon, String label, String xp, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          xp,
+          style: TextStyle(
+            fontFamily: 'Space Grotesk',
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showLevelUpDialog(int newLevel) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E), // Dark theme surface
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: const Color(0xFFFFD700),
+              width: 2,
+            ), // Gold border
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFD700).withOpacity(0.3),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.whatshot, color: Color(0xFFFFD700), size: 64),
+              const SizedBox(height: 16),
+              const Text(
+                'LEVEL UP!',
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  color: Color(0xFFFFD700),
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'You reached Level $newLevel!',
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.white,
+                  fontSize: 18,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Get.back(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD700),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Awesome!'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Level definitions
+  final List<Map<String, dynamic>> levels = [
+    {'level': 1, 'xp': 0, 'name': 'Anak Magang'},
+    {'level': 2, 'xp': 100, 'name': 'Pejuang Rutin'},
+    {'level': 3, 'xp': 200, 'name': 'Konsisten Abiez'},
+    {'level': 4, 'xp': 400, 'name': 'Sepuh'},
+    {'level': 5, 'xp': 700, 'name': 'Jagoran Strik'},
+    {'level': 6, 'xp': 1100, 'name': 'Master of Habit'},
+    {'level': 7, 'xp': 1600, 'name': 'Grandmaster'},
+    {'level': 8, 'xp': 2200, 'name': 'Legend'},
+    {'level': 9, 'xp': 3000, 'name': 'Mythic'},
+    {'level': 10, 'xp': 4000, 'name': 'Immortal'},
+  ];
+
+  String get currentLevelName {
+    final levelData = levels.firstWhere(
+      (data) => data['level'] == currentLevel.value,
+      orElse: () => {'name': 'Unknown'},
+    );
+    return levelData['name'] as String;
+  }
+
+  int getXpRequiredForLevel(int level) {
+    if (level <= 1) return 0;
+    // For now let's just use the list and fallback to formula for higher levels
+    if (level <= levels.length) {
+      return levels[level - 1]['xp'] as int;
+    }
+    return level * 100; // Fallback to old formula if level exceeds defined list
+  }
+}

@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:image_cropper/image_cropper.dart'; // Added
 import 'package:strik_app/core/theme.dart'; // Needed for AppTheme
 import 'package:strik_app/services/home_widget_service.dart';
+import 'package:strik_app/controllers/gamification_controller.dart';
 
 class StoryController extends GetxController {
   final StoryRepository _repository = StoryRepository(supabase);
@@ -207,6 +208,15 @@ class StoryController extends GetxController {
 
       // Refresh
       fetchStories();
+
+      // XP Award
+      try {
+        if (Get.isRegistered<GamificationController>()) {
+          Get.find<GamificationController>().awardXPForInteraction(
+            'new_momentz',
+          );
+        }
+      } catch (_) {}
     } catch (e) {
       Get.snackbar('Error', 'Gagal upload story: $e');
     } finally {

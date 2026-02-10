@@ -10,6 +10,7 @@ import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 
 import 'package:strik_app/services/alarm_manager_service.dart';
+import 'package:strik_app/controllers/gamification_controller.dart';
 
 class CreateHabitController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
@@ -328,6 +329,15 @@ class CreateHabitController extends GetxController {
         // createHabit now returns the created habit with ID
         final createdHabit = await _habitRepository.createHabit(habit);
         createdHabitId = createdHabit.id;
+
+        // Award XP for new habit
+        try {
+          if (Get.isRegistered<GamificationController>()) {
+            Get.find<GamificationController>().awardXPForInteraction(
+              'new_habit',
+            );
+          }
+        } catch (_) {}
       }
 
       // Auto-create post if habit is public AND it's a new habit

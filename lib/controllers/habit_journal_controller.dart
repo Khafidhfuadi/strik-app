@@ -23,6 +23,9 @@ class HabitJournalController extends GetxController {
 
   var todayJournal = Rxn<HabitJournal>();
 
+  // Focused Month for AI Context
+  var focusedMonth = DateTime.now().obs;
+
   HabitJournalController(this.habitId);
 
   var aiInsight = ''.obs;
@@ -35,38 +38,75 @@ class HabitJournalController extends GetxController {
   void onInit() {
     super.onInit();
     fetchJournals(refresh: true);
-    fetchAiQuota();
+    fetchJournals(refresh: true);
+    fetchMonthlyInsight(); // Check for existing insight for this month
+    _checkMonthlyEligibility(); // Check if eligible for this month
   }
 
-  Future<void> fetchAiQuota() async {
+  void updateFocusMonth(DateTime month) {
+    focusedMonth.value = month;
+    fetchMonthlyInsight();
+    _checkMonthlyEligibility();
+  }
+
+  Future<void> _checkMonthlyEligibility() async {
     try {
-      final now = DateTime.now();
-      final period = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+      final month = focusedMonth.value;
+      final startOfMonth = DateTime(
+        month.year,
+        month.month,
+        1,
+      ).toIso8601String();
+      final endOfMonth = DateTime(
+        month.year,
+        month.month + 1,
+        0,
+        23,
+        59,
+        59,
+      ).toIso8601String();
+
+      final count = await _supabase
+          .from('habit_journals')
+          .count(CountOption.exact)
+          .eq('habit_id', habitId)
+          .gte('created_at', startOfMonth)
+          .lte('created_at', endOfMonth);
+
+      isEligibleForAI.value = count >= 10;
+    } catch (e) {
+      print('Error checking eligibility: $e');
+      isEligibleForAI.value = false;
+    }
+  }
+
+  Future<void> fetchMonthlyInsight() async {
+    try {
+      aiInsight.value = ''; // Reset first
+      final month = focusedMonth.value;
+      final period = "${month.year}-${month.month.toString().padLeft(2, '0')}";
 
       final response = await _supabase
           .from('habit_ai_insights')
           .select()
           .eq('habit_id', habitId)
-          .eq('period', period);
+          .eq('period', period)
+          .order('created_at', ascending: false);
 
-      aiQuotaUsed.value = (response as List).length;
+      // Quota is technically "insights generated this month".
+      // But for historical view, we just want to know if *an insight* exists to show it.
+      // If we want to allow re-generating historical months, we need to check if quota allows it.
+      // The user requested: "selalu tampilkan riwayat... jika sudah pernah ter generate".
 
-      // Check for existing insight for this month to display immediately?
-      if (aiQuotaUsed.value > 0) {
-        // Load the latest one
+      // Let's count how many generated for this specific period
+      final count = (response as List).length;
+      aiQuotaUsed.value = count;
 
-        // Better to sort by created_at desc
-        (response as List).sort(
-          (a, b) => DateTime.parse(
-            b['created_at'],
-          ).compareTo(DateTime.parse(a['created_at'])),
-        );
-        if (response.isNotEmpty) {
-          aiInsight.value = response[0]['content'];
-        }
+      if (response.isNotEmpty) {
+        aiInsight.value = response[0]['content'];
       }
     } catch (e) {
-      print('Error fetching AI quota: $e');
+      print('Error fetching AI insight: $e');
     }
   }
 
@@ -96,15 +136,17 @@ class HabitJournalController extends GetxController {
         59,
       ).toIso8601String();
 
-      final count = await _supabase
+      await _supabase
           .from('habit_journals')
           .count(CountOption.exact)
           .eq('habit_id', habitId)
           .gte('created_at', startOfMonth)
           .lte('created_at', endOfMonth);
 
-      // Update eligibility based on total count THIS MONTH
-      isEligibleForAI.value = count >= 10;
+      // We still update eligibility here for the current list view,
+      // but _checkMonthlyEligibility handles the specific month context.
+      // To avoid conflict, let's trust _checkMonthlyEligibility which is called on init/month change.
+      // isEligibleForAI.value = count >= 10;
 
       final response = await _supabase
           .from('habit_journals')
@@ -353,12 +395,16 @@ class HabitJournalController extends GetxController {
       aiInsight.value = "";
 
       // 1. Prepare Data
-      // Fetch ALL journals for the current month directly from DB
-      final now = DateTime.now();
-      final startOfMonth = DateTime(now.year, now.month, 1).toIso8601String();
+      // Use focusedMonth instead of now()
+      final month = focusedMonth.value;
+      final startOfMonth = DateTime(
+        month.year,
+        month.month,
+        1,
+      ).toIso8601String();
       final endOfMonth = DateTime(
-        now.year,
-        now.month + 1,
+        month.year,
+        month.month + 1,
         0,
         23,
         59,
@@ -412,7 +458,7 @@ class HabitJournalController extends GetxController {
       final prompt =
           '''
       Kamu adalah 'Coach Strik', AI habit coach pribadi di aplikasi Strik.
-      Tugas kamu adalah menganalisis jurnal habit user BULAN INI dan memberikan insight yang personal, suportif, dan actionable.
+      Tugas kamu adalah menganalisis jurnal habit user untuk BULAN ${month.year}-${month.month} dan memberikan insight yang personal, suportif, dan actionable.
 
       Disclaimer: Jangan pernah menggunakan kata "gue", "lo", "anda". Gunakan "Aku" (sebagai Coach) dan "Kamu".
       Panggil user dengan namanya: "$userName".
@@ -473,8 +519,8 @@ class HabitJournalController extends GetxController {
           aiInsight.value = content;
 
           // 3. Save to DB
-          final now = DateTime.now();
-          final period = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+          final period =
+              "${month.year}-${month.month.toString().padLeft(2, '0')}";
           final userId = _supabase.auth.currentUser!.id;
 
           await _supabase.from('habit_ai_insights').insert({

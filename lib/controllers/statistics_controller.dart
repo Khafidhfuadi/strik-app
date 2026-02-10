@@ -199,8 +199,8 @@ class StatisticsController extends GetxController {
 
       _processData();
 
-      // Fetch today's AI insight if exists
-      _fetchTodayAiInsight();
+      // Fetch latest AI insight
+      _fetchLatestAiInsight();
     } catch (e) {
       Get.snackbar('Error', 'Gagal ambil data statistik: $e');
     } finally {
@@ -208,25 +208,26 @@ class StatisticsController extends GetxController {
     }
   }
 
-  Future<void> _fetchTodayAiInsight() async {
+  Future<void> _fetchLatestAiInsight() async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
-      final today = DateTime.now().toIso8601String().split('T')[0];
-
+      // Fetch the LATEST insight, regardless of date.
+      // Since we are replacing data, there should ideally be only one or we grab the last inserted.
       final response = await Supabase.instance.client
           .from('ai_coach_messages')
           .select('message')
           .eq('user_id', user.id)
-          .eq('date', today)
+          .order('created_at', ascending: false)
+          .limit(1)
           .maybeSingle();
 
       if (response != null) {
         aiInsight.value = response['message'] as String;
       }
     } catch (e) {
-      print('Error fetching today insight: $e');
+      print('Error fetching latest insight: $e');
     }
   }
 
@@ -421,6 +422,13 @@ class StatisticsController extends GetxController {
       return;
     }
 
+    // Check Quota
+    if (aiQuotaUsed.value >= aiQuotaLimit) {
+      aiInsight.value =
+          "Kuota Coach Strik abis nih bulan ini (Maks 10x). Balik lagi bulan depan ya! 📅❌";
+      return;
+    }
+
     // Try Gemini First
     // Try OpenRouter AI First
     final apiKey = dotenv.env['OPENROUTER_API_KEY'];
@@ -560,6 +568,13 @@ class StatisticsController extends GetxController {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
+      // Replace logic: Delete existing messages for this user first
+      await Supabase.instance.client
+          .from('ai_coach_messages')
+          .delete()
+          .eq('user_id', user.id);
+
+      // Insert new message
       await Supabase.instance.client.from('ai_coach_messages').insert({
         'user_id': user.id,
         'message': message,
