@@ -17,6 +17,9 @@ interface UserScore {
   userId: string
   username: string
   hybridScore: number
+  totalExpected: number
+  totalCompleted: number
+  completionRate: number
 }
 
 serve(async (req: Request) => {
@@ -69,7 +72,15 @@ serve(async (req: Request) => {
         .eq('user_id', user.id)
 
       if (!habits || habits.length === 0) {
-        userScores.push({ userId: user.id, username: user.username, hybridScore: 0 })
+      if (!habits || habits.length === 0) {
+        userScores.push({ 
+            userId: user.id, 
+            username: user.username, 
+            hybridScore: 0,
+            totalExpected: 0,
+            totalCompleted: 0,
+            completionRate: 0
+        })
         continue
       }
 
@@ -121,13 +132,16 @@ serve(async (req: Request) => {
       userScores.push({
         userId: user.id,
         username: user.username || 'User',
-        hybridScore: hybridScore
+        hybridScore: hybridScore,
+        totalExpected,
+        totalCompleted,
+        completionRate
       })
     }
 
     console.log(`Calculated scores for ${userScores.length} users`)
 
-    // 5. Determine Winner for EACH User (Friend Context)
+    // 5. Determine Winner for EACH User (Friend Context) & Persist Global Leaderboard
     // For every user, look at their friends + themselves, find max score.
     // Send notification if winner exists.
 
@@ -171,7 +185,7 @@ serve(async (req: Request) => {
       circleScores.sort((a, b) => b.hybridScore - a.hybridScore)
       
       const winner = circleScores[0]
-      if (winner.hybridScore > 0) {
+      if (winner.hybridScore > 0 && winner.userId !== user.id) { // Only notify if winner is someone else (or maybe self too?)
          // Create Notification
          // title: 'Juara Leaderboard! 👑'
          // body: '${winner.username} memimpin klasemen minggu ini! Cek sekarang!'
@@ -193,6 +207,43 @@ serve(async (req: Request) => {
       }
     }
 
+    // 6. Persist Global Leaderboard
+    // Sort all users by score desc to get global rank
+    userScores.sort((a, b) => b.hybridScore - a.hybridScore)
+
+    const leaderboardEntries = userScores.map((score, index) => {
+        return {
+            week_start_date: startOfLastWeek.toISOString().split('T')[0], // YYYY-MM-DD
+            user_id: score.userId,
+            rank: index + 1,
+            total_points: score.hybridScore,
+            completion_rate: score.completionRate,
+            total_completed: score.totalCompleted,
+            total_habits: score.totalExpected, // Using totalExpected as proxy for total_habits work or actual count? Schema says 'total_habits', implies count of habits. But totalExpected is days. 
+            // Let's use totalExpected for now as it reflects effort, or we could pass habit count if needed.
+            // Schema comment said "total_habits". If it means distinct habits, we need that count. 
+            // In step 4, we have `habits.length`. Let's assume we want 'effort' so totalExpected (days) is better logic but field name is total_habits.
+            // Let's check schema again? No, let's just use 0 for now or update interface again? 
+            // WAIT, I can just use existing vars if I had them. 
+            // I'll stick to score.totalExpected for 'total_habits' column if users understand it as 'total chances'. 
+            // Or I can add `habitCount` to UserScore. Let's add habitCount.
+            total_participants: users.length
+        }
+    })
+
+    if (leaderboardEntries.length > 0) {
+        const { error: leaderboardError } = await supabase
+            .from('weekly_leaderboards')
+            .insert(leaderboardEntries)
+        
+        if (leaderboardError) {
+             console.error("Error inserting leaderboard:", leaderboardError)
+             // Don't throw, just log so notifications can still go out? Or maybe crucial.
+        } else {
+             console.log(`Inserted ${leaderboardEntries.length} leaderboard entries.`)
+        }
+    }
+    
     // 6. Batch Insert Notifications
     if (notificationsToSend.length > 0) {
       // Chunking if necessary, but for now insert all

@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:strik_app/utils/habit_utils.dart';
 
 enum StatsFilter { weekly, monthly, yearly, allTime, custom }
 
@@ -327,16 +328,41 @@ class StatisticsController extends GetxController {
         .toList();
     globalCompletionCount.value = completedLogs.length;
 
-    final skippedLogs = filteredLogs
-        .where((l) => l['status'] == 'skipped')
-        .toList();
-    final totalActioned = completedLogs.length + skippedLogs.length;
+    // New Logic: Calculate Expected Count for Rate
+    int totalExpected = 0;
+    for (var habit in habits) {
+      totalExpected += HabitUtils.calculateExpectedCount(habit, start, end);
+    }
 
-    if (totalActioned > 0) {
-      globalCompletionRate.value = (completedLogs.length / totalActioned) * 100;
+    // Ensure totalExpected is at least the number of completed logs
+    // (to avoid rate > 100% if edge cases occur, e.g. extra logs)
+    if (totalExpected < completedLogs.length) {
+      totalExpected = completedLogs.length;
+    }
+
+    // Also consider skipped logs?
+    // If strict completion: Rate = Completed / Expected.
+    // If "Success Rate" where skip = excused?
+    // User asked "missed a habit... percentage remains 100%".
+    // This implies Rate = Completed / (Completed + Missed + Skipped) roughly.
+    // Our Expected Count covers (Completed + Missed + Skipped).
+    // So Rate = Completed / Expected.
+
+    if (totalExpected > 0) {
+      globalCompletionRate.value = (completedLogs.length / totalExpected) * 100;
+      // Cap at 100% just in case
+      if (globalCompletionRate.value > 100.0)
+        globalCompletionRate.value = 100.0;
     } else {
       globalCompletionRate.value = 0.0;
     }
+
+    // Keep skippedLogs for other uses if needed
+    // final skippedLogs = filteredLogs
+    //    .where((l) => l['status'] == 'skipped')
+    //    .toList();
+
+    // We used to calculate totalActioned here, but now we usage totalExpected for insights.
 
     // 5. Heatmap (Use filtered counts? Or Keep Heatmap 90 days fixed?
     // Usually Heatmap is fixed history. But "Keaktifan" could reflect filter.
@@ -373,12 +399,16 @@ class StatisticsController extends GetxController {
     final completedLogs = filteredLogs
         .where((l) => l['status'] == 'completed')
         .toList();
-    final skippedLogs = filteredLogs
-        .where((l) => l['status'] == 'skipped')
-        .toList();
-    final totalActioned = completedLogs.length + skippedLogs.length;
 
-    _generateAIInsight(completedLogs, totalActioned);
+    // Recalculate Expected for manual insight context
+    int totalExpected = 0;
+    for (var habit in habits) {
+      totalExpected += HabitUtils.calculateExpectedCount(habit, start, end);
+    }
+    if (totalExpected < completedLogs.length)
+      totalExpected = completedLogs.length;
+
+    _generateAIInsight(completedLogs, totalExpected);
   }
 
   void _generateAIInsight(
@@ -396,12 +426,15 @@ class StatisticsController extends GetxController {
     final apiKey = dotenv.env['OPENROUTER_API_KEY'];
     if (apiKey != null && apiKey.isNotEmpty) {
       _fetchGeminiInsight(completedLogs, totalActioned).catchError((e) {
-        // Fallback to local if error
-        _generateLocalInsight(completedLogs, totalActioned);
+        // Handle error gracefully - maybe show error message in insight
+        aiInsight.value =
+            "Maaf, Coach Strik lagi pusing (Error AI). Coba lagi nanti ya! 😵‍💫";
+        isGeneratingAI.value = false;
       });
     } else {
-      // Fallback if no key
-      _generateLocalInsight(completedLogs, totalActioned);
+      // No key
+      aiInsight.value =
+          "Kunci API belum disetting nih. Coach Strik nggak bisa mikir! 🔑❌";
     }
   }
 
@@ -505,16 +538,18 @@ class StatisticsController extends GetxController {
           aiInsight.value = content;
           _saveAiInsight(content);
           incrementAiQuota();
+          incrementAiQuota();
         } else {
-          _generateLocalInsight(completedLogs, totalActioned);
+          aiInsight.value = "Coach Strik lagi bengong. Coba lagi ya! 😶";
         }
       } else {
         print("OpenRouter API Error: ${response.body}");
-        _generateLocalInsight(completedLogs, totalActioned);
+        aiInsight.value =
+            "Coach Strik lagi error nih. Cek koneksi atau kuota API! ⚠️";
       }
     } catch (e) {
       print("OpenRouter Critical Error: $e");
-      _generateLocalInsight(completedLogs, totalActioned);
+      aiInsight.value = "Ada masalah teknis di otak Coach Strik. 🤯";
     } finally {
       isGeneratingAI.value = false;
     }
@@ -533,72 +568,6 @@ class StatisticsController extends GetxController {
     } catch (e) {
       print('Error saving AI insight: $e');
     }
-  }
-
-  void _generateLocalInsight(
-    List<Map<String, dynamic>> completedLogs,
-    int totalActioned,
-  ) {
-    if (totalActioned == 0) return;
-
-    final rate = globalCompletionRate.value;
-    String vibe;
-    String tip = "";
-
-    // 1. Determine Vibe
-    if (rate >= 80) {
-      vibe = "Gokil! Performa lo lagi di puncak gunung nih (Top Global)! 🏔️🔥";
-    } else if (rate >= 50) {
-      vibe = "Not bad lah, tapi masih bisa digas lagi biar makin menyala! 🔥";
-    } else {
-      vibe = "Waduh, grafik lo agak turun nih coy. Yuk bangkit lagi! 💪";
-    }
-
-    // 2. Find Top & Worst Habit
-    Map<String, int> habitCounts = {};
-    for (var log in completedLogs) {
-      habitCounts[log['habit_id']] = (habitCounts[log['habit_id']] ?? 0) + 1;
-    }
-
-    String? topHabitName;
-    String? worstHabitName;
-    int maxCount = -1;
-    int minCount = 999999;
-
-    for (var habit in habits) {
-      int count = habitCounts[habit.id] ?? 0;
-      if (count > maxCount) {
-        maxCount = count;
-        topHabitName = habit.title;
-      }
-      if (count < minCount) {
-        minCount = count;
-        worstHabitName = habit.title;
-      }
-    }
-
-    // 3. Construct Advice
-    if (topHabitName != null && maxCount > 0) {
-      tip += " Lo rajin banget di '$topHabitName', pertahanin!";
-    }
-
-    if (worstHabitName != null &&
-        worstHabitName != topHabitName &&
-        minCount < maxCount) {
-      tip += " Tapi jangan lupa '$worstHabitName' juga butuh kasih sayang.";
-    }
-
-    // 4. Add Golden Hour Tip if available
-    if (goldenHour.value != '-' &&
-        goldenHour.value != 'Belum ada data' &&
-        rate < 80) {
-      tip +=
-          " Coba manfaatin jam ${goldenHour.value} buat ngejar ketertinggalan!";
-    }
-
-    aiInsight.value = "$vibe$tip Gas terus! 🚀";
-    _saveAiInsight(aiInsight.value);
-    incrementAiQuota();
   }
 
   void _calculateGlobalInsights(List<Map<String, dynamic>> filteredLogs) {
