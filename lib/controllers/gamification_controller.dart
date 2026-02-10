@@ -629,16 +629,16 @@ class GamificationController extends GetxController {
 
   // Level definitions
   final List<Map<String, dynamic>> levels = [
-    {'level': 1, 'xp': 0, 'name': 'Anak Magang'},
-    {'level': 2, 'xp': 100, 'name': 'Pejuang Rutin'},
-    {'level': 3, 'xp': 200, 'name': 'Konsisten Abiez'},
-    {'level': 4, 'xp': 400, 'name': 'Sepuh'},
-    {'level': 5, 'xp': 700, 'name': 'Jagoran Strik'},
-    {'level': 6, 'xp': 1100, 'name': 'Master of Habit'},
-    {'level': 7, 'xp': 1600, 'name': 'Grandmaster'},
-    {'level': 8, 'xp': 2200, 'name': 'Legend'},
-    {'level': 9, 'xp': 3000, 'name': 'Mythic'},
-    {'level': 10, 'xp': 4000, 'name': 'Immortal'},
+    {'level': 1, 'name': 'Newbie'},
+    {'level': 2, 'name': 'Pejuang Rutin'},
+    {'level': 3, 'name': 'Konsisten Abiez'},
+    {'level': 4, 'name': 'Jagoan Strik'},
+    {'level': 5, 'name': 'Pro'},
+    {'level': 6, 'name': 'Master'},
+    {'level': 7, 'name': 'Veteran'},
+    {'level': 8, 'name': 'Suhu'},
+    {'level': 9, 'name': 'Legend'},
+    {'level': 10, 'name': 'GOAT'},
   ];
 
   String get currentLevelName {

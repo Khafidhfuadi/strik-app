@@ -1,39 +1,43 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Added for HapticFeedback
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
-import 'package:strik_app/controllers/friend_controller.dart';
+
+import 'package:strik_app/controllers/gamification_controller.dart';
+import 'package:strik_app/controllers/update_profile_controller.dart';
 import 'package:strik_app/screens/create_habit_screen.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
-import 'package:strik_app/screens/social_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'package:strik_app/core/theme.dart';
-import 'package:strik_app/widgets/habit_card.dart';
-import 'package:strik_app/widgets/weekly_habit_card.dart';
-import 'package:strik_app/screens/statistics_screen.dart';
+import 'package:strik_app/screens/level_progression_screen.dart';
+import 'package:strik_app/screens/notification_debug_screen.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
-import 'package:strik_app/controllers/update_profile_controller.dart';
 import 'package:strik_app/widgets/custom_text_field.dart';
 import 'package:strik_app/widgets/primary_button.dart';
-import 'package:strik_app/screens/notification_debug_screen.dart';
-import 'package:strik_app/controllers/gamification_controller.dart';
-import 'package:strik_app/screens/level_progression_screen.dart';
-import 'package:strik_app/screens/suhu_home_screen.dart';
+import 'package:strik_app/widgets/legend_particle_background.dart';
+import 'package:strik_app/widgets/weekly_habit_card.dart';
+import 'package:strik_app/data/models/habit.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+// --- Gold Theme Constants ---
+const Color _gold = Color(0xFFFFD700);
+const Color _darkGold = Color(0xFF4B3B00);
+const Color _darkGrey = Color(0xFF1A1A1A);
+const Color _surfaceDark = Color(0xFF1E1E1E);
+
+class SuhuHomeScreen extends StatefulWidget {
+  final Widget bottomNavigationBar;
+
+  const SuhuHomeScreen({super.key, required this.bottomNavigationBar});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<SuhuHomeScreen> createState() => _SuhuHomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class _SuhuHomeScreenState extends State<SuhuHomeScreen>
+    with WidgetsBindingObserver {
   late PageController _pageController;
-
   Timer? _alarmCheckTimer;
 
   @override
@@ -41,13 +45,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     final homeController = Get.find<HomeController>();
-    // Initialize PageController based on current tab
     int initialPage = 0;
     if (homeController.currentTab.value == 'Mingguan') initialPage = 1;
     _pageController = PageController(initialPage: initialPage);
 
     // Periodic check for alarm consistency (every 1 minute)
-    // This helps catch cases where the alarm might handle execution but fail to reschedule
     _alarmCheckTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
       Get.find<HabitController>().checkAlarmConsistency();
     });
@@ -69,6 +71,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  @override
+  void dispose() {
+    _alarmCheckTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      Get.find<HabitController>().checkDailyRefresh();
+    }
+  }
+
+  // --- XP Animation (Gold themed) ---
   void _showXPAnimation(double amount) {
     if (amount == 0) return;
 
@@ -76,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     entry = OverlayEntry(
       builder: (context) {
         return Positioned(
-          top: MediaQuery.of(context).padding.top + 60, // Below header approx
+          top: MediaQuery.of(context).padding.top + 60,
           left: 0,
           right: 0,
           child: Material(
@@ -85,30 +103,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
                 duration: const Duration(milliseconds: 2000),
-                curve: Curves.linear, // Use linear time for simpler control
+                curve: Curves.linear,
                 builder: (context, value, child) {
-                  // 1. Bounce Scale: Fast (first 40% of time)
-                  // 0.0 -> 0.4 mapped to 0.0 -> 1.0 for elastic curve
                   final scaleCurve = const Interval(
                     0.0,
                     0.4,
                     curve: Curves.elasticOut,
                   ).transform(value);
 
-                  // 2. Move Up: Slow & Steady (full duration)
                   final moveCurve = const Interval(
                     0.0,
                     1.0,
                     curve: Curves.easeOutCubic,
                   ).transform(value);
 
-                  // 3. Opacity: Fade out at end (last 20%)
                   double opacity = 1.0;
                   if (value > 0.8) {
                     opacity = (1.0 - value) * 5;
                   }
 
-                  // Format amount
                   String textAmount;
                   if (amount == amount.roundToDouble()) {
                     textAmount = amount.toInt().toString();
@@ -119,29 +132,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   return Opacity(
                     opacity: opacity.clamp(0.0, 1.0),
                     child: Transform.translate(
-                      offset: Offset(0, -60 * moveCurve), // Move up
+                      offset: Offset(0, -60 * moveCurve),
                       child: Transform.scale(
-                        scale: scaleCurve.clamp(
-                          0.0,
-                          2.0,
-                        ), // Prevent extreme overshoot
+                        scale: scaleCurve.clamp(0.0, 2.0),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 24,
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: amount > 0
-                                ? const Color(0xFFFFD700)
-                                : const Color(0xFFFF5757),
+                            color: amount > 0 ? _gold : const Color(0xFFFF5757),
                             borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
                                 color:
                                     (amount > 0
-                                            ? const Color(0xFFFFD700)
+                                            ? _gold
                                             : const Color(0xFFFF5757))
-                                        .withOpacity(0.4),
+                                        .withValues(alpha: 0.4),
                                 blurRadius: 12,
                                 spreadRadius: 2,
                               ),
@@ -187,23 +195,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     Overlay.of(context).insert(entry);
   }
 
-  @override
-  void dispose() {
-    _alarmCheckTimer?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      Get.find<HabitController>().checkDailyRefresh();
-    }
-  }
-
+  // --- Tab Logic ---
   void _onTabChanged(int index) {
-    // Sync tab change from PageView
     final homeController = Get.find<HomeController>();
     final tabs = ['Harian', 'Mingguan'];
     if (index >= 0 && index < tabs.length) {
@@ -212,14 +205,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _onTabTapped(int index) {
-    // 1. Update state IMMEDIATELY for snappy UI
     final homeController = Get.find<HomeController>();
     final tabs = ['Harian', 'Mingguan'];
     if (index >= 0 && index < tabs.length) {
       homeController.currentTab.value = tabs[index];
     }
-
-    // 2. Animate PageView
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
@@ -227,77 +217,53 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ==========================================================================
+  // BUILD
+  // ==========================================================================
   @override
   Widget build(BuildContext context) {
     final HabitController controller = Get.find();
     final HomeController homeController = Get.find();
     final GamificationController gamificationController = Get.find();
 
-    return Obx(() {
-      final navBar = _buildBottomNavigationBar(homeController);
-
-      if (homeController.selectedIndex.value == 1) {
-        return SocialScreen(bottomNavigationBar: navBar);
-      }
-
-      if (homeController.selectedIndex.value == 2) {
-        return Scaffold(
-          body: const StatisticsScreen(),
-          bottomNavigationBar: navBar,
-        );
-      }
-
-      // Check Suhu Status (Level 8+)
-      if (gamificationController.currentLevel.value >= 8) {
-        return SuhuHomeScreen(bottomNavigationBar: navBar);
-      }
-
-      return Scaffold(
-        backgroundColor: AppTheme.background,
-        appBar: AppBar(
-          title: Row(
-            children: [
-              Text(
-                'Strik',
-                style: const TextStyle(
-                  fontFamily: 'Space Grotesk',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 28,
-                  color: Colors.white,
-                ),
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // 1. Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [_darkGold, _darkGrey, Colors.black],
+                stops: [0.0, 0.4, 1.0],
               ),
-              const SizedBox(width: 4),
-              Lottie.asset(
-                'assets/src/strik-logo.json',
-                width: 35,
-                height: 35,
-                repeat: false,
-              ),
-            ],
+            ),
           ),
-          backgroundColor: AppTheme.background,
-          elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.filter_list, color: Colors.white),
-              onPressed: () => _showFilterBottomSheet(context),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add, color: Colors.white),
-              onPressed: () => _navigateAndRefresh(context),
-            ),
-            //profile icon
-            IconButton(
-              icon: const Icon(Icons.manage_accounts, color: Colors.white),
-              onPressed: () => _showProfileBottomSheet(context),
-            ),
-          ],
-        ),
-        body: controller.isLoading.value
-            ? const Center(child: CustomLoadingIndicator())
-            : Column(
+
+          // 2. Particles
+          const Positioned.fill(child: LegendParticleBackground()),
+
+          // 3. Content
+          SafeArea(
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return Column(
+                  children: [
+                    _buildAppBar(context),
+                    const Expanded(
+                      child: Center(child: CustomLoadingIndicator()),
+                    ),
+                  ],
+                );
+              }
+              return Column(
                 children: [
-                  _buildGamificationHeader(gamificationController),
+                  _buildAppBar(context),
+                  _buildSuhuHeader(gamificationController),
+
                   // Tab Bar
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -319,21 +285,98 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       controller: _pageController,
                       onPageChanged: _onTabChanged,
                       children: [
-                        // Today Page
                         _buildTodayPage(controller),
-                        // Weekly Page
                         _buildWeeklyList(controller),
                       ],
                     ),
                   ),
                 ],
-              ),
-        bottomNavigationBar: navBar,
-      );
-    });
+              );
+            }),
+          ),
+        ],
+      ),
+      bottomNavigationBar: widget.bottomNavigationBar,
+    );
   }
 
-  Widget _buildGamificationHeader(GamificationController controller) {
+  // ==========================================================================
+  // APP BAR
+  // ==========================================================================
+  Widget _buildAppBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Strik',
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  foreground: Paint()
+                    ..shader = const LinearGradient(
+                      colors: [_gold, Color(0xFFFFF8E7)],
+                    ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+                  shadows: [
+                    BoxShadow(
+                      color: _gold.withValues(alpha: 0.5),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Lottie.asset(
+                'assets/src/strik-logo.json',
+                width: 35,
+                height: 35,
+                repeat: false,
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              _buildIconButton(
+                Icons.filter_list,
+                () => _showFilterBottomSheet(context),
+              ),
+              const SizedBox(width: 8),
+              _buildIconButton(Icons.add, () => _navigateAndRefresh(context)),
+              const SizedBox(width: 8),
+              _buildIconButton(
+                Icons.manage_accounts,
+                () => _showProfileBottomSheet(context),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconButton(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: _gold.withValues(alpha: 0.3)),
+        ),
+        child: Icon(icon, color: _gold, size: 20),
+      ),
+    );
+  }
+
+  // ==========================================================================
+  // SUHU HEADER (Gamification)
+  // ==========================================================================
+  Widget _buildSuhuHeader(GamificationController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: GestureDetector(
@@ -344,25 +387,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            gradient: LinearGradient(
+              colors: [
+                _gold.withValues(alpha: 0.15),
+                Colors.black.withValues(alpha: 0.5),
+              ],
+            ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: _gold.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: _gold.withValues(alpha: 0.1),
+                blurRadius: 15,
+                spreadRadius: 1,
+              ),
+            ],
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFD700).withOpacity(0.2),
                   shape: BoxShape.circle,
+                  border: Border.all(color: _gold, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _gold.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                    ),
+                  ],
                 ),
-                child: const Icon(
-                  Icons.bolt_rounded,
-                  color: Color(0xFFFFD700),
-                  size: 24,
+                child: const Center(
+                  child: Icon(Icons.star_rounded, color: _gold, size: 30),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,19 +431,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${controller.currentLevelName} (Lvl ${controller.currentLevel})',
+                          '${controller.currentLevelName.toUpperCase()} (Lvl ${controller.currentLevel})',
                           style: const TextStyle(
                             fontFamily: 'Space Grotesk',
-                            color: Colors.white,
+                            color: _gold,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 18,
+                            letterSpacing: 1.2,
                           ),
                         ),
                         Text(
                           '${controller.currentXP == controller.currentXP.roundToDouble() ? controller.currentXP.toInt() : controller.currentXP} / ${controller.xpToNextLevel} XP',
                           style: TextStyle(
                             fontFamily: 'Plus Jakarta Sans',
-                            color: Colors.grey[400],
+                            color: _gold.withValues(alpha: 0.8),
                             fontSize: 12,
                           ),
                         ),
@@ -399,8 +460,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         builder: (context, value, child) {
                           return LinearProgressIndicator(
                             value: value,
-                            backgroundColor: Colors.grey[800],
-                            color: const Color(0xFFFFD700),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.1,
+                            ),
+                            color: _gold,
                             minHeight: 6,
                           );
                         },
@@ -416,6 +479,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ==========================================================================
+  // TAB CHIP
+  // ==========================================================================
   Widget _buildTabChip(String label, int index, HomeController homeController) {
     return GestureDetector(
       onTap: () => _onTabTapped(index),
@@ -426,14 +492,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? Colors.grey[900] : Colors.transparent,
+            color: isActive ? _gold.withValues(alpha: 0.2) : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
+            border: isActive
+                ? Border.all(color: _gold.withValues(alpha: 0.5))
+                : null,
           ),
           child: Text(
             label,
             style: TextStyle(
               fontFamily: 'Plus Jakarta Sans',
-              color: isActive ? Colors.white : Colors.grey[600],
+              color: isActive ? _gold : Colors.grey[600],
               fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -442,6 +511,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ==========================================================================
+  // TODAY PAGE
+  // ==========================================================================
   Widget _buildTodayPage(HabitController controller) {
     return Column(
       children: [
@@ -452,8 +524,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               LinearProgressIndicator(
                 value: controller.todayProgress,
-                backgroundColor: Colors.grey[800],
-                color: const Color(0xFFFF5757),
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                color: _gold,
                 minHeight: 8,
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -462,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 '${controller.todayLogs.values.where((s) => s == 'completed').length} kelar • ${controller.todayLogs.values.where((s) => s == 'skipped').length} skip',
                 style: TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
-                  color: Colors.grey[500],
+                  color: _gold.withValues(alpha: 0.7),
                   fontSize: 14,
                 ),
               ),
@@ -474,20 +546,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ==========================================================================
+  // TODAY LIST (with empty states, RefreshIndicator, swipe)
+  // ==========================================================================
   Widget _buildTodayList(HabitController controller) {
-    // Check if there are any habits scheduled for today at all
+    // No habits at all
     if (controller.habitsForToday.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
+        color: _gold,
+        backgroundColor: Colors.black,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.6,
-              child: const Center(
+              child: Center(
                 child: Text(
                   'Belum ada habit nih, gass bikin!',
-                  style: TextStyle(color: Colors.white54),
+                  style: TextStyle(color: _gold.withValues(alpha: 0.5)),
                 ),
               ),
             ),
@@ -498,12 +575,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final habits = controller.sortedHabits;
 
-    // Check if all habits are completed and hidden
+    // All done state
     if (habits.isEmpty &&
         controller.isAllHabitsCompletedForToday &&
         !controller.showCompleted.value) {
       return RefreshIndicator(
         onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
+        color: _gold,
+        backgroundColor: Colors.black,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -520,10 +599,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       repeat: false,
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Mantap! Semua habit hari ini udah kelar 🎉',
+                    Text(
+                      'Mantap! Semua habit hari ini udah kelar',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: _gold.withValues(alpha: 0.9),
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -539,12 +618,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return RefreshIndicator(
       onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
+      color: _gold,
+      backgroundColor: Colors.black,
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: habits.length,
         itemBuilder: (context, index) {
           final habit = habits[index];
-
           return Obx(() {
             final status = controller.todayLogs[habit.id];
             return Padding(
@@ -554,19 +634,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Dismissible(
                   key: Key(habit.id!),
                   confirmDismiss: (direction) async {
-                    HapticFeedback.lightImpact();
+                    HapticFeedback.heavyImpact();
                     await controller.toggleHabitStatus(
                       habit,
                       status,
                       direction,
                     );
-                    return false; // Toggle handled in controller
+                    return false;
                   },
                   background: _buildSwipeBackground(
                     Alignment.centerLeft,
                     status == 'completed' ? Icons.undo : Icons.check,
                     status == 'completed' ? 'batalin' : 'sikat',
-                    AppTheme.primary,
+                    _gold,
                     Colors.black,
                   ),
                   secondaryBackground: _buildSwipeBackground(
@@ -576,7 +656,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     const Color(0xFFFF5757),
                     Colors.white,
                   ),
-                  child: HabitCard(
+                  child: SuhuHabitCard(
                     habit: habit,
                     status: status,
                     onTap: () => Get.to(() => HabitDetailScreen(habit: habit)),
@@ -590,6 +670,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ==========================================================================
+  // SWIPE BACKGROUND (pill design, same as HomeScreen)
+  // ==========================================================================
   Widget _buildSwipeBackground(
     Alignment alignment,
     IconData icon,
@@ -598,17 +681,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     Color textColor,
   ) {
     return Container(
-      // Outer container is transparent
       alignment: alignment,
-      // Add padding to create a "gap" between the card and the pill background
       padding: alignment == Alignment.centerLeft
           ? const EdgeInsets.only(right: 20)
           : const EdgeInsets.only(left: 20),
       child: Container(
-        // The Pill shape
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(100), // Fully rounded pill
+          borderRadius: BorderRadius.circular(100),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -638,6 +718,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ==========================================================================
+  // WEEKLY LIST (with empty state, RefreshIndicator)
+  // ==========================================================================
   Widget _buildWeeklyList(HabitController controller) {
     final now = DateTime.now();
     final currentWeekday = now.weekday;
@@ -646,15 +729,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (controller.habits.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
+        color: _gold,
+        backgroundColor: Colors.black,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.6,
-              child: const Center(
+              child: Center(
                 child: Text(
                   'Belum ada habit nih!',
-                  style: TextStyle(color: Colors.white54),
+                  style: TextStyle(color: _gold.withValues(alpha: 0.5)),
                 ),
               ),
             ),
@@ -665,6 +750,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return RefreshIndicator(
       onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
+      color: _gold,
+      backgroundColor: Colors.black,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
@@ -673,10 +760,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           final habit = controller.habits[index];
           return Obx(() {
             final logs = controller.weeklyLogs[habit.id] ?? {};
-            return WeeklyHabitCard(
-              habit: habit,
-              weeklyLogs: logs,
-              weekStart: weekStart,
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _gold.withValues(alpha: 0.3)),
+                color: Colors.black.withValues(alpha: 0.5),
+              ),
+              child: WeeklyHabitCard(
+                habit: habit,
+                weeklyLogs: logs,
+                weekStart: weekStart,
+              ),
             );
           });
         },
@@ -684,69 +779,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildBottomNavigationBar(HomeController homeController) {
-    return BottomNavigationBar(
-      backgroundColor: AppTheme.surface,
-      selectedItemColor: AppTheme.primary,
-      unselectedItemColor: Colors.white54,
-      currentIndex: homeController.selectedIndex.value,
-      onTap: (index) {
-        HapticFeedback.lightImpact();
-        homeController.selectedIndex.value = index;
-        // Clear red dot when entering Social tab
-        if (index == 1 && Get.isRegistered<FriendController>()) {
-          Get.find<FriendController>().clearSocialDot();
-        }
-      },
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: [
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.grid_view_rounded),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Obx(() {
-            final hasNew =
-                Get.isRegistered<FriendController>() &&
-                Get.find<FriendController>().hasNewSocialActivity.value;
-            return Badge(
-              isLabelVisible: hasNew,
-              backgroundColor: Colors.red,
-              smallSize: 8,
-              child: const Icon(Icons.wc_rounded),
-            );
-          }),
-          label: 'Social',
-        ),
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart_rounded),
-          label: 'Stats',
-        ),
-      ],
-    );
-  }
-
+  // ==========================================================================
+  // NAVIGATION
+  // ==========================================================================
   void _navigateAndRefresh(BuildContext context) async {
     await Get.to(() => const CreateHabitScreen());
     Get.find<HabitController>().fetchHabitsAndLogs(isRefresh: true);
   }
 
+  // ==========================================================================
+  // PROFILE BOTTOM SHEET (full: avatar, email, edit profile, alarm, logout)
+  // ==========================================================================
   void _showProfileBottomSheet(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
     final metadata = user?.userMetadata;
     final username =
         metadata?['username'] ?? user?.email?.split('@')[0] ?? 'User';
     final email = user?.email ?? '-';
-    // Use avatar_url if available, otherwise null
     final avatarUrl = metadata?['avatar_url'] as String?;
 
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: _surfaceDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: _gold.withValues(alpha: 0.5))),
+          boxShadow: [
+            BoxShadow(
+              color: _gold.withValues(alpha: 0.1),
+              blurRadius: 20,
+              spreadRadius: 10,
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -757,36 +822,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: _gold.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 24),
 
-            // Avatar
+            // Avatar with Gold Border
             Container(
               width: 80,
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.primary.withValues(alpha: 0.2),
-                border: Border.all(color: AppTheme.primary, width: 2),
+                color: Colors.black,
+                border: Border.all(color: _gold, width: 2),
                 image: avatarUrl != null
                     ? DecorationImage(
                         image: NetworkImage(avatarUrl),
                         fit: BoxFit.cover,
                       )
                     : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: _gold.withValues(alpha: 0.4),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: avatarUrl == null
                   ? Center(
                       child: Text(
                         username.substring(0, 1).toUpperCase(),
                         style: const TextStyle(
-                          fontFamily: 'Outfit',
+                          fontFamily: 'Space Grotesk',
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primary,
+                          color: _gold,
                         ),
                       ),
                     )
@@ -801,7 +872,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 fontFamily: 'Outfit',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: _gold,
               ),
             ),
             const SizedBox(height: 4),
@@ -815,15 +886,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
 
             const SizedBox(height: 24),
-            const Divider(color: Colors.white10),
+            Divider(color: _gold.withValues(alpha: 0.2)),
             const SizedBox(height: 8),
 
-            // Edit Profile (Placeholder)
+            // Edit Profile
             ListTile(
-              leading: const Icon(Icons.edit_rounded, color: Colors.white),
-              title: Text(
+              leading: const Icon(Icons.edit_rounded, color: _gold),
+              title: const Text(
                 'Edit Profil',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Inter',
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
@@ -834,17 +905,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 color: Colors.white54,
               ),
               onTap: () {
-                Get.back(); // Close view profile sheet
+                Get.back();
                 _showEditProfileBottomSheet(context);
               },
             ),
 
             // Alarm Schedule
             ListTile(
-              leading: const Icon(Icons.alarm),
-              title: Text(
+              leading: const Icon(Icons.alarm, color: _gold),
+              title: const Text(
                 'Alarm Mendatang',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Space Grotesk',
                   color: Colors.white,
                   fontWeight: FontWeight.w500,
@@ -855,7 +926,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 color: Colors.white54,
               ),
               onTap: () {
-                Get.back(); // Close profile sheet
+                Get.back();
                 Get.to(() => const AlarmManagementScreen());
               },
             ),
@@ -866,9 +937,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Icons.logout_rounded,
                 color: Color(0xFFEF4444),
               ),
-              title: Text(
+              title: const Text(
                 'Logout',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Inter',
                   color: Color(0xFFEF4444),
                   fontWeight: FontWeight.w500,
@@ -888,6 +959,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ==========================================================================
+  // EDIT PROFILE BOTTOM SHEET (full: avatar picker, username edit)
+  // ==========================================================================
   void _showEditProfileBottomSheet(BuildContext context) {
     final updateController = Get.put(UpdateProfileController());
     final user = Supabase.instance.client.auth.currentUser;
@@ -897,9 +971,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: _surfaceDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: _gold.withValues(alpha: 0.5))),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -910,19 +985,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: _gold.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'Edit Profil',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Outfit',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: _gold,
               ),
             ),
             const SizedBox(height: 24),
@@ -939,8 +1014,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     height: 100,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppTheme.primary.withValues(alpha: 0.2),
-                      border: Border.all(color: AppTheme.primary, width: 2),
+                      color: _gold.withValues(alpha: 0.2),
+                      border: Border.all(color: _gold, width: 2),
                       image: selectedImage != null
                           ? DecorationImage(
                               image: FileImage(selectedImage),
@@ -956,7 +1031,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: selectedImage == null && currentAvatarUrl == null
                         ? const Icon(
                             Icons.add_a_photo_rounded,
-                            color: AppTheme.primary,
+                            color: _gold,
                             size: 32,
                           )
                         : Stack(
@@ -967,7 +1042,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 child: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: const BoxDecoration(
-                                    color: AppTheme.primary,
+                                    color: _gold,
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -987,10 +1062,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Center(
               child: Text(
                 'Tap untuk ubah foto',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 12,
-                  color: Colors.white54,
+                  color: _gold.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -1009,7 +1084,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 isLoading: updateController.isLoading.value,
               ),
             ),
-            const SizedBox(height: 16), // Padding for bottom safe area
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -1018,15 +1093,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ==========================================================================
+  // FILTER BOTTOM SHEET
+  // ==========================================================================
   void _showFilterBottomSheet(BuildContext context) {
     final controller = Get.find<HabitController>();
 
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: _surfaceDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: _gold.withValues(alpha: 0.5))),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1037,19 +1116,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: _gold.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'Filter Habit',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Outfit',
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: _gold,
               ),
             ),
             const SizedBox(height: 24),
@@ -1064,7 +1143,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 value: controller.showCompleted.value,
                 onChanged: (val) => controller.showCompleted.value = val,
-                activeThumbColor: AppTheme.primary,
+                activeThumbColor: _gold,
                 contentPadding: EdgeInsets.zero,
               ),
             ),
@@ -1079,7 +1158,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 value: controller.showSkipped.value,
                 onChanged: (val) => controller.showSkipped.value = val,
-                activeThumbColor: AppTheme.primary,
+                activeThumbColor: _gold,
                 contentPadding: EdgeInsets.zero,
               ),
             ),
@@ -1091,6 +1170,90 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+    );
+  }
+}
+
+// =============================================================================
+// SUHU HABIT CARD (Premium Gold themed)
+// =============================================================================
+class SuhuHabitCard extends StatelessWidget {
+  final Habit habit;
+  final String? status;
+  final VoidCallback onTap;
+
+  const SuhuHabitCard({
+    super.key,
+    required this.habit,
+    this.status,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompleted = status == 'completed';
+    final isSkipped = status == 'skipped';
+
+    Color glowColor = Colors.white.withValues(alpha: 0.1);
+    if (isCompleted) glowColor = _gold;
+    if (isSkipped) glowColor = Colors.redAccent;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCompleted ? _gold : Colors.white12,
+            width: isCompleted ? 2 : 1,
+          ),
+          boxShadow: isCompleted
+              ? [
+                  BoxShadow(
+                    color: glowColor.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          children: [
+            // Custom Checkbox
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isCompleted ? _gold : Colors.transparent,
+                border: Border.all(color: isCompleted ? _gold : Colors.white54),
+              ),
+              child: isCompleted
+                  ? const Icon(Icons.check, size: 16, color: Colors.black)
+                  : isSkipped
+                  ? const Icon(Icons.close, size: 16, color: Colors.redAccent)
+                  : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                habit.title,
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  color: isCompleted ? Colors.grey : Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  decoration: isCompleted ? TextDecoration.lineThrough : null,
+                  decorationColor: _gold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
