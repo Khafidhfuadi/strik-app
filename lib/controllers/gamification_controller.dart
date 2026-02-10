@@ -8,8 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class LevelBenefits {
   final int level;
   final double completeHabit;
-  final double
-  skipHabit; // Penalty is usually negative in logic, but let's store magnitude or value
+  final double skipHabit;
   final double newMomentz;
   final double react;
   final double newHabit;
@@ -95,7 +94,7 @@ class GamificationController extends GetxController {
           newHabit: 40,
         );
       case 10:
-      default: // Cap at level 10 rewards for now
+      default:
         return const LevelBenefits(
           level: 10,
           completeHabit: 12,
@@ -107,19 +106,19 @@ class GamificationController extends GetxController {
     }
   }
 
-  int getXPReward(String actionType) {
+  double getXPReward(String actionType) {
     final benefits = getBenefitsForLevel(currentLevel.value);
     switch (actionType) {
       case 'complete_habit':
-        return benefits.completeHabit.round();
+        return benefits.completeHabit;
       case 'skip_habit':
-        return benefits.skipHabit.round(); // Returns negative
+        return benefits.skipHabit;
       case 'new_habit':
-        return benefits.newHabit.round();
+        return benefits.newHabit;
       case 'new_momentz':
-        return benefits.newMomentz.round();
+        return benefits.newMomentz;
       case 'react_momentz':
-        return benefits.react.round();
+        return benefits.react;
       default:
         return 0;
     }
@@ -132,12 +131,14 @@ class GamificationController extends GetxController {
       if (type == 'new_momentz') reason = 'New Momentz';
       if (type == 'react_momentz') reason = 'Reaction';
       if (type == 'new_habit') reason = 'New Habit';
+      if (type == 'complete_habit') reason = 'Completed Habit';
+      if (type == 'skip_habit') reason = 'Skipped Habit';
 
       await awardXP(amount, reason: reason);
     }
   }
 
-  var currentXP = 0.obs;
+  var currentXP = 0.0.obs;
   var currentLevel = 1.obs;
   var isLoading = false.obs;
 
@@ -156,7 +157,7 @@ class GamificationController extends GetxController {
         checkAndShowGamificationIntro();
       } else if (event == AuthChangeEvent.signedOut) {
         // Reset state on logout
-        currentXP.value = 0;
+        currentXP.value = 0.0;
         currentLevel.value = 1;
         isLoading.value = false;
       }
@@ -166,7 +167,7 @@ class GamificationController extends GetxController {
   Future<void> fetchGamificationData() async {
     final user = supabase.auth.currentUser;
     if (user == null) {
-      currentXP.value = 0;
+      currentXP.value = 0.0;
       currentLevel.value = 1;
       return;
     }
@@ -187,11 +188,14 @@ class GamificationController extends GetxController {
 
   Future<void> checkAndShowGamificationIntro() async {
     final user = supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      print('DEBUG: No user found for gamification intro check');
+      return;
+    }
 
-    // Check user_metadata usually contains 'has_seen_gamification_intro'
     final metadata = user.userMetadata;
     final hasSeenIntro = metadata?['has_seen_gamification_intro'] == true;
+    print('DEBUG: hasSeenIntro: $hasSeenIntro');
 
     if (hasSeenIntro) return;
 
@@ -203,15 +207,21 @@ class GamificationController extends GetxController {
       print('Error fetching total completed habits: $e');
     }
 
-    final retroactiveXP = totalCompleted * 5;
+    final benefits = getBenefitsForLevel(1);
+    final retroactiveXP = (totalCompleted * benefits.completeHabit).toInt();
 
     // Calculate potential new level
     int calcLevel = 1;
-    int calcXP = retroactiveXP;
+    double calcXP = retroactiveXP.toDouble();
     // Basic calculation loop matching awardXP logic
-    while (calcXP >= (calcLevel * 100)) {
-      calcXP -= (calcLevel * 100);
-      calcLevel++;
+    while (true) {
+      final threshold = getXPThreshold(calcLevel);
+      if (calcXP >= threshold) {
+        // Cumulative: Do NOT subtract threshold
+        calcLevel++;
+      } else {
+        break;
+      }
     }
 
     Get.bottomSheet(
@@ -320,21 +330,21 @@ class GamificationController extends GetxController {
                   _buildRuleItem(
                     Icons.check_circle_outline,
                     'Selesain Habit',
-                    '+5 XP',
+                    '+${benefits.completeHabit.toInt()} XP',
                     Colors.greenAccent,
                   ),
                   const Divider(color: Colors.white10, height: 24),
                   _buildRuleItem(
                     Icons.add_circle_outline,
                     'Bikin Habit Baru',
-                    '+30 XP',
+                    '+${benefits.newHabit.toInt()} XP',
                     Colors.blueAccent,
                   ),
                   const Divider(color: Colors.white10, height: 24),
                   _buildRuleItem(
                     Icons.remove_circle_outline,
                     'Skip / Lupa',
-                    '-5 XP',
+                    '${benefits.skipHabit.toInt()} XP',
                     Colors.redAccent,
                   ),
                 ],
@@ -393,11 +403,48 @@ class GamificationController extends GetxController {
     );
   }
 
-  int get xpToNextLevel => currentLevel.value * 100;
+  int get xpToNextLevel => getXPThreshold(currentLevel.value);
+
+  int getXPThreshold(int level) {
+    switch (level) {
+      case 1:
+        return 100;
+      case 2:
+        return 250;
+      case 3:
+        return 350;
+      case 4:
+        return 500;
+      case 5:
+        return 700;
+      case 6:
+        return 950;
+      case 7:
+        return 1300;
+      case 8:
+        return 1700;
+      case 9:
+        return 2100;
+      case 10:
+      default:
+        return 2500;
+    }
+  }
 
   double get xpProgress {
     if (xpToNextLevel == 0) return 0.0;
-    return currentXP.value / xpToNextLevel;
+
+    // Calculate progress within the current level's range
+    double startXP = (currentLevel.value == 1)
+        ? 0.0
+        : getXPThreshold(currentLevel.value - 1).toDouble();
+    double endXP = getXPThreshold(currentLevel.value).toDouble();
+
+    // Ensure we don't divide by zero if start == end (shouldn't happen with valid thresholds)
+    if (endXP <= startXP) return 1.0;
+
+    double progress = (currentXP.value - startXP) / (endXP - startXP);
+    return progress.clamp(0.0, 1.0);
   }
 
   // Event stream for UI animations
@@ -406,16 +453,21 @@ class GamificationController extends GetxController {
 
   var xpHistory = <Map<String, dynamic>>[].obs;
 
-  Future<void> awardXP(int amount, {String reason = 'Activity'}) async {
-    int newXP = currentXP.value + amount;
+  Future<void> awardXP(double amount, {String reason = 'Activity'}) async {
+    double newXP = currentXP.value + amount;
     int newLevel = currentLevel.value;
     bool leveledUp = false;
 
-    // Check for level up loop (in case of massive XP gain)
-    while (newXP >= (newLevel * 100)) {
-      newXP -= (newLevel * 100);
-      newLevel++;
-      leveledUp = true;
+    // Check for level up loop (Cumulative)
+    while (true) {
+      final threshold = getXPThreshold(newLevel);
+      if (newXP >= threshold) {
+        // Cumulative: Do NOT subtract threshold
+        newLevel++;
+        leveledUp = true;
+      } else {
+        break;
+      }
     }
 
     // Update state
@@ -441,6 +493,23 @@ class GamificationController extends GetxController {
     } catch (e) {
       print('Error updating XP: $e');
     }
+  }
+
+  // DEBUG: Reset intro status for testing
+  Future<void> resetGamificationIntro() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    await supabase.auth.updateUser(
+      UserAttributes(data: {'has_seen_gamification_intro': false}),
+    );
+
+    Get.snackbar(
+      'Debug',
+      'Gamification Intro Reset! Restart app to see it.',
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+    );
   }
 
   Future<void> fetchXPHistory() async {

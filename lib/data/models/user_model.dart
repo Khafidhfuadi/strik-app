@@ -3,7 +3,7 @@ class UserModel {
   final String? username;
   final String? avatarUrl;
   final DateTime createdAt;
-  final int xp;
+  final double xp;
   final int level;
 
   UserModel({
@@ -11,7 +11,7 @@ class UserModel {
     this.username,
     this.avatarUrl,
     required this.createdAt,
-    this.xp = 0,
+    this.xp = 0.0,
     this.level = 1,
   });
 
@@ -21,7 +21,7 @@ class UserModel {
       username: json['username'],
       avatarUrl: json['avatar_url'],
       createdAt: DateTime.parse(json['created_at']).toLocal(),
-      xp: json['xp'] ?? 0,
+      xp: (json['xp'] as num?)?.toDouble() ?? 0.0,
       level: json['level'] ?? 1,
     );
   }
@@ -42,7 +42,7 @@ class UserModel {
     String? username,
     String? avatarUrl,
     DateTime? createdAt,
-    int? xp,
+    double? xp,
     int? level,
   }) {
     return UserModel(

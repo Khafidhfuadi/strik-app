@@ -150,8 +150,10 @@ class HabitController extends GetxController {
           // No log found (neither completed nor skipped)
           // "tidak melakukan aksi apapun" -> Penalty
           try {
-            Get.find<GamificationController>().awardXP(-5);
-            print('Penalized -5 XP for missed habit: ${habit.title} on $date');
+            final gamification = Get.find<GamificationController>();
+            final xp = gamification.getXPReward('skip_habit');
+            gamification.awardXP(xp, reason: 'Missed Habit');
+            print('Penalized $xp XP for missed habit: ${habit.title} on $date');
           } catch (_) {}
         }
       }
@@ -200,22 +202,30 @@ class HabitController extends GetxController {
       if (newStatus == 'completed') {
         // Award XP
         try {
-          Get.find<GamificationController>().awardXP(5);
+          final gamification = Get.find<GamificationController>();
+          final xp = gamification.getXPReward('complete_habit');
+          gamification.awardXP(xp, reason: 'Completed Habit');
         } catch (_) {}
       } else if (newStatus == 'skipped') {
         // Deduct XP for skipping
         try {
-          Get.find<GamificationController>().awardXP(-5);
+          final gamification = Get.find<GamificationController>();
+          final xp = gamification.getXPReward('skip_habit');
+          gamification.awardXP(xp, reason: 'Skipped Habit');
         } catch (_) {}
       } else if (oldStatus == 'completed' && newStatus == null) {
         // Undo completed -> Deduct XP
         try {
-          Get.find<GamificationController>().awardXP(-5);
+          final gamification = Get.find<GamificationController>();
+          final xp = gamification.getXPReward('complete_habit');
+          gamification.awardXP(-xp, reason: 'Undo Completion');
         } catch (_) {}
       } else if (oldStatus == 'skipped' && newStatus == null) {
         // Undo skipped -> Return XP
         try {
-          Get.find<GamificationController>().awardXP(5);
+          final gamification = Get.find<GamificationController>();
+          final xp = gamification.getXPReward('skip_habit');
+          gamification.awardXP(-xp, reason: 'Undo Skip');
         } catch (_) {}
       }
 

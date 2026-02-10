@@ -19,7 +19,7 @@ class GamificationRepository {
     return UserModel.fromJson(response);
   }
 
-  Future<void> updateXPAndLevel(int newXP, int newLevel) async {
+  Future<void> updateXPAndLevel(double newXP, int newLevel) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 
@@ -33,15 +33,29 @@ class GamificationRepository {
     final user = _supabase.auth.currentUser;
     if (user == null) return 0;
 
+    // 1. Get habit IDs for current user
+    final habitsResponse = await _supabase
+        .from('habits')
+        .select('id')
+        .eq('user_id', user.id);
+
+    if (habitsResponse.isEmpty) return 0;
+
+    final habitIds = (habitsResponse as List<dynamic>)
+        .map((h) => h['id'])
+        .toList();
+
+    // 2. Count completed logs for those habits
     final count = await _supabase
         .from('habit_logs')
         .count(CountOption.exact)
+        .filter('habit_id', 'in', habitIds)
         .eq('status', 'completed');
 
     return count;
   }
 
-  Future<void> logXP(int amount, String reason) async {
+  Future<void> logXP(double amount, String reason) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 
@@ -49,7 +63,6 @@ class GamificationRepository {
       'user_id': user.id,
       'amount': amount,
       'reason': reason,
-      'created_at': DateTime.now().toIso8601String(),
     });
   }
 

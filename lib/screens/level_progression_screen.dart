@@ -60,7 +60,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
         children: [
           // 1. Swipeable Level Cards
           SizedBox(
-            height: 420, // Adjust height for content
+            height: 500, // Increased height to fit all benefits
             child: PageView.builder(
               controller: _pageController,
               itemCount: 10, // Levels 1-10
@@ -195,9 +195,16 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                       const Divider(color: Colors.white10),
                   itemBuilder: (context, index) {
                     final log = controller.xpHistory[index];
-                    final amount = log['amount'] as int;
+                    final amount = (log['amount'] as num).toDouble();
                     final isPositive = amount > 0;
                     final date = DateTime.parse(log['created_at']);
+
+                    // Format amount: show as int if whole, otherwise 1 decimal
+                    String formatXP(double val) {
+                      if (val == val.roundToDouble())
+                        return val.toInt().toString();
+                      return val.toStringAsFixed(1);
+                    }
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -234,7 +241,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                         ),
                       ),
                       trailing: Text(
-                        '${isPositive ? '+' : ''}$amount XP',
+                        '${isPositive ? '+' : ''}${formatXP(amount)} XP',
                         style: TextStyle(
                           fontFamily: 'Space Grotesk',
                           fontSize: 16,
@@ -312,63 +319,133 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                       color: Colors.white,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.flag_rounded,
+                        size: 14,
+                        color: isCurrent
+                            ? const Color(0xFFFFD700).withOpacity(0.6)
+                            : Colors.white38,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Target: ${controller.getXPThreshold(level)} XP',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isCurrent
+                              ? const Color(0xFFFFD700).withOpacity(0.6)
+                              : Colors.white38,
+                          fontFamily: 'Plus Jakarta Sans',
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(
-                    Icons.shield,
-                    size: 60,
-                    color: isCurrent
-                        ? const Color(0xFFFFD700)
-                        : Colors.grey[800],
-                  ),
-                  Text(
-                    '$level',
-                    style: TextStyle(
-                      fontFamily: 'Space Grotesk',
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isCurrent ? Colors.black : Colors.white54,
+              GestureDetector(
+                onLongPress: () {
+                  if (isCurrent) {
+                    controller.resetGamificationIntro();
+                  }
+                },
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.shield,
+                      size: 60,
+                      color: isCurrent
+                          ? const Color(0xFFFFD700)
+                          : Colors.grey[800],
                     ),
-                  ),
-                ],
+                    Text(
+                      '$level',
+                      style: TextStyle(
+                        fontFamily: 'Space Grotesk',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: isCurrent ? Colors.black : Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
+
+          if (isCurrent) ...[
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Progress',
+                      style: TextStyle(
+                        color: const Color(0xFFFFD700).withOpacity(0.8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${(controller.xpProgress * 100).toInt()}%',
+                      style: TextStyle(
+                        color: const Color(0xFFFFD700).withOpacity(0.8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: controller.xpProgress,
+                    backgroundColor: Colors.white10,
+                    color: const Color(0xFFFFD700),
+                    minHeight: 8,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const Divider(color: Colors.white10, height: 32),
 
           // Benefits List
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
-              physics: const NeverScrollableScrollPhysics(), // Content fits
+              // physics: const NeverScrollableScrollPhysics(), // Allow scrolling
               children: [
                 _buildBenefitItem(
                   Icons.check_circle,
                   'Complete Habit',
-                  '+${benefits.completeHabit.round()} XP',
+                  '+${_formatBenefit(benefits.completeHabit)} XP',
                 ),
                 _buildBenefitItem(
                   Icons.cancel,
                   'Skip Habit',
-                  '${benefits.skipHabit.round()} XP',
+                  '${_formatBenefit(benefits.skipHabit)} XP',
                 ),
                 _buildBenefitItem(
                   Icons.camera_alt,
                   'New Momentz',
-                  '+${benefits.newMomentz} XP',
-                ), // Show double for precision?
+                  '+${_formatBenefit(benefits.newMomentz)} XP',
+                ),
                 _buildBenefitItem(
                   Icons.favorite,
                   'Reaction',
-                  '+${benefits.react} XP',
+                  '+${_formatBenefit(benefits.react)} XP',
                 ),
                 _buildBenefitItem(
                   Icons.add_circle,
                   'New Habit',
-                  '+${benefits.newHabit.round()} XP',
+                  '+${_formatBenefit(benefits.newHabit)} XP',
                 ),
                 if (level >= 8)
                   _buildBenefitItem(
@@ -441,5 +518,10 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
         ],
       ),
     );
+  }
+
+  String _formatBenefit(double val) {
+    if (val == val.roundToDouble()) return val.toInt().toString();
+    return val.toStringAsFixed(1);
   }
 }

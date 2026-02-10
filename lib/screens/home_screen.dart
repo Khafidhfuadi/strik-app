@@ -62,13 +62,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (Get.isRegistered<GamificationController>()) {
       Get.find<GamificationController>().xpEventStream.listen((event) {
         if (mounted) {
-          _showXPAnimation(event['amount'] as int);
+          _showXPAnimation((event['amount'] as num).toDouble());
         }
       });
     }
   }
 
-  void _showXPAnimation(int amount) {
+  void _showXPAnimation(double amount) {
     if (amount == 0) return;
 
     OverlayEntry? entry;
@@ -105,6 +105,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   double opacity = 1.0;
                   if (value > 0.8) {
                     opacity = (1.0 - value) * 5;
+                  }
+
+                  // Format amount
+                  String textAmount;
+                  if (amount == amount.roundToDouble()) {
+                    textAmount = amount.toInt().toString();
+                  } else {
+                    textAmount = amount.toStringAsFixed(1);
                   }
 
                   return Opacity(
@@ -150,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '${amount > 0 ? '+' : ''}$amount XP',
+                                '${amount > 0 ? '+' : ''}$textAmount XP',
                                 style: const TextStyle(
                                   fontFamily: 'Space Grotesk',
                                   fontSize: 20,
@@ -366,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                         ),
                         Text(
-                          '${controller.currentXP} / ${controller.xpToNextLevel} XP',
+                          '${controller.currentXP == controller.currentXP.roundToDouble() ? controller.currentXP.toInt() : controller.currentXP} / ${controller.xpToNextLevel} XP',
                           style: TextStyle(
                             fontFamily: 'Plus Jakarta Sans',
                             color: Colors.grey[400],

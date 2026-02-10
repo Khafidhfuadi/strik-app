@@ -147,9 +147,9 @@ class StoryRepository {
   }
 
   // Send reaction to a story
-  Future<void> sendReaction(String storyId, String reactionType) async {
+  Future<bool> sendReaction(String storyId, String reactionType) async {
     final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null) return false;
 
     // Send reaction.
     // If unique constraint exists, this handles it.
@@ -160,9 +160,11 @@ class StoryRepository {
         'story_id': storyId,
         'type': reactionType,
       });
+      return true;
     } catch (e) {
       // Ignore if duplicate
       print('Reaction already sent or error: $e');
+      return false;
     }
   }
 

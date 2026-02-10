@@ -204,7 +204,11 @@ class StoryController extends GetxController {
       await _repository.uploadStory(compressedFile, userId, caption: caption);
 
       Get.back(); // Close snackbar
-      Get.snackbar('Success', 'Story berhasil diupload!');
+      // Get.snackbar(
+      //   'Success',
+      //   'Story berhasil diupload!',
+      //   snackPosition: SnackPosition.BOTTOM,
+      // );
 
       // Refresh
       fetchStories();
@@ -278,7 +282,19 @@ class StoryController extends GetxController {
   }
 
   Future<void> sendReaction(String storyId, String type) async {
-    await _repository.sendReaction(storyId, type);
+    final success = await _repository.sendReaction(storyId, type);
+    if (success) {
+      // Award XP
+      try {
+        if (Get.isRegistered<GamificationController>()) {
+          Get.find<GamificationController>().awardXPForInteraction(
+            'react_momentz',
+          );
+        }
+      } catch (e) {
+        print('XP Error: $e');
+      }
+    }
   }
 
   Future<void> markAsViewed(String storyId) async {
