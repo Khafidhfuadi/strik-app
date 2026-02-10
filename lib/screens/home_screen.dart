@@ -24,6 +24,7 @@ import 'package:strik_app/controllers/gamification_controller.dart';
 import 'package:strik_app/screens/level_progression_screen.dart';
 import 'package:strik_app/screens/suhu_home_screen.dart';
 import 'package:strik_app/screens/legend_home_screen.dart';
+import 'package:strik_app/screens/goat_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -248,7 +249,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       }
 
-      // Check Legend Status (Level 9+)
+      // Check GOAT Status (Level 10+)
+      if (gamificationController.currentLevel.value >= 10) {
+        return GoatHomeScreen(bottomNavigationBar: navBar);
+      }
+
+      // Check Legend Status (Level 9)
       if (gamificationController.currentLevel.value >= 9) {
         return LegendHomeScreen(bottomNavigationBar: navBar);
       }
