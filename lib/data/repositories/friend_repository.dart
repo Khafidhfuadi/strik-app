@@ -444,13 +444,13 @@ class FriendRepository {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<UserModel?> getPreviousWeekWinner() async {
+  Future<List<Map<String, dynamic>>> getPreviousWeekWinners() async {
     // ONLY show winner during FREEZE TIME (Monday 08:00-12:00)
     final now = DateTime.now();
 
     // Check if we're in freeze time
     if (now.weekday != DateTime.monday || now.hour < 8 || now.hour >= 12) {
-      return null; // Not in freeze time, don't show winner
+      return []; // Not in freeze time, don't show winner
     }
 
     // We're in freeze time. Calculate the cycle that JUST ended at 08:00 today.
@@ -477,16 +477,14 @@ class FriendRepository {
     final selfUser = UserModel.fromJson(selfProfileRes);
     final allUsers = [...friends, selfUser];
 
-    // 3. Find winner using hybrid scoring
-    UserModel? winner;
-    double maxScore = -1;
+    // 3. Calculate scores for all users
+    final List<Map<String, dynamic>> leaderboard = [];
 
     for (var u in allUsers) {
       final habitIds = await _getHabitIdsForUser(u.id);
       if (habitIds.isEmpty) continue;
 
       // Get habits that existed during the previous cycle
-      // Only include habits created BEFORE the end of last cycle
       final habitsRes = await _supabase
           .from('habits')
           .select('id, frequency, days_of_week, frequency_count, created_at')
@@ -520,7 +518,6 @@ class FriendRepository {
       if (activeHabitIds.isEmpty) continue;
 
       // Count actual completions in PREVIOUS CYCLE
-      // Only count completions for habits that existed during that time
       final countRes = await _supabase
           .from('habit_logs')
           .select('id')
@@ -537,15 +534,18 @@ class FriendRepository {
           : 0.0;
       final hybridScore = (completionRate * 1.0) + (totalCompleted * 0.5);
 
-      if (hybridScore > maxScore) {
-        maxScore = hybridScore;
-        winner = u;
+      if (hybridScore > 0) {
+        leaderboard.add({'user': u, 'score': hybridScore});
       }
     }
 
-    // Only return winner if they actually did something (score > 0)
-    if (maxScore > 0) return winner;
-    return null;
+    // Sort by score desc
+    leaderboard.sort(
+      (a, b) => (b['score'] as double).compareTo(a['score'] as double),
+    );
+
+    // Return top 3
+    return leaderboard.take(3).toList();
   }
 
   Future<List<String>> _getHabitIdsForUser(String userId) async {

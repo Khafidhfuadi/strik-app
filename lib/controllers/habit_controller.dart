@@ -418,21 +418,31 @@ class HabitController extends GetxController {
     }
 
     try {
-      final gamification = Get.find<GamificationController>();
-      if (newStatus == 'completed') {
-        final xp = gamification.getXPReward('complete_habit');
-        gamification.awardXP(xp, reason: 'Completed Habit');
-      } else if (newStatus == 'skipped') {
-        final xp = gamification.getXPReward('skip_habit'); // Returns negative
-        gamification.awardXP(xp, reason: 'Skipped Habit');
-      } else if (currentStatus == 'completed' && newStatus == null) {
-        // Undo completed
-        final xp = gamification.getXPReward('complete_habit');
-        gamification.awardXP(-xp, reason: 'Undo Completion');
-      } else if (currentStatus == 'skipped' && newStatus == null) {
-        // Undo skipped
-        final xp = gamification.getXPReward('skip_habit'); // is negative
-        gamification.awardXP(-xp, reason: 'Undo Skip'); // -(-5) = +5
+      // Check 7-day restriction for XP
+      final sevenDaysAgo = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(const Duration(days: 7));
+      final isTooOldForXP = targetDate.isBefore(sevenDaysAgo);
+
+      if (!isTooOldForXP) {
+        final gamification = Get.find<GamificationController>();
+        if (newStatus == 'completed') {
+          final xp = gamification.getXPReward('complete_habit');
+          gamification.awardXP(xp, reason: 'Completed Habit');
+        } else if (newStatus == 'skipped') {
+          final xp = gamification.getXPReward('skip_habit'); // Returns negative
+          gamification.awardXP(xp, reason: 'Skipped Habit');
+        } else if (currentStatus == 'completed' && newStatus == null) {
+          // Undo completed
+          final xp = gamification.getXPReward('complete_habit');
+          gamification.awardXP(-xp, reason: 'Undo Completion');
+        } else if (currentStatus == 'skipped' && newStatus == null) {
+          // Undo skipped
+          final xp = gamification.getXPReward('skip_habit'); // is negative
+          gamification.awardXP(-xp, reason: 'Undo Skip'); // -(-5) = +5
+        }
       }
 
       if (newStatus == null) {

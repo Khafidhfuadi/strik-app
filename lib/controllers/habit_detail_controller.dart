@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import 'package:strik_app/data/repositories/habit_repository.dart';
+import 'package:strik_app/controllers/gamification_controller.dart';
 
 class HabitDetailController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
@@ -59,15 +60,49 @@ class HabitDetailController extends GetxController {
     final existingIndex = logs.indexWhere((l) => l['target_date'] == dateStr);
     String? newStatus;
 
+    // Check 7-day restriction
+    final sevenDaysAgo = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).subtract(const Duration(days: 7));
+    final isTooOldForXP = targetDate.isBefore(sevenDaysAgo);
+
     if (existingIndex != -1) {
       // Exists, toggle off (delete)
-      // Assuming naive toggle: completed -> null
-      // If we had 'skipped', logic might be complex. But here we simplify: toggle completion.
+      final currentStatus = logs[existingIndex]['status'];
+
+      // XP Logic
+      try {
+        if (!isTooOldForXP && Get.isRegistered<GamificationController>()) {
+          final gamification = Get.find<GamificationController>();
+          if (currentStatus == 'completed') {
+            // Undo completion: Deduct XP
+            final xp = gamification.getXPReward('complete_habit');
+            gamification.awardXP(-xp, reason: 'Undo Completion');
+          } else if (currentStatus == 'skipped') {
+            // Undo skip: Refund penalty (add positive of negative value)
+            final xp = gamification.getXPReward('skip_habit');
+            gamification.awardXP(-xp, reason: 'Undo Skip');
+          }
+        }
+      } catch (_) {}
+
       logs.removeAt(existingIndex);
       newStatus = null;
     } else {
       // Doesn't exist, Create 'completed'
       newStatus = 'completed';
+
+      // XP Logic
+      try {
+        if (!isTooOldForXP && Get.isRegistered<GamificationController>()) {
+          final gamification = Get.find<GamificationController>();
+          final xp = gamification.getXPReward('complete_habit');
+          gamification.awardXP(xp, reason: 'Completed Habit');
+        }
+      } catch (_) {}
+
       // Add locally
       logs.add({
         'target_date': dateStr,

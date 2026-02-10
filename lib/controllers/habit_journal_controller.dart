@@ -10,6 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 
+import 'package:strik_app/controllers/gamification_controller.dart';
+
 class HabitJournalController extends GetxController {
   final String habitId;
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -247,6 +249,18 @@ class HabitJournalController extends GetxController {
       journals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       _checkTodayJournal();
+
+      // Award XP
+      try {
+        if (Get.isRegistered<GamificationController>()) {
+          await Get.find<GamificationController>().awardXP(
+            3.0,
+            reason: 'Journal Entry',
+          );
+        }
+      } catch (e) {
+        print('Error awarding XP: $e');
+      }
 
       Get.back(); // Close dialog/sheet
     } catch (e) {

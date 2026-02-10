@@ -60,8 +60,11 @@ class FriendController extends GetxController {
     if (_hasShownWinner) return;
 
     try {
-      final winner = await _friendRepository.getPreviousWeekWinner();
-      if (winner != null) {
+      final winners = await _friendRepository.getPreviousWeekWinners();
+      if (winners.isNotEmpty) {
+        final rank1 = winners[0];
+        final winnerUser = rank1['user'] as UserModel;
+
         // Since we are showing the winner, it means we are in the freeze period
         // Trigger a snapshot of the leaderboard for history
         // Use a safe reference date (Last Monday 08:00)
@@ -79,6 +82,43 @@ class FriendController extends GetxController {
         _friendRepository.snapshotWeeklyLeaderboard(lastWeekStart);
 
         _hasShownWinner = true;
+
+        // CHECK & AWARD XP FOR CURRENT USER (Top 3)
+        final currentUser = supabase.auth.currentUser;
+        if (currentUser != null && Get.isRegistered<GamificationController>()) {
+          final gameCtrl = Get.find<GamificationController>();
+
+          for (int i = 0; i < winners.length; i++) {
+            final u = winners[i]['user'] as UserModel;
+            if (u.id == currentUser.id) {
+              int xp = 0;
+              if (i == 0)
+                xp = 50;
+              else if (i == 1)
+                xp = 30;
+              else if (i == 2)
+                xp = 15;
+
+              if (xp > 0) {
+                // Award XP
+                // Note: Ideally we check if already awarded for this specific week from logs,
+                // but for now relying on session check + freeze time window.
+                await gameCtrl.awardXP(
+                  xp.toDouble(),
+                  reason: 'Weekly Rank #${i + 1}',
+                );
+                Get.snackbar(
+                  'Weekly Reward',
+                  'Selamat! Kamu Juara ${i + 1} minggu lalu! +$xp XP',
+                  backgroundColor: const Color(0xFFFFD700),
+                  colorText: Colors.black,
+                  duration: const Duration(seconds: 5),
+                );
+              }
+              break;
+            }
+          }
+        }
 
         // Wait a bit for app to settle
         await Future.delayed(const Duration(seconds: 2));
@@ -133,13 +173,13 @@ class FriendController extends GetxController {
                     ),
                     child: CircleAvatar(
                       radius: 40,
-                      backgroundImage: winner.avatarUrl != null
-                          ? NetworkImage(winner.avatarUrl!)
+                      backgroundImage: winnerUser.avatarUrl != null
+                          ? NetworkImage(winnerUser.avatarUrl!)
                           : null,
                       backgroundColor: Colors.grey[800],
-                      child: winner.avatarUrl == null
+                      child: winnerUser.avatarUrl == null
                           ? Text(
-                              winner.username?[0].toUpperCase() ?? '?',
+                              winnerUser.username?[0].toUpperCase() ?? '?',
                               style: const TextStyle(
                                 fontSize: 32,
                                 color: Colors.white,
@@ -150,7 +190,7 @@ class FriendController extends GetxController {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    winner.username ?? 'Unknown',
+                    winnerUser.username ?? 'Unknown',
                     style: const TextStyle(
                       fontFamily: 'Plus Jakarta Sans',
                       color: Colors.white,
@@ -489,6 +529,19 @@ class FriendController extends GetxController {
   Future<void> acceptRequest(String friendshipId) async {
     try {
       await _friendRepository.acceptRequest(friendshipId);
+
+      // Award XP
+      try {
+        if (Get.isRegistered<GamificationController>()) {
+          await Get.find<GamificationController>().awardXP(
+            30.0,
+            reason: 'New Friend',
+          );
+        }
+      } catch (e) {
+        print('Error awarding XP: $e');
+      }
+
       Get.snackbar('Gas!', 'Udah temenan nih! Yuk, compete! 🤩');
 
       // Refresh all data
@@ -770,8 +823,15 @@ class FriendController extends GetxController {
 
       if (index == -1) return;
 
-      // 2. Determine action (Add or Remove) based on current state
       final item = activityFeed[index];
+      // Check for XP Eligibility (48h)
+      final itemTimestamp = item['timestamp'] as DateTime? ?? DateTime.now();
+      final fortyEightHoursAgo = DateTime.now().subtract(
+        const Duration(hours: 48),
+      );
+      final isEligibleForXP = itemTimestamp.isAfter(fortyEightHoursAgo);
+
+      // 2. Determine action (Add or Remove) based on current state
       final data = item['data'];
       final reactions = List<dynamic>.from(data['reactions'] ?? []);
       final myReactionIndex = reactions.indexWhere(
@@ -796,13 +856,15 @@ class FriendController extends GetxController {
         });
 
         // Award XP for reaction
-        try {
-          if (Get.isRegistered<GamificationController>()) {
-            Get.find<GamificationController>().awardXPForInteraction(
-              'react_momentz',
-            );
-          }
-        } catch (_) {}
+        if (isEligibleForXP) {
+          try {
+            if (Get.isRegistered<GamificationController>()) {
+              Get.find<GamificationController>().awardXPForInteraction(
+                'react_momentz',
+              );
+            }
+          } catch (_) {}
+        }
 
         // --- NEW: Send Notification if not owner ---
         String? ownerId;
