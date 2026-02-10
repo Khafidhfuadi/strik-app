@@ -636,8 +636,8 @@ class GamificationController extends GetxController {
     {'level': 5, 'name': 'Pro'},
     {'level': 6, 'name': 'Master'},
     {'level': 7, 'name': 'Veteran'},
-    {'level': 8, 'name': 'Suhu'},
-    {'level': 9, 'name': 'Legend'},
+    {'level': 8, 'name': 'SUHU'},
+    {'level': 9, 'name': 'LEGEND'},
     {'level': 10, 'name': 'GOAT'},
   ];
 

@@ -2,7 +2,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 class LegendParticleBackground extends StatefulWidget {
-  const LegendParticleBackground({super.key});
+  final Color particleColor;
+
+  const LegendParticleBackground({
+    super.key,
+    this.particleColor = const Color(0xFFFFD700),
+  });
 
   @override
   State<LegendParticleBackground> createState() =>
@@ -42,14 +47,14 @@ class _LegendParticleBackgroundState extends State<LegendParticleBackground>
         _random.nextDouble() * size.height,
       ),
       velocity: Offset(
-        (_random.nextDouble() - 0.5) * 0.5, // Slight horizontal drift
-        (_random.nextDouble() * -0.5) - 0.2, // Upward movement
+        (_random.nextDouble() - 0.5) * 0.5,
+        (_random.nextDouble() * -0.5) - 0.2,
       ),
       size: _random.nextDouble() * 3 + 1,
-      color: const Color(
-        0xFFFFD700,
-      ).withOpacity(_random.nextDouble() * 0.5 + 0.1),
-      lifespan: _random.nextDouble() * 0.5 + 0.5, // 0.5 to 1.0 (normalized)
+      color: widget.particleColor.withValues(
+        alpha: _random.nextDouble() * 0.5 + 0.1,
+      ),
+      lifespan: _random.nextDouble() * 0.5 + 0.5,
     );
   }
 
@@ -120,15 +125,15 @@ class ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (var particle in particles) {
       final paint = Paint()
-        ..color = particle.color.withOpacity(
-          (particle.color.opacity * particle.lifespan).clamp(0.0, 1.0),
+        ..color = particle.color.withValues(
+          alpha: (particle.color.a * particle.lifespan).clamp(0.0, 1.0),
         )
         ..style = PaintingStyle.fill;
 
       // Draw glowing effect (blur)
       final glowPaint = Paint()
-        ..color = particle.color.withOpacity(
-          (particle.color.opacity * particle.lifespan * 0.5).clamp(0.0, 1.0),
+        ..color = particle.color.withValues(
+          alpha: (particle.color.a * particle.lifespan * 0.5).clamp(0.0, 1.0),
         )
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
 
