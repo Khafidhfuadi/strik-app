@@ -284,11 +284,12 @@ class StoryController extends GetxController {
   Future<void> sendReaction(String storyId, String type) async {
     final success = await _repository.sendReaction(storyId, type);
     if (success) {
-      // Award XP
+      // Award XP (with deduplication via referenceId)
       try {
         if (Get.isRegistered<GamificationController>()) {
           Get.find<GamificationController>().awardXPForInteraction(
             'react_momentz',
+            referenceId: 'react_story_$storyId',
           );
         }
       } catch (e) {

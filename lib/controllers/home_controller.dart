@@ -18,11 +18,22 @@ class HomeController extends GetxController {
   Future<void> _syncTimezone() async {
     try {
       final timeZoneName = await FlutterTimezone.getLocalTimezone();
+      String timeZoneString = timeZoneName.toString();
+
+      // Sanitization for verbose TimezoneInfo strings (e.g. "TimezoneInfo(Asia/Jakarta, ...)")
+      if (timeZoneString.contains('TimezoneInfo')) {
+        final regex = RegExp(r'([a-zA-Z]+/[a-zA-Z_]+)');
+        final match = regex.firstMatch(timeZoneString);
+        if (match != null && match.group(1) != null) {
+          timeZoneString = match.group(1)!;
+        }
+      }
+
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         await Supabase.instance.client
             .from('profiles')
-            .update({'timezone': timeZoneName.toString()})
+            .update({'timezone': timeZoneString})
             .eq('id', user.id);
       }
     } catch (e) {

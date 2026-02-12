@@ -55,15 +55,39 @@ class GamificationRepository {
     return count;
   }
 
-  Future<void> logXP(double amount, String reason) async {
+  Future<void> logXP(
+    double amount,
+    String reason, {
+    String? referenceId,
+  }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 
-    await _supabase.from('xp_logs').insert({
+    final data = <String, dynamic>{
       'user_id': user.id,
       'amount': amount,
       'reason': reason,
-    });
+    };
+    if (referenceId != null) {
+      data['reference_id'] = referenceId;
+    }
+
+    await _supabase.from('xp_logs').insert(data);
+  }
+
+  /// Check if XP has already been awarded for a specific reference.
+  Future<bool> hasXPBeenAwarded(String referenceId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return false;
+
+    final response = await _supabase
+        .from('xp_logs')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('reference_id', referenceId)
+        .maybeSingle();
+
+    return response != null;
   }
 
   Future<List<Map<String, dynamic>>> getXPHistory() async {

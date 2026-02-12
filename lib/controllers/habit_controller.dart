@@ -92,75 +92,15 @@ class HabitController extends GetxController {
     final todayDate = DateTime(now.year, now.month, now.day);
 
     if (todayDate.isAfter(lastFetchDate)) {
-      // It's a new day!
-      // Check for missed habits on the previous active day (Yesterday)
-      // We only check yesterday to avoid massive penalties if user returns after a long time.
-      final yesterday = todayDate.subtract(const Duration(days: 1));
-
-      // Ensure we don't double process if last fetch was already today (unlikely given the if)
-      // But if lastFetch was yesterday, we process yesterday.
-      // If lastFetch was 3 days ago, we process yesterday?
-      // User requirement: "tidak melakukan aksi apapun... -5xp"
-      // Simplest interpretation: Penalize for Yesterday if it was missed.
-      if (yesterday.isAfter(lastFetchDate) ||
-          yesterday.isAtSameMomentAs(lastFetchDate)) {
-        await _processMissedHabits(yesterday);
-      }
-
+      // It's a new day! Refresh habits and logs.
+      // Note: Missed habit penalties are handled server-side via pg_cron.
       await fetchHabitsAndLogs(isRefresh: true);
     }
   }
 
-  Future<void> _processMissedHabits(DateTime date) async {
-    try {
-      // Get logs for that date
-      final logs = await _habitRepository.getHabitLogsForDate(date);
-
-      // Get active habits for that date
-      final activeHabits = habits.where((habit) {
-        // 1. Must be created before or on that date
-        if (habit.createdAt != null &&
-            habit.createdAt!.isAfter(date.add(const Duration(days: 1)))) {
-          return false;
-        }
-
-        // 2. Must match frequency
-        final dayIndex = date.weekday - 1; // 0-6
-        if (habit.frequency == 'daily') {
-          if (habit.daysOfWeek != null && habit.daysOfWeek!.isNotEmpty) {
-            return habit.daysOfWeek!.contains(dayIndex);
-          }
-          return true;
-        } else if (habit.frequency == 'weekly') {
-          // Weekly is tricky to detect "missed" on a specific day without complex logic
-          // Assuming weekly means "any day in week", so hard to penalize on a specific day unless end of week.
-          // Skip weekly for daily penalty for now to avoid unfairness.
-          return false;
-        } else if (habit.frequency == 'monthly') {
-          if (habit.daysOfWeek != null) {
-            return habit.daysOfWeek!.contains(date.day);
-          }
-          return false;
-        }
-        return true;
-      }).toList();
-
-      for (var habit in activeHabits) {
-        if (!logs.containsKey(habit.id)) {
-          // No log found (neither completed nor skipped)
-          // "tidak melakukan aksi apapun" -> Penalty
-          try {
-            final gamification = Get.find<GamificationController>();
-            final xp = gamification.getXPReward('skip_habit');
-            gamification.awardXP(xp, reason: 'Missed Habit');
-            print('Penalized $xp XP for missed habit: ${habit.title} on $date');
-          } catch (_) {}
-        }
-      }
-    } catch (e) {
-      print('Error processing missed habits: $e');
-    }
-  }
+  // Note: Missed habit penalties are now handled server-side
+  // via process_missed_habits() PostgreSQL cron job.
+  // See: supabase/process_missed_habits.sql
 
   Future<void> checkAlarmConsistency() async {
     if (habits.isNotEmpty) {

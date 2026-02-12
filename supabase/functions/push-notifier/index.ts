@@ -414,20 +414,38 @@ serve(async (req: Request) => {
       }
     }
 
-    // DEFAULT / LEGACY HANDLER (Direct Call with recipient_id)
-    // If payload has 'recipient_id', fall back to old logic? 
-    // Or just assume this function is now exclusively for Webhooks?
-    // Let's keep a small fallback for direct calls if 'record' has 'recipient_id' 
-    // AND 'table' is undefined (Direct invocation)
-    if (!table && record?.recipient_id) {
-       // ... (Old Logic - condensed for brevity) ...
-       // For now, let's just return to avoid complex fallback unless requested. 
-       // The prompt specifically asked for Story notifications.
-       // But wait, the friend request logic uses this too!
-       // FriendRepository lines 23 and 51 call `sendNotification`.
-       // Those calls likely do NOT send `table`. They send specific body.
-       // So we MUST PRESERVE the `recipient_id` direct call logic.
+    // CASE D: NOTIFICATIONS TABLE (poke, friend request, etc.)
+    // Triggered by webhook on INSERT to 'notifications' table
+    else if (table === 'notifications' && record?.recipient_id) {
+       const userId = record.recipient_id
+       console.log(`Notifications table INSERT for user ${userId}, type: ${record.type}`)
        
+       const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('fcm_token')
+        .eq('id', userId)
+        .single()
+
+       if (!profile?.fcm_token) {
+          console.log(`User ${userId} has no FCM token`)
+          return new Response(JSON.stringify({message: 'User has no FCM token'}), {status:200})
+       }
+
+       const result = await sendFCM(
+         profile.fcm_token,
+         record.title || "Strik!",
+         record.body || "Notification",
+         { 
+           type: record.type || 'general',
+           post_id: record.post_id || '',
+           habit_log_id: record.habit_log_id || '',
+         }
+       )
+       return new Response(JSON.stringify(result), { status: 200 })
+    }
+    
+    // FALLBACK: Direct invocation (no table field)
+    else if (!table && record?.recipient_id) {
        const userId = record.recipient_id
        console.log(`Direct Call for user ${userId}`)
        

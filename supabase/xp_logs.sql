@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS public.xp_logs (
     user_id UUID REFERENCES auth.users(id) NOT NULL,
     amount INTEGER NOT NULL,
     reason TEXT,
+    reference_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -25,3 +26,6 @@ USING (auth.uid() = user_id);
 
 -- Create index for performance
 CREATE INDEX IF NOT EXISTS xp_logs_user_id_idx ON public.xp_logs(user_id);
+
+-- Unique index to prevent duplicate XP awards for the same reference (e.g. same feed reaction)
+CREATE UNIQUE INDEX IF NOT EXISTS xp_logs_user_reference_idx ON public.xp_logs(user_id, reference_id) WHERE reference_id IS NOT NULL;

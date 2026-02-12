@@ -352,8 +352,9 @@ class StatisticsController extends GetxController {
     if (totalExpected > 0) {
       globalCompletionRate.value = (completedLogs.length / totalExpected) * 100;
       // Cap at 100% just in case
-      if (globalCompletionRate.value > 100.0)
+      if (globalCompletionRate.value > 100.0) {
         globalCompletionRate.value = 100.0;
+      }
     } else {
       globalCompletionRate.value = 0.0;
     }
@@ -406,8 +407,9 @@ class StatisticsController extends GetxController {
     for (var habit in habits) {
       totalExpected += HabitUtils.calculateExpectedCount(habit, start, end);
     }
-    if (totalExpected < completedLogs.length)
+    if (totalExpected < completedLogs.length) {
       totalExpected = completedLogs.length;
+    }
 
     _generateAIInsight(completedLogs, totalExpected);
   }
@@ -524,7 +526,7 @@ class StatisticsController extends GetxController {
           'X-Title': 'Strik App', // Optional: Your site name
         },
         body: jsonEncode({
-          "model": "google/gemma-3n-e2b-it:free",
+          "model": "deepseek/deepseek-r1-0528:free",
           "messages": [
             {"role": "user", "content": prompt},
           ],

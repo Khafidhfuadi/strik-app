@@ -92,9 +92,9 @@ class FriendController extends GetxController {
             final u = winners[i]['user'] as UserModel;
             if (u.id == currentUser.id) {
               int xp = 0;
-              if (i == 0)
+              if (i == 0) {
                 xp = 50;
-              else if (i == 1)
+              } else if (i == 1)
                 xp = 30;
               else if (i == 2)
                 xp = 15;
@@ -855,12 +855,16 @@ class FriendController extends GetxController {
           'type': 'fire',
         });
 
-        // Award XP for reaction
+        // Award XP for reaction (with deduplication via referenceId)
         if (isEligibleForXP) {
           try {
             if (Get.isRegistered<GamificationController>()) {
+              final refId = postId != null
+                  ? 'react_post_$postId'
+                  : 'react_habitlog_$habitLogId';
               Get.find<GamificationController>().awardXPForInteraction(
                 'react_momentz',
+                referenceId: refId,
               );
             }
           } catch (_) {}

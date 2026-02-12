@@ -250,12 +250,11 @@ class HabitJournalController extends GetxController {
 
       _checkTodayJournal();
 
-      // Award XP
+      // Award XP (dynamic based on level)
       try {
         if (Get.isRegistered<GamificationController>()) {
-          await Get.find<GamificationController>().awardXP(
-            3.0,
-            reason: 'Journal Entry',
+          await Get.find<GamificationController>().awardXPForInteraction(
+            'journaling',
           );
         }
       } catch (e) {
@@ -517,7 +516,7 @@ class HabitJournalController extends GetxController {
           'X-Title': 'Strik App',
         },
         body: jsonEncode({
-          "model": "google/gemma-3n-e2b-it:free",
+          "model": "deepseek/deepseek-r1-0528:free",
           "messages": [
             {"role": "user", "content": prompt},
           ],

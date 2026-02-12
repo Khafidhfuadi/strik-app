@@ -12,6 +12,7 @@ class LevelBenefits {
   final double newMomentz;
   final double react;
   final double newHabit;
+  final double journaling;
 
   const LevelBenefits({
     required this.level,
@@ -20,6 +21,7 @@ class LevelBenefits {
     required this.newMomentz,
     required this.react,
     required this.newHabit,
+    required this.journaling,
   });
 }
 
@@ -33,9 +35,10 @@ class GamificationController extends GetxController {
         level: 1, // Represents 1-3
         completeHabit: 5,
         skipHabit: -5,
-        newMomentz: 3,
+        newMomentz: 1.5,
         react: 1,
         newHabit: 10,
+        journaling: 3,
       );
     }
     switch (level) {
@@ -44,54 +47,60 @@ class GamificationController extends GetxController {
           level: 4,
           completeHabit: 6,
           skipHabit: -5,
-          newMomentz: 3.5,
+          newMomentz: 2,
           react: 1.5,
           newHabit: 15,
+          journaling: 3.5,
         );
       case 5:
         return const LevelBenefits(
           level: 5,
           completeHabit: 7,
           skipHabit: -5,
-          newMomentz: 4,
+          newMomentz: 2.5,
           react: 2,
           newHabit: 20,
+          journaling: 4,
         );
       case 6:
         return const LevelBenefits(
           level: 6,
           completeHabit: 8,
           skipHabit: -5,
-          newMomentz: 4.5,
+          newMomentz: 3,
           react: 2.5,
           newHabit: 25,
+          journaling: 4.5,
         );
       case 7:
         return const LevelBenefits(
           level: 7,
           completeHabit: 9,
           skipHabit: -4.5,
-          newMomentz: 5,
+          newMomentz: 3.5,
           react: 3,
           newHabit: 30,
+          journaling: 5,
         );
       case 8:
         return const LevelBenefits(
           level: 8,
           completeHabit: 10,
           skipHabit: -4,
-          newMomentz: 5.5,
+          newMomentz: 4,
           react: 3.5,
           newHabit: 35,
+          journaling: 5.5,
         );
       case 9:
         return const LevelBenefits(
           level: 9,
           completeHabit: 11,
           skipHabit: -3.5,
-          newMomentz: 6,
+          newMomentz: 4.5,
           react: 4,
           newHabit: 40,
+          journaling: 6,
         );
       case 10:
       default:
@@ -99,9 +108,10 @@ class GamificationController extends GetxController {
           level: 10,
           completeHabit: 12,
           skipHabit: -3,
-          newMomentz: 7,
+          newMomentz: 5,
           react: 4.5,
           newHabit: 45,
+          journaling: 6.5,
         );
     }
   }
@@ -119,12 +129,14 @@ class GamificationController extends GetxController {
         return benefits.newMomentz;
       case 'react_momentz':
         return benefits.react;
+      case 'journaling':
+        return benefits.journaling;
       default:
         return 0;
     }
   }
 
-  Future<void> awardXPForInteraction(String type) async {
+  Future<void> awardXPForInteraction(String type, {String? referenceId}) async {
     final amount = getXPReward(type);
     if (amount != 0) {
       String reason = 'Activity';
@@ -133,14 +145,45 @@ class GamificationController extends GetxController {
       if (type == 'new_habit') reason = 'New Habit';
       if (type == 'complete_habit') reason = 'Completed Habit';
       if (type == 'skip_habit') reason = 'Skipped Habit';
+      if (type == 'journaling') reason = 'Journal Entry';
 
-      await awardXP(amount, reason: reason);
+      if (referenceId != null) {
+        await awardXPIfNotAwarded(
+          amount,
+          reason: reason,
+          referenceId: referenceId,
+        );
+      } else {
+        await awardXP(amount, reason: reason);
+      }
+    }
+  }
+
+  /// Award XP only if it hasn't been awarded for this referenceId before.
+  Future<void> awardXPIfNotAwarded(
+    double amount, {
+    required String reason,
+    required String referenceId,
+  }) async {
+    try {
+      final alreadyAwarded = await _repository.hasXPBeenAwarded(referenceId);
+      if (alreadyAwarded) {
+        print(
+          'DEBUG: XP already awarded for reference: $referenceId, skipping.',
+        );
+        return;
+      }
+      await awardXP(amount, reason: reason, referenceId: referenceId);
+    } catch (e) {
+      print('Error checking/awarding XP for reference $referenceId: $e');
     }
   }
 
   var currentXP = 0.0.obs;
   var currentLevel = 1.obs;
   var isLoading = false.obs;
+
+  bool _isShowingIntro = false;
 
   StreamSubscription<AuthState>? _authSubscription;
 
@@ -154,7 +197,8 @@ class GamificationController extends GetxController {
       final AuthChangeEvent event = data.event;
       if (event == AuthChangeEvent.signedIn) {
         fetchGamificationData();
-        checkAndShowGamificationIntro();
+        // checkAndShowGamificationIntro is called from home screens,
+        // so no need to call it here (would cause double bottom sheet).
       } else if (event == AuthChangeEvent.signedOut) {
         // Reset state on logout
         currentXP.value = 0.0;
@@ -187,6 +231,9 @@ class GamificationController extends GetxController {
   }
 
   Future<void> checkAndShowGamificationIntro() async {
+    // Guard: prevent showing the bottom sheet multiple times concurrently
+    if (_isShowingIntro) return;
+
     final user = supabase.auth.currentUser;
     if (user == null) {
       print('DEBUG: No user found for gamification intro check');
@@ -198,6 +245,8 @@ class GamificationController extends GetxController {
     print('DEBUG: hasSeenIntro: $hasSeenIntro');
 
     if (hasSeenIntro) return;
+
+    _isShowingIntro = true;
 
     // Fetch retroactive stats
     int totalCompleted = 0;
@@ -378,6 +427,7 @@ class GamificationController extends GetxController {
                   );
 
                   Get.back();
+                  _isShowingIntro = false;
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFD700),
@@ -453,7 +503,11 @@ class GamificationController extends GetxController {
 
   var xpHistory = <Map<String, dynamic>>[].obs;
 
-  Future<void> awardXP(double amount, {String reason = 'Activity'}) async {
+  Future<void> awardXP(
+    double amount, {
+    String reason = 'Activity',
+    String? referenceId,
+  }) async {
     double newXP = currentXP.value + amount;
     int newLevel = currentLevel.value;
     bool leveledUp = false;
@@ -484,7 +538,11 @@ class GamificationController extends GetxController {
     // Persist
     try {
       await _repository.updateXPAndLevel(newXP, newLevel);
-      await _repository.logXP(amount, reason); // Log history
+      await _repository.logXP(
+        amount,
+        reason,
+        referenceId: referenceId,
+      ); // Log history
       fetchXPHistory(); // Refresh history
 
       if (leveledUp) {

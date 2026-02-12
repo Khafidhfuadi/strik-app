@@ -35,7 +35,7 @@ begin
     and h.reminder_time is not null
     
     -- 1. TIME CHECK (User's Local Time)
-    and to_char(now() at time zone p.timezone, 'HH24:MI') = h.reminder_time
+    and to_char(now() at time zone (CASE WHEN p.timezone LIKE 'TimezoneInfo(%' THEN TRIM(split_part(split_part(split_part(p.timezone, '(', 2), ',', 1), ')', 1)) WHEN p.timezone LIKE '%/%' THEN p.timezone ELSE 'Asia/Jakarta' END), 'HH24:MI') = to_char(h.reminder_time, 'HH24:MI')
     
     -- 2. FREQUENCY CHECK
     and (
@@ -53,7 +53,7 @@ begin
         and (
             select count(*)
             from jsonb_array_elements_text(to_jsonb(h.days_of_week)) as day_elem
-            where (day_elem::int) = (extract(isodow from (now() at time zone p.timezone))::int - 1)
+            where (day_elem::int) = (extract(isodow from (now() at time zone (CASE WHEN p.timezone LIKE 'TimezoneInfo(%' THEN TRIM(split_part(split_part(split_part(p.timezone, '(', 2), ',', 1), ')', 1)) WHEN p.timezone LIKE '%/%' THEN p.timezone ELSE 'Asia/Jakarta' END)))::int - 1)
         ) > 0
       )
       
@@ -67,7 +67,7 @@ begin
         and (
             select count(*)
             from jsonb_array_elements_text(to_jsonb(h.days_of_week)) as date_elem
-            where (date_elem::int) = (extract(day from (now() at time zone p.timezone))::int)
+            where (date_elem::int) = (extract(day from (now() at time zone (CASE WHEN p.timezone LIKE 'TimezoneInfo(%' THEN TRIM(split_part(split_part(split_part(p.timezone, '(', 2), ',', 1), ')', 1)) WHEN p.timezone LIKE '%/%' THEN p.timezone ELSE 'Asia/Jakarta' END)))::int)
         ) > 0
       )
     )

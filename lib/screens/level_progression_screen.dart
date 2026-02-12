@@ -59,8 +59,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
       body: Column(
         children: [
           // 1. Swipeable Level Cards
-          SizedBox(
-            height: 500, // Increased height to fit all benefits
+          Expanded(
             child: PageView.builder(
               controller: _pageController,
               itemCount: 10, // Levels 1-10
@@ -90,7 +89,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // 2. Page Indicator
           Row(
@@ -112,9 +111,9 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
 
           const SizedBox(height: 16),
 
-          // 3. User Progress & History Title
+          // 3. User Progress & History Button
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -138,52 +137,99 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.history,
-                        color: Colors.white70,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'History',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                GestureDetector(
+                  onTap: () => _showHistoryBottomSheet(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.history, color: Colors.white70, size: 16),
+                        SizedBox(width: 8),
+                        Text(
+                          'History',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          const SizedBox(height: 16),
-
-          // 4. XP History List
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF121212),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  // ===========================================================================
+  // XP HISTORY BOTTOM SHEET
+  // ===========================================================================
+  void _showHistoryBottomSheet() {
+    Get.bottomSheet(
+      Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.65,
+        ),
+        decoration: const BoxDecoration(
+          color: Color(0xFF121212),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle + Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    children: [
+                      Icon(Icons.history, color: Color(0xFFFFD700), size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'XP History',
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.white10, height: 1),
+                ],
               ),
+            ),
+
+            // History list
+            Expanded(
               child: Obx(() {
                 if (controller.xpHistory.isEmpty) {
                   return const Center(
                     child: Text(
-                      'No history yet',
+                      'Belum ada riwayat XP',
                       style: TextStyle(color: Colors.white38),
                     ),
                   );
@@ -199,10 +245,10 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                     final isPositive = amount > 0;
                     final date = DateTime.parse(log['created_at']);
 
-                    // Format amount: show as int if whole, otherwise 1 decimal
                     String formatXP(double val) {
-                      if (val == val.roundToDouble())
+                      if (val == val.roundToDouble()) {
                         return val.toInt().toString();
+                      }
                       return val.toStringAsFixed(1);
                     }
 
@@ -256,9 +302,11 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                 );
               }),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
     );
   }
 
@@ -326,7 +374,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                         Icons.flag_rounded,
                         size: 14,
                         color: isCurrent
-                            ? const Color(0xFFFFD700).withOpacity(0.6)
+                            ? const Color(0xFFFFD700).withValues(alpha: 0.6)
                             : Colors.white38,
                       ),
                       const SizedBox(width: 4),
@@ -335,7 +383,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           color: isCurrent
-                              ? const Color(0xFFFFD700).withOpacity(0.6)
+                              ? const Color(0xFFFFD700).withValues(alpha: 0.6)
                               : Colors.white38,
                           fontFamily: 'Plus Jakarta Sans',
                         ),
@@ -386,7 +434,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                     Text(
                       'Progress',
                       style: TextStyle(
-                        color: const Color(0xFFFFD700).withOpacity(0.8),
+                        color: const Color(0xFFFFD700).withValues(alpha: 0.8),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -394,7 +442,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                     Text(
                       '${(controller.xpProgress * 100).toInt()}%',
                       style: TextStyle(
-                        color: const Color(0xFFFFD700).withOpacity(0.8),
+                        color: const Color(0xFFFFD700).withValues(alpha: 0.8),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -454,6 +502,33 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                     'Unlocked',
                     isSpecial: true,
                   ),
+                const Divider(color: Colors.white10, height: 16),
+                _buildBenefitItem(
+                  Icons.book_rounded,
+                  'Journaling',
+                  '+${_formatBenefit(benefits.journaling)} XP',
+                ),
+                _buildBenefitItem(
+                  Icons.people_alt_rounded,
+                  'Mutual Friend',
+                  '+30 XP',
+                ),
+                _buildBenefitItem(
+                  Icons.emoji_events_rounded,
+                  'Rank Mingguan #1',
+                  '+50 XP',
+                  isSpecial: true,
+                ),
+                _buildBenefitItem(
+                  Icons.emoji_events_rounded,
+                  'Rank Mingguan #2',
+                  '+30 XP',
+                ),
+                _buildBenefitItem(
+                  Icons.emoji_events_rounded,
+                  'Rank Mingguan #3',
+                  '+15 XP',
+                ),
               ],
             ),
           ),
