@@ -17,17 +17,31 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
-      stream: supabase.auth.onAuthStateChange,
+      stream: supabase.auth.onAuthStateChange.handleError((error) {
+        if (error is AuthException) {
+          debugPrint(
+            'AuthGate: Auth Exception caught: ${error.message}, code: ${error.statusCode}',
+          );
+          // Show error message via snackbar if context is available?
+          // Difficult inside StreamBuilder directly, but logging helps.
+          // Better: The error might not propagate to builder if handled here.
+          // Let's use a side effect if possible, or just let the error state render something.
+        }
+      }),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CustomLoadingIndicator()));
         }
 
         final session = snapshot.data?.session;
+        final event = snapshot.data?.event;
 
         if (session != null) {
           // User is logged in - ensure controllers are initialized
-          // Use putIfAbsent to avoid recreating if they already exist
+          debugPrint(
+            'AuthGate: Session found! User: ${session.user.email}, Event: $event',
+          );
+
           Get.put(HabitController(), permanent: false);
           Get.put(HomeController(), permanent: false);
           Get.put(FriendController(), permanent: false);
@@ -38,6 +52,10 @@ class AuthGate extends StatelessWidget {
 
           return const HomeScreen();
         } else {
+          debugPrint('AuthGate: No session found. Event: $event');
+          if (event == AuthChangeEvent.passwordRecovery) {
+            // Handle password recovery if needed in future
+          }
           return const AuthScreen();
         }
       },

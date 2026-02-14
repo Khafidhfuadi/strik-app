@@ -20,13 +20,28 @@ class HomeController extends GetxController {
       final timeZoneName = await FlutterTimezone.getLocalTimezone();
       String timeZoneString = timeZoneName.toString();
 
-      // Sanitization for verbose TimezoneInfo strings (e.g. "TimezoneInfo(Asia/Jakarta, ...)")
-      if (timeZoneString.contains('TimezoneInfo')) {
-        final regex = RegExp(r'([a-zA-Z]+/[a-zA-Z_]+)');
+      // Sanitization for verbose TimezoneInfo strings
+      if (timeZoneString.contains('TimezoneInfo') ||
+          timeZoneString.contains('Output')) {
+        final regex = RegExp(r'([A-Za-z]+/[A-Za-z_]+)');
         final match = regex.firstMatch(timeZoneString);
-        if (match != null && match.group(1) != null) {
+        if (match != null) {
           timeZoneString = match.group(1)!;
         }
+      }
+
+      // Strict validation: Must contain '/' and NOT contain 'TimezoneInfo'
+      // Valid IANA timezones are like "Asia/Jakarta", "America/New_York"
+      bool isValid =
+          timeZoneString.contains('/') &&
+          !timeZoneString.contains('TimezoneInfo') &&
+          !timeZoneString.contains(' ');
+
+      if (!isValid) {
+        print(
+          'Invalid timezone format detected: "$timeZoneName". Skipping update.',
+        );
+        return;
       }
 
       final user = Supabase.instance.client.auth.currentUser;

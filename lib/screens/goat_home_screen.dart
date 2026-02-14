@@ -18,6 +18,7 @@ import 'package:strik_app/widgets/primary_button.dart';
 import 'package:strik_app/widgets/legend_particle_background.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:strik_app/controllers/tour_controller.dart';
 
 // =============================================================================
 // GOAT THEME CONSTANTS - Emerald Green + Platinum
@@ -79,6 +80,12 @@ class _GoatHomeScreenState extends State<GoatHomeScreen>
         }
       });
     }
+
+    // Initialize TourController and Start Tour
+    final tourController = Get.put(TourController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      tourController.startHomeTour(context);
+    });
   }
 
   @override
@@ -304,10 +311,16 @@ class _GoatHomeScreenState extends State<GoatHomeScreen>
   // ===========================================================================
   // GREETING HEADER (Minimal: Avatar + Name + Actions)
   // ===========================================================================
+  // ===========================================================================
+  // GREETING HEADER (Minimal: Avatar + Name + Actions)
+  // ===========================================================================
   Widget _buildGreetingHeader(
     BuildContext context,
     GamificationController gamification,
   ) {
+    // Get TourController
+    final TourController tourController = Get.find<TourController>();
+
     final user = Supabase.instance.client.auth.currentUser;
     final metadata = user?.userMetadata;
     final username =
@@ -317,6 +330,8 @@ class _GoatHomeScreenState extends State<GoatHomeScreen>
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       child: Row(
+        // Attach keyHomeProfile to the whole Row or just the Avatar/Name part
+        key: tourController.keyHomeProfile,
         children: [
           // Avatar (tap for profile)
           GestureDetector(
@@ -411,14 +426,19 @@ class _GoatHomeScreenState extends State<GoatHomeScreen>
             () => _showFilterBottomSheet(context),
           ),
           const SizedBox(width: 8),
-          _buildHeaderIcon(Icons.add, () => _navigateAndRefresh(context)),
+          _buildHeaderIcon(
+            Icons.add,
+            () => _navigateAndRefresh(context),
+            key: tourController.keyHomeFab, // Attach keyHomeFab
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, VoidCallback onTap) {
+  Widget _buildHeaderIcon(IconData icon, VoidCallback onTap, {Key? key}) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(8),
@@ -621,6 +641,9 @@ class _GoatHomeScreenState extends State<GoatHomeScreen>
           return Obx(() {
             final status = controller.todayLogs[habit.id];
             return _GoatHabitTile(
+              key: index == 0
+                  ? Get.find<TourController>().keyHomeHabitCard
+                  : null,
               habit: habit,
               status: status,
               onTap: () async {
@@ -1284,6 +1307,7 @@ class _GoatHabitTile extends StatelessWidget {
   final VoidCallback onLongPress;
 
   const _GoatHabitTile({
+    super.key,
     required this.habit,
     this.status,
     required this.onTap,

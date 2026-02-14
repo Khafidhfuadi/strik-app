@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/screens/auth_screen.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 import 'package:strik_app/main.dart';
@@ -15,6 +17,10 @@ class RegistrationSuccessScreen extends StatefulWidget {
 
 class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen>
     with WidgetsBindingObserver {
+  bool _isResending = false;
+  int _cooldown = 0;
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
@@ -23,6 +29,7 @@ class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen>
     supabase.auth.onAuthStateChange.listen((data) {
       if (data.session != null) {
         if (mounted) {
+          debugPrint('RegistrationSuccessScreen: Session found! Popping...');
           // Pop everything to restart from AuthGate which will show HomeScreen
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
@@ -33,6 +40,7 @@ class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -53,6 +61,70 @@ class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen>
       // Reload session to key sure we get the latest state
       // supabase.auth.refreshSession(); // optional
     }
+  }
+
+  Future<void> _resendEmail() async {
+    if (_cooldown > 0) return;
+
+    setState(() => _isResending = true);
+    try {
+      debugPrint("Resending email to: ${widget.email}");
+      final response = await supabase.auth.resend(
+        type: OtpType.signup,
+        email: widget.email,
+        emailRedirectTo: 'strikapp://auth/callback',
+      );
+      debugPrint("Resend response messageId: ${response.messageId}");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Email verifikasi udah dikirim ulang! Cek SPAM folder juga yaa.',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        _startCooldown();
+      }
+    } catch (e) {
+      if (mounted) {
+        String errorMessage = 'Gagal kirim ulang: $e';
+        if (e is AuthException && e.message.contains('rate limit')) {
+          errorMessage = 'Sabar dulu ya, tunggu sebentar sebelum kirim ulang.';
+          _startCooldown(); // Start cooldown if hit rate limit
+        } else if (e.toString().contains('429')) {
+          errorMessage = 'Kebanyakan request nih. Tunggu semenit ya!';
+          _startCooldown();
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isResending = false);
+    }
+  }
+
+  void _startCooldown() {
+    setState(() => _cooldown = 60);
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_cooldown > 0) {
+        setState(() => _cooldown--);
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   @override
@@ -119,6 +191,26 @@ class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen>
                 }
               },
               child: const Text('Udah Verifikasi? Cek status'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: (_isResending || _cooldown > 0) ? null : _resendEmail,
+              child: _isResending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      _cooldown > 0
+                          ? 'Tunggu $_cooldown detik ya...'
+                          : 'Link kadaluarsa? Kirim ulang',
+                      style: TextStyle(
+                        color: _cooldown > 0
+                            ? Colors.grey
+                            : Colors.orangeAccent,
+                      ),
+                    ),
             ),
           ],
         ),

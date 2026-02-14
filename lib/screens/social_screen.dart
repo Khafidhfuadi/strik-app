@@ -12,6 +12,7 @@ import 'package:strik_app/screens/add_friend_screen.dart';
 import 'package:strik_app/screens/notifications_screen.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
 import 'package:strik_app/widgets/story_bar.dart';
+import 'package:strik_app/controllers/tour_controller.dart';
 
 class SocialScreen extends StatefulWidget {
   final Widget? bottomNavigationBar;
@@ -30,14 +31,29 @@ class _SocialScreenState extends State<SocialScreen> {
   final List<String> _tabs = ['Feed', 'Rank', 'Circle'];
   late PageController _pageController;
 
+  GlobalKey? _getTabKey(int index) {
+    // Only verify keys if tour is NOT shown to prevent duplication error
+    if (Get.find<TourController>().isSocialTourShown.value) return null;
+
+    if (index == 1) return Get.find<TourController>().keySocialRank;
+    if (index == 2) return Get.find<TourController>().keySocialCircle;
+    return null;
+  }
+
   final _scrollController = ScrollController();
   final TextEditingController _postController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    Get.put(TourController());
     _pageController = PageController(initialPage: _selectedIndex);
     _scrollController.addListener(_onScroll);
+
+    // Start Tour
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Get.find<TourController>().startSocialTour(context);
+    });
   }
 
   @override
@@ -161,15 +177,20 @@ class _SocialScreenState extends State<SocialScreen> {
                             onPressed: _showHistorySheet,
                             tooltip: 'Riwayat Mingguan',
                           )
-                        : IconButton(
-                            key: const ValueKey(2),
-                            icon: const Icon(
-                              Icons.person_add_alt_1_rounded,
-                              color: Colors.white,
-                            ),
-                            onPressed: () =>
-                                Get.to(() => const AddFriendScreen()),
-                          ),
+                        : Obx(() {
+                            final tourController = Get.find<TourController>();
+                            return IconButton(
+                              key: !tourController.isSocialTourShown.value
+                                  ? tourController.keySocialSearch
+                                  : null,
+                              icon: const Icon(
+                                Icons.person_add_alt_1_rounded,
+                                color: Colors.white,
+                              ),
+                              onPressed: () =>
+                                  Get.to(() => const AddFriendScreen()),
+                            );
+                          }),
                   ),
                 ],
               ),
@@ -180,59 +201,62 @@ class _SocialScreenState extends State<SocialScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _tabs.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final label = entry.value;
-                    final isActive = _selectedIndex == index;
+                child: Obx(
+                  () => Row(
+                    children: _tabs.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final label = entry.value;
+                      final isActive = _selectedIndex == index;
 
-                    return GestureDetector(
-                      onTap: () => _onTabTapped(index),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        margin: const EdgeInsets.only(right: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? Colors.grey[900]
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              label,
-                              style: TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                color: isActive
-                                    ? Colors.white
-                                    : Colors.grey[600],
-                                fontWeight: isActive
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                fontSize: 14,
-                              ),
-                            ),
-                            // Badges
-                            if (index == 2)
-                              Obx(
-                                () => _buildBadgeUI(
-                                  _controller.friends.length,
-                                  index,
-                                  isActive,
+                      return GestureDetector(
+                        key: _getTabKey(index),
+                        onTap: () => _onTabTapped(index),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          margin: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? Colors.grey[900]
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  color: isActive
+                                      ? Colors.white
+                                      : Colors.grey[600],
+                                  fontWeight: isActive
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  fontSize: 14,
                                 ),
-                              )
-                            else
-                              const SizedBox.shrink(),
-                          ],
+                              ),
+                              // Badges
+                              if (index == 2)
+                                Obx(
+                                  () => _buildBadgeUI(
+                                    _controller.friends.length,
+                                    index,
+                                    isActive,
+                                  ),
+                                )
+                              else
+                                const SizedBox.shrink(),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ),
@@ -1489,7 +1513,16 @@ class _SocialScreenState extends State<SocialScreen> {
     return Column(
       children: [
         // Stories
-        StoryBar(),
+        // Stories
+        Obx(() {
+          final tourController = Get.find<TourController>();
+          return Container(
+            key: !tourController.isSocialTourShown.value
+                ? tourController.keySocialStory
+                : null,
+            child: StoryBar(),
+          );
+        }),
 
         // Feed List
         Expanded(
@@ -1499,7 +1532,15 @@ class _SocialScreenState extends State<SocialScreen> {
             }
 
             if (_controller.activityFeed.isEmpty) {
-              return Center(
+              final tourController = Get.find<TourController>();
+              if (!tourController.isSocialTourShown.value) {
+                return ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [_buildDummyFeedCard()],
+                );
+              }
+
+              return const Center(
                 child: Text(
                   'Masih sepi nih, belum ada yang pamer! 🦗',
                   style: TextStyle(color: Colors.white54),
@@ -1561,6 +1602,11 @@ class _SocialScreenState extends State<SocialScreen> {
                   }
 
                   return Container(
+                    key:
+                        index == 0 &&
+                            !Get.find<TourController>().isSocialTourShown.value
+                        ? Get.find<TourController>().keySocialFeed
+                        : null,
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -2358,6 +2404,129 @@ class _SocialScreenState extends State<SocialScreen> {
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+    );
+  }
+
+  Widget _buildDummyFeedCard() {
+    final tourController = Get.find<TourController>();
+    return Obx(
+      () => Container(
+        key: !tourController.isSocialTourShown.value
+            ? tourController.keySocialFeed
+            : null,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[900]!.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppTheme.primary,
+                  child: const Icon(Icons.flash_on, color: Colors.black),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Strik Team',
+                            style: const TextStyle(
+                              fontFamily: 'Space Grotesk',
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Admin',
+                              style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
+                                color: AppTheme.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Baru saja',
+                            style: TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              color: Colors.white.withOpacity(0.4),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Selamat datang di Strik! Cari temanmu dan mulai saling memotivasi! 🔥',
+                        style: const TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          color: Colors.white70,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Dummy Reactions
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🔥', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '12',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

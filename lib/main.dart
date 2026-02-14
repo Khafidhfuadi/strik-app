@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,6 +15,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:alarm/alarm.dart';
 import 'package:strik_app/services/alarm_manager_service.dart';
 import 'package:strik_app/services/home_widget_service.dart';
+import 'package:strik_app/screens/email_confirmation_error_screen.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -109,61 +111,85 @@ Future<void> _showLocalNotification(String title, String body) async {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('id_ID', null);
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await initializeDateFormatting('id_ID', null);
 
-  bool onboardingCompleted = false;
-  String? errorMessage;
+      bool onboardingCompleted = false;
+      String? errorMessage;
 
-  try {
-    // Load .env file
-    await dotenv.load(fileName: ".env");
+      try {
+        // Load .env file
+        await dotenv.load(fileName: ".env");
 
-    // Initialize Alarm
-    await Alarm.init();
+        // Initialize Alarm
+        await Alarm.init();
 
-    // Initialize AlarmManagerService for recurring alarms
-    await AlarmManagerService.init();
+        // Initialize AlarmManagerService for recurring alarms
+        await AlarmManagerService.init();
 
-    // Initialize Firebase
-    await Firebase.initializeApp();
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+        // Initialize Firebase
+        await Firebase.initializeApp();
+        FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler,
+        );
 
-    // Initialize notification service
-    try {
-      await NotificationService().init();
-    } catch (e) {
-      debugPrint('Notification service init failed: $e');
-      // Continue even if notification fails
-    }
+        // Initialize notification service
+        try {
+          await NotificationService().init();
+        } catch (e) {
+          debugPrint('Notification service init failed: $e');
+          // Continue even if notification fails
+        }
 
-    // Initialize Supabase
-    await Supabase.initialize(
-      url: dotenv.env['SUPABASE_URL']!,
-      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-    );
+        // Initialize Supabase
+        await Supabase.initialize(
+          url: dotenv.env['SUPABASE_URL']!,
+          anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+          debug: true,
+        );
 
-    // Initialize Push Notification (after Supabase so we have currentUser if already logged in)
-    try {
-      await PushNotificationService().init();
-    } catch (e) {
-      debugPrint('Push notification service init failed: $e');
-    }
+        // Initialize Push Notification (after Supabase so we have currentUser if already logged in)
+        try {
+          await PushNotificationService().init();
+        } catch (e) {
+          debugPrint('Push notification service init failed: $e');
+        }
 
-    // Check onboarding status
-    final prefs = await SharedPreferences.getInstance();
-    onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-  } catch (e, stackTrace) {
-    debugPrint('Error during initialization: $e');
-    debugPrint('Stack trace: $stackTrace');
-    errorMessage = e.toString();
-  }
+        // Check onboarding status
+        final prefs = await SharedPreferences.getInstance();
+        Get.put(prefs); // Register SharedPreferences for dependency injection
+        onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+      } catch (e, stackTrace) {
+        debugPrint('Error during initialization: $e');
+        debugPrint('Stack trace: $stackTrace');
+        errorMessage = e.toString();
+      }
 
-  runApp(
-    StrikApp(
-      onboardingCompleted: onboardingCompleted,
-      errorMessage: errorMessage,
-    ),
+      runApp(
+        StrikApp(
+          onboardingCompleted: onboardingCompleted,
+          errorMessage: errorMessage,
+        ),
+      );
+    },
+    (error, stack) {
+      if (error is AuthException &&
+          (error.statusCode == 'otp_expired' ||
+              error.message.contains('Token has expired') ||
+              error.message.contains('Email link is invalid'))) {
+        debugPrint("Caught expired OTP error: ${error.message}");
+        // Navigate to friendly error screen instead of crashing or showing scary error
+        // Use a slight delay to ensure GetMaterialApp is mounted effectively if this happens during startup
+        Future.delayed(const Duration(milliseconds: 500), () {
+          Get.to(() => const EmailConfirmationErrorScreen());
+        });
+      } else {
+        debugPrint("Unhandled error: $error");
+        // debugPrintStack(stackTrace: stack); // optional
+      }
+    },
   );
 }
 

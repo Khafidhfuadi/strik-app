@@ -10,6 +10,7 @@ import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
 import 'package:strik_app/widgets/heatmap_grid.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
+import 'package:strik_app/controllers/tour_controller.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -29,9 +30,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   void initState() {
     super.initState();
+    Get.put(TourController());
     _controller = Get.put(StatisticsController());
     _pageController = PageController();
     _tabScrollController = ScrollController();
+
+    // Start Tour
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Get.find<TourController>().startStatisticsTour(context);
+    });
   }
 
   @override
@@ -227,54 +234,57 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   }
 
   Widget _buildFilterButton() {
-    return PopupMenuButton<StatsFilter>(
-      icon: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12),
+    return Container(
+      key: Get.find<TourController>().keyStatsPeriod,
+      child: PopupMenuButton<StatsFilter>(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: const Icon(
+            Icons.filter_list_rounded,
+            size: 20,
+            color: Colors.white,
+          ),
         ),
-        child: const Icon(
-          Icons.filter_list_rounded,
-          size: 20,
-          color: Colors.white,
-        ),
-      ),
-      color: AppTheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      onSelected: (filter) async {
-        if (filter == StatsFilter.custom) {
-          final picked = await showDateRangePicker(
-            context: context,
-            firstDate: DateTime(2020),
-            lastDate: DateTime.now(),
-            builder: (context, child) {
-              return Theme(
-                data: ThemeData.dark().copyWith(
-                  colorScheme: const ColorScheme.dark(
-                    primary: AppTheme.primary,
-                    surface: AppTheme.surface,
+        color: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        onSelected: (filter) async {
+          if (filter == StatsFilter.custom) {
+            final picked = await showDateRangePicker(
+              context: context,
+              firstDate: DateTime(2020),
+              lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: ThemeData.dark().copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: AppTheme.primary,
+                      surface: AppTheme.surface,
+                    ),
                   ),
-                ),
-                child: child!,
-              );
-            },
-          );
-          if (picked != null) {
-            _controller.setCustomRange(picked);
+                  child: child!,
+                );
+              },
+            );
+            if (picked != null) {
+              _controller.setCustomRange(picked);
+            }
+          } else {
+            _controller.setFilter(filter);
           }
-        } else {
-          _controller.setFilter(filter);
-        }
-      },
-      itemBuilder: (context) => [
-        _buildPopupItem(StatsFilter.weekly, 'Mingguan'),
-        _buildPopupItem(StatsFilter.monthly, 'Bulanan'),
-        _buildPopupItem(StatsFilter.yearly, 'Tahunan'),
-        _buildPopupItem(StatsFilter.allTime, 'Sepanjang Masa'),
-        _buildPopupItem(StatsFilter.custom, 'Custom Range'),
-      ],
+        },
+        itemBuilder: (context) => [
+          _buildPopupItem(StatsFilter.weekly, 'Mingguan'),
+          _buildPopupItem(StatsFilter.monthly, 'Bulanan'),
+          _buildPopupItem(StatsFilter.yearly, 'Tahunan'),
+          _buildPopupItem(StatsFilter.allTime, 'Sepanjang Masa'),
+          _buildPopupItem(StatsFilter.custom, 'Custom Range'),
+        ],
+      ),
     );
   }
 
@@ -380,13 +390,16 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     )
                   : const SizedBox.shrink(),
             ),
-            _buildStatCard(
-              'Totalan Kelar',
-              '$completionCount',
-              'Kali',
-              AppTheme.primary,
-              description:
-                  'Jumlah total kebiasaan yang udah lo kelarin di periode ini. Makin banyak makin GG!',
+            Container(
+              key: Get.find<TourController>().keyStatsSummary,
+              child: _buildStatCard(
+                'Totalan Kelar',
+                '$completionCount',
+                'Kali',
+                AppTheme.primary,
+                description:
+                    'Jumlah total kebiasaan yang udah lo kelarin di periode ini. Makin banyak makin GG!',
+              ),
             ),
             const SizedBox(height: 16),
             _buildStatCard(
@@ -439,6 +452,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
             const SizedBox(height: 16),
             Container(
+              key: Get.find<TourController>().keyStatsHeatmap,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppTheme.surface,
@@ -458,6 +472,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ),
             const SizedBox(height: 16),
             Container(
+              key: Get.find<TourController>().keyStatsChart,
               height: 250,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               decoration: BoxDecoration(

@@ -31,10 +31,18 @@ class _AuthScreenState extends State<AuthScreen> {
           throw const AuthException('Pilih gender dulu dong! 🙏');
         }
 
+        if (!email.contains('@') || !email.contains('.')) {
+          throw const AuthException('Masukin email yang bener dong! 😅');
+        }
+
         await supabase.auth.signUp(
           email: email,
           password: password,
-          data: {'full_name': email.split('@')[0], 'gender': _selectedGender},
+          data: {
+            'full_name': email.split('@')[0],
+            'gender': _selectedGender,
+            'has_seen_gamification_intro': true, // Skip intro for new users
+          },
           emailRedirectTo: 'strikapp://auth/callback',
         );
 
@@ -126,7 +134,7 @@ class _AuthScreenState extends State<AuthScreen> {
               const SizedBox(height: 32),
               CustomTextField(
                 controller: _emailController,
-                label: 'Username / Email',
+                label: _isSignUp ? 'Email' : 'Username / Email',
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),

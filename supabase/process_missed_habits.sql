@@ -14,6 +14,7 @@ CREATE OR REPLACE FUNCTION process_missed_habits()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER -- Bypass RLS so we can read/write all users' data
+SET search_path = public
 AS $$
 DECLARE
     yesterday DATE := (NOW() AT TIME ZONE 'Asia/Jakarta')::date - INTERVAL '1 day';
@@ -119,6 +120,7 @@ CREATE OR REPLACE FUNCTION _apply_missed_penalty(
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     new_xp DOUBLE PRECISION;

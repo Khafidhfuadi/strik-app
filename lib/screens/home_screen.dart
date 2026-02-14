@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Added for HapticFeedback
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
+import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/controllers/friend_controller.dart';
@@ -10,8 +11,8 @@ import 'package:strik_app/screens/create_habit_screen.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
 import 'package:strik_app/screens/social_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import 'package:strik_app/core/theme.dart';
+import 'package:strik_app/controllers/tour_controller.dart';
 import 'package:strik_app/widgets/habit_card.dart';
 import 'package:strik_app/widgets/weekly_habit_card.dart';
 import 'package:strik_app/screens/statistics_screen.dart';
@@ -41,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    Get.put(TourController());
     WidgetsBinding.instance.addObserver(this);
     final homeController = Get.find<HomeController>();
     // Initialize PageController based on current tab
@@ -69,6 +71,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         }
       });
     }
+
+    // Start Tour (Only if using default home screen, logic checks implemented in trigger)
+    // Wait for content to load so keys are attached to widgets (not loading indicator)
+    ever(Get.find<HabitController>().isLoading, (isLoading) {
+      if (!isLoading) {
+        // Slight delay to ensure frame is painted
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) Get.find<TourController>().startDefaultHomeTour(context);
+        });
+      }
+    });
+
+    // Also check initial state in case data is already loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!Get.find<HabitController>().isLoading.value) {
+        Get.find<TourController>().startDefaultHomeTour(context);
+      }
+    });
   }
 
   void _showXPAnimation(double amount) {
@@ -295,11 +315,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onPressed: () => _showFilterBottomSheet(context),
             ),
             IconButton(
+              key: Get.find<TourController>().keyHomeFab,
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () => _navigateAndRefresh(context),
             ),
             //profile icon
             IconButton(
+              key: Get.find<TourController>().keyHomeProfile,
               icon: const Icon(Icons.manage_accounts, color: Colors.white),
               onPressed: () => _showProfileBottomSheet(context),
             ),
@@ -312,6 +334,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   _buildGamificationHeader(gamificationController),
                   // Tab Bar
                   Container(
+                    key: Get.find<TourController>().keyHomeDate,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 10,
@@ -354,6 +377,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           Get.to(() => const LevelProgressionScreen());
         },
         child: Container(
+          key: Get.find<TourController>().keyHomeGamification,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppTheme.surface,
@@ -489,23 +513,68 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildTodayList(HabitController controller) {
     // Check if there are any habits scheduled for today at all
     if (controller.habitsForToday.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.6,
-              child: const Center(
+      // Show Dummy Habit Card for Tour if not shown
+      // Make it reactive to tour state
+      final tourController = Get.find<TourController>();
+      return Obx(() {
+        if (!tourController.isHomeTourShown.value) {
+          // Create a dummy habit
+          final dummyHabit = Habit(
+            id: 'dummy_tour_habit',
+            userId: 'dummy',
+            title: 'Minum Air Putih',
+            // icon: '💧', // Prop not available
+            color: '2196F3', // Blue
+            frequency: 'daily',
+            // targetCount: 1, // Prop not available
+            // unit: 'gelas', // Prop not available
+            createdAt: DateTime.now(),
+          );
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              // Dummy Card for Tour Target
+              AbsorbPointer(
+                absorbing: true, // Prevent interaction
+                child: Container(
+                  key: tourController.keyHomeHabitCard,
+                  child: HabitCard(
+                    habit: dummyHabit,
+                    status: null, // Initial state
+                    onTap: () {},
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Center(
                 child: Text(
-                  'Belum ada habit nih, gass bikin!',
+                  'Ini contoh habit buat latihan',
                   style: TextStyle(color: Colors.white54),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
+            ],
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => controller.fetchHabitsAndLogs(isRefresh: true),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.6,
+                child: const Center(
+                  child: Text(
+                    'Belum ada habit nih, gass bikin!',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      });
     }
 
     final habits = controller.sortedHabits;
@@ -588,10 +657,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     const Color(0xFFFF5757),
                     Colors.white,
                   ),
-                  child: HabitCard(
-                    habit: habit,
-                    status: status,
-                    onTap: () => Get.to(() => HabitDetailScreen(habit: habit)),
+                  child: Container(
+                    key: index == 0
+                        ? Get.find<TourController>().keyHomeHabitCard
+                        : null,
+                    child: HabitCard(
+                      habit: habit,
+                      status: status,
+                      onTap: () =>
+                          Get.to(() => HabitDetailScreen(habit: habit)),
+                    ),
                   ),
                 ),
               ),
@@ -828,6 +903,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
             const SizedBox(height: 24),
             const Divider(color: Colors.white10),
+            // Reset Tutorial Button
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.restart_alt_rounded,
+                  color: Colors.blue,
+                  size: 20,
+                ),
+              ),
+              title: const Text(
+                'Reset Tutorial',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                Get.back(); // Close bottom sheet
+                Get.find<TourController>().resetAllTours();
+              },
+            ),
+            const SizedBox(height: 8),
+            Divider(color: Colors.white.withValues(alpha: 0.1)),
             const SizedBox(height: 8),
 
             // Edit Profile (Placeholder)

@@ -11,6 +11,7 @@ import 'package:strik_app/data/models/habit_journal.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:strik_app/controllers/tour_controller.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   final Habit habit;
@@ -29,6 +30,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   @override
   void initState() {
     super.initState();
+    Get.put(TourController());
     controller = Get.put(
       HabitDetailController(widget.habit.id!),
       tag: widget.habit.id,
@@ -38,6 +40,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       tag: widget.habit.id,
     );
     _scrollController.addListener(_onScroll);
+
+    // Start Tour after loading
+    ever(controller.isLoading, (isLoading) {
+      if (!isLoading) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) Get.find<TourController>().startHabitDetailTour(context);
+        });
+      }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!controller.isLoading.value) {
+        Get.find<TourController>().startHabitDetailTour(context);
+      }
+    });
   }
 
   @override
@@ -272,123 +289,129 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   }
 
   Widget _buildStats(HabitDetailController controller, Habit currentHabit) {
-    return Obx(() {
-      if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      // Calculate Goal Progress if endDate exists
-      Widget? goalProgress;
-      if (currentHabit.endDate != null && currentHabit.createdAt != null) {
-        final now = DateTime.now();
-        final start = currentHabit.createdAt!;
-        final end = currentHabit.endDate!;
-
-        final totalDuration = end.difference(start).inSeconds;
-        final elapsed = now.difference(start).inSeconds;
-
-        double progress = 0.0;
-        if (totalDuration > 0) {
-          progress = (elapsed / totalDuration).clamp(0.0, 1.0);
+    return Container(
+      key: Get.find<TourController>().keyDetailStats,
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
         }
 
-        final percentage = (progress * 100).toInt();
-        final daysLeft = end.difference(now).inDays;
+        // Calculate Goal Progress if endDate exists
+        Widget? goalProgress;
+        if (currentHabit.endDate != null && currentHabit.createdAt != null) {
+          final now = DateTime.now();
+          final start = currentHabit.createdAt!;
+          final end = currentHabit.endDate!;
 
-        goalProgress = Column(
-          children: [
-            const SizedBox(height: 24),
-            Divider(color: Colors.white.withValues(alpha: 0.1)),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Progress Goal',
+          final totalDuration = end.difference(start).inSeconds;
+          final elapsed = now.difference(start).inSeconds;
+
+          double progress = 0.0;
+          if (totalDuration > 0) {
+            progress = (elapsed / totalDuration).clamp(0.0, 1.0);
+          }
+
+          final percentage = (progress * 100).toInt();
+          final daysLeft = end.difference(now).inDays;
+
+          goalProgress = Column(
+            children: [
+              const SizedBox(height: 24),
+              Divider(color: Colors.white.withValues(alpha: 0.1)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Progress Goal',
+                    style: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '$percentage%',
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      fontSize: 14,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    currentHabit.color.startsWith('0x')
+                        ? Color(int.parse(currentHabit.color))
+                        : AppTheme.primary,
+                  ),
+                  minHeight: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  daysLeft > 0
+                      ? '$daysLeft hari lagi'
+                      : (daysLeft == 0
+                            ? 'Hari ini terakhir!'
+                            : 'Udah lewat deadline'),
                   style: TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 14,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    color: daysLeft >= 0
+                        ? AppTheme.textSecondary
+                        : Colors.redAccent,
                   ),
                 ),
-                Text(
-                  '$percentage%',
-                  style: const TextStyle(
-                    fontFamily: 'Space Grotesk',
-                    fontSize: 14,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Colors.white.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  currentHabit.color.startsWith('0x')
-                      ? Color(int.parse(currentHabit.color))
-                      : AppTheme.primary,
-                ),
-                minHeight: 8,
               ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                daysLeft > 0
-                    ? '$daysLeft hari lagi'
-                    : (daysLeft == 0
-                          ? 'Hari ini terakhir!'
-                          : 'Udah lewat deadline'),
-                style: TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  fontSize: 12,
-                  color: daysLeft >= 0
-                      ? AppTheme.textSecondary
-                      : Colors.redAccent,
-                ),
-              ),
-            ),
-          ],
-        );
-      }
+            ],
+          );
+        }
 
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem(
-                  'Totalan',
-                  '${controller.totalCompletions.value}',
-                ),
-                _buildVerticalDivider(),
-                _buildStatItem('Best Streak', '${controller.bestStreak.value}'),
-                _buildVerticalDivider(),
-                _buildStatItem(
-                  'Streak Aktif',
-                  '${controller.currentStreak.value}',
-                ),
-              ],
-            ),
-            if (goalProgress != null) goalProgress,
-          ],
-        ),
-      );
-    });
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatItem(
+                    'Totalan',
+                    '${controller.totalCompletions.value}',
+                  ),
+                  _buildVerticalDivider(),
+                  _buildStatItem(
+                    'Best Streak',
+                    '${controller.bestStreak.value}',
+                  ),
+                  _buildVerticalDivider(),
+                  _buildStatItem(
+                    'Streak Aktif',
+                    '${controller.currentStreak.value}',
+                  ),
+                ],
+              ),
+              if (goalProgress != null) goalProgress,
+            ],
+          ),
+        );
+      }),
+    );
   }
 
   Widget _buildCalendarHeader(HabitDetailController controller) {
@@ -569,6 +592,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           }
         },
         child: Container(
+          key: Get.find<TourController>().keyDetailCalendar,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: AppTheme.surface,
@@ -740,6 +764,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               children: [
                 Text(
                   'Jurnal Habit',
+                  key: Get.find<TourController>().keyDetailJournal,
                   style: const TextStyle(
                     fontFamily: 'Space Grotesk',
                     fontSize: 20,
