@@ -33,7 +33,7 @@ serve(async (req: Request) => {
     console.log("Starting Weekly Leaderboard Calculation...")
 
     // 2. Determine Previous Week Range (Monday-Sunday)
-    // Runs on Monday morning 8AM. We want the previous Mon-Sun.
+    // Runs on Monday morning 1AM UTC (8AM WIB). We want the previous Mon-Sun.
     const now = new Date()
     
     // Robust "Last Week" Calculation:

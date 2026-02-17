@@ -14,11 +14,11 @@ CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
 -- 2. Schedule Cron Job
--- Runs every Monday at 08:00 UTC (15:00 WIB)
+-- Runs every Monday at 01:00 UTC (08:00 WIB)
 -- This ensures the previous week (Mon-Sun) is fully complete.
 SELECT cron.schedule(
     'invoke-weekly-leaderboard', -- Job name
-    '0 8 * * 1',                 -- Cron expression: Monday at 08:00 UTC
+    '0 1 * * 1',                 -- Cron expression: Monday at 01:00 UTC (08:00 WIB)
     $$
     SELECT
         net.http_post(
