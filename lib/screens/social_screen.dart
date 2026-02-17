@@ -2261,13 +2261,13 @@ class _SocialScreenState extends State<SocialScreen> {
             ),
 
             // DEBUG BUTTON
-            TextButton(
-              onPressed: _controller.debugBackfillLastWeekHistory,
-              child: const Text(
-                'Debug: Generate Data Minggu Lalu',
-                style: TextStyle(color: Colors.white24),
-              ),
-            ),
+            // TextButton(
+            //   onPressed: _controller.debugBackfillLastWeekHistory,
+            //   child: const Text(
+            //     'Debug: Generate Data Minggu Lalu',
+            //     style: TextStyle(color: Colors.white24),
+            //   ),
+            // ),
             const SizedBox(height: 16),
             Expanded(
               child: Obx(() {

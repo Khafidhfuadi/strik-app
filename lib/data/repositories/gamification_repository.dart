@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:strik_app/data/models/user_model.dart';
 
 class GamificationRepository {
@@ -101,6 +102,48 @@ class GamificationRepository {
         .order('created_at', ascending: false)
         .limit(20);
 
-    return List<Map<String, dynamic>>.from(response);
+    final logs = List<Map<String, dynamic>>.from(response);
+    final enrichedLogs = <Map<String, dynamic>>[];
+
+    // Collect habit IDs to fetch names
+    final habitIds = <String>{};
+    for (var log in logs) {
+      final reason = log['reason'] as String?;
+      final referenceId = log['reference_id'] as String?;
+      if (referenceId != null &&
+          (reason == 'Completed Habit' ||
+              reason == 'Skipped Habit' ||
+              reason == 'New Habit')) {
+        habitIds.add(referenceId);
+      }
+    }
+
+    // Fetch habit names
+    Map<String, String> habitNames = {};
+    if (habitIds.isNotEmpty) {
+      try {
+        final habitsResponse = await _supabase
+            .from('habits')
+            .select('id, title')
+            .filter('id', 'in', habitIds.toList());
+        for (var h in habitsResponse) {
+          habitNames[h['id'] as String] = h['title'] as String;
+        }
+      } catch (e) {
+        debugPrint('Error fetching habit names: $e');
+      }
+    }
+
+    // Merge names into logs
+    for (var log in logs) {
+      final newLog = Map<String, dynamic>.from(log);
+      final referenceId = log['reference_id'] as String?;
+      if (referenceId != null && habitNames.containsKey(referenceId)) {
+        newLog['habit_title'] = habitNames[referenceId];
+      }
+      enrichedLogs.add(newLog);
+    }
+
+    return enrichedLogs;
   }
 }

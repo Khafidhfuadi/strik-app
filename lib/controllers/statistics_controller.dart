@@ -665,9 +665,9 @@ class StatisticsController extends GetxController {
           .where((l) => l['habit_id'] == habit.id && l['status'] == 'completed')
           .toList();
 
-      final bestStreak = _calculateBestStreak(habitLogs);
-      if (bestStreak > 0) {
-        rankings.add({'habit': habit, 'streak': bestStreak});
+      final currentStreak = _calculateStreak(habitLogs);
+      if (currentStreak > 0) {
+        rankings.add({'habit': habit, 'streak': currentStreak});
       }
     }
 

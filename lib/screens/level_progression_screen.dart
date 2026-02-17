@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/controllers/gamification_controller.dart';
+import 'package:strik_app/widgets/rank_history_detail_sheet.dart';
 import 'package:intl/intl.dart';
 
 class LevelProgressionScreen extends StatefulWidget {
@@ -252,7 +253,30 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                       return val.toStringAsFixed(1);
                     }
 
+                    final reason = log['reason'] ?? 'XP Adjustment';
+                    final habitTitle = log['habit_title'] as String?;
+
+                    // Use habit title as primary display if reason is habit-related
+                    String displayTitle = reason;
+                    if (habitTitle != null) {
+                      if (reason == 'Completed Habit') {
+                        displayTitle = 'Completed: $habitTitle';
+                      }
+                      if (reason == 'Skipped Habit') {
+                        displayTitle = 'Skipped: $habitTitle';
+                      }
+                      if (reason == 'New Habit') {
+                        displayTitle = 'New Habit: $habitTitle';
+                      }
+                    }
+
                     return ListTile(
+                      onTap: () {
+                        Get.bottomSheet(
+                          RankHistoryDetailSheet(log: log),
+                          isScrollControlled: true,
+                        );
+                      },
                       contentPadding: EdgeInsets.zero,
                       leading: Container(
                         padding: const EdgeInsets.all(10),
@@ -273,7 +297,7 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                         ),
                       ),
                       title: Text(
-                        log['reason'] ?? 'XP Adjustment',
+                        displayTitle,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
