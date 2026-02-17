@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:strik_app/controllers/tour_controller.dart';
+import 'dart:async';
 
 class HabitDetailScreen extends StatefulWidget {
   final Habit habit;
@@ -962,11 +963,34 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   }) {
     final textController = TextEditingController(text: journal?.content ?? '');
     final isEditing = journal != null;
-    final displayDate = date ?? (journal?.createdAt ?? DateTime.now());
+    final displayDate =
+        date ?? (journal?.createdAt.toLocal() ?? DateTime.now());
 
     // Mutable state for the dialog
     File? selectedImage;
     String? existingImageUrl = journal?.imageUrl;
+    Timer? _debounce;
+
+    // Status tracking
+    final ValueNotifier<String> saveStatus = ValueNotifier<String>('');
+
+    // Load draft logic
+    // We check for draft regardless of editing or new, to show status if exists?
+    // User asked: "tampilkan status drafting pada edit journal ketika ada perubahan isi konten"
+    // And "tetap tampilkan status pill draft ketika content journaling berhasil ter load"
+    // So for New Journal: Load draft -> Show 'Draft'.
+    // For Edit Journal: We usually don't load draft initially unless we want to restore a crashed edit?
+    // Let's stick to: New -> Load Draft. Edit -> No initial load (unless requested), but allow Saving.
+    // Wait, if I edit and type -> Save Draft -> Status 'Draft'.
+
+    if (!isEditing) {
+      journalController.getDraft(displayDate).then((draft) {
+        if (draft != null && draft.isNotEmpty) {
+          textController.text = draft;
+          saveStatus.value = 'Draft'; // Set status immediately
+        }
+      });
+    }
 
     Get.bottomSheet(
       StatefulBuilder(
@@ -987,43 +1011,123 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
+                                style: const TextStyle(
+                                  fontFamily: 'Space Grotesk',
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                              // Status Pill (Using ValueListenableBuilder for reactive updates)
+                              ValueListenableBuilder<String>(
+                                valueListenable: saveStatus,
+                                builder: (context, status, _) {
+                                  if (status.isEmpty)
+                                    return const SizedBox.shrink();
+                                  return Row(
+                                    children: [
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: status == 'Menyimpan...'
+                                              ? Colors.amber.withValues(
+                                                  alpha: 0.1,
+                                                )
+                                              : Colors.green.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: status == 'Menyimpan...'
+                                                ? Colors.amber.withValues(
+                                                    alpha: 0.3,
+                                                  )
+                                                : Colors.green.withValues(
+                                                    alpha: 0.3,
+                                                  ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (status == 'Draft')
+                                              const Icon(
+                                                Icons.check,
+                                                size: 10,
+                                                color: Colors.green,
+                                              ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              status,
+                                              style: TextStyle(
+                                                fontFamily: 'Plus Jakarta Sans',
+                                                fontSize: 10,
+                                                color: status == 'Menyimpan...'
+                                                    ? Colors.amber
+                                                    : Colors.green,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat(
+                              'EEEE, d MMM yyyy',
+                              'id_ID',
+                            ).format(displayDate),
+                            style: TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 14,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Row(
                       children: [
-                        Text(
-                          isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
-                          style: const TextStyle(
-                            fontFamily: 'Space Grotesk',
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                        if (isEditing)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              Get.back(); // close sheet
+                              _confirmDeleteJournal(journal);
+                            },
+                          ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close,
                             color: AppTheme.textPrimary,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          DateFormat(
-                            'EEEE, d MMM yyyy',
-                            'id_ID',
-                          ).format(displayDate),
-                          style: TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontSize: 14,
-                            color: AppTheme.textSecondary,
-                          ),
+                          onPressed: () => Get.back(),
                         ),
                       ],
                     ),
-                    if (isEditing)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.red,
-                        ),
-                        onPressed: () {
-                          Get.back(); // close sheet
-                          _confirmDeleteJournal(journal);
-                        },
-                      ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -1034,6 +1138,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     fontFamily: 'Plus Jakarta Sans',
                     color: AppTheme.textPrimary,
                   ),
+                  onChanged: (value) {
+                    // Enable for both Edit and New
+                    saveStatus.value = 'Menyimpan...';
+
+                    if (_debounce?.isActive ?? false) _debounce!.cancel();
+                    _debounce = Timer(
+                      const Duration(milliseconds: 1000),
+                      () async {
+                        await journalController.saveDraft(value, displayDate);
+                        if (context.mounted) {
+                          saveStatus.value = 'Draft';
+                        }
+                      },
+                    );
+                  },
                   decoration: InputDecoration(
                     hintText: 'Gimana habit kamu hari ini?',
                     hintStyle: TextStyle(
@@ -1197,7 +1316,11 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-    );
+      isDismissible: false,
+      enableDrag: false,
+    ).then((_) {
+      _debounce?.cancel();
+    });
   }
 
   Widget _buildImagePickerButton(

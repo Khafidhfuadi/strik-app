@@ -221,7 +221,29 @@ class GamificationController extends GetxController {
       final userData = await _repository.getCurrentUserGamificationData();
       if (userData != null) {
         currentXP.value = userData.xp;
-        currentLevel.value = userData.level;
+
+        // Auto-correct level if XP warrants a higher level
+        int expectedLevel = 1;
+        // Logic similar to awardXP loop
+        while (true) {
+          final threshold = getXPThreshold(expectedLevel);
+          if (userData.xp >= threshold) {
+            expectedLevel++;
+          } else {
+            break;
+          }
+        }
+
+        if (expectedLevel > userData.level) {
+          print(
+            'DEBUG: Level mismatch detected. XP: ${userData.xp}, Level: ${userData.level}, Expected: $expectedLevel. Correcting...',
+          );
+          currentLevel.value = expectedLevel;
+          // Sync correction to DB
+          await _repository.updateXPAndLevel(userData.xp, expectedLevel);
+        } else {
+          currentLevel.value = userData.level;
+        }
       }
     } catch (e) {
       print('Error fetching gamification data: $e');

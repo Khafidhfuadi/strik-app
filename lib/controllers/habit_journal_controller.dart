@@ -9,6 +9,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:strik_app/controllers/gamification_controller.dart';
 
@@ -249,6 +250,7 @@ class HabitJournalController extends GetxController {
       journals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       _checkTodayJournal();
+      await clearDraft(targetDate);
 
       // Award XP (dynamic based on level)
       try {
@@ -299,6 +301,7 @@ class HabitJournalController extends GetxController {
         journals[index] = updatedJournal;
       }
       _checkTodayJournal();
+      await clearDraft(updatedJournal.createdAt.toLocal());
 
       Get.back();
     } catch (e) {
@@ -553,6 +556,46 @@ class HabitJournalController extends GetxController {
       Get.snackbar('Error', 'Terjadi kesalahan: $e');
     } finally {
       isGeneratingAI.value = false;
+    }
+  }
+
+  // --- Drafting System ---
+
+  String _getDraftKey(DateTime date) {
+    final dateStr = "${date.year}-${date.month}-${date.day}";
+    return "journal_draft_${habitId}_$dateStr";
+  }
+
+  Future<void> saveDraft(String content, DateTime date) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = _getDraftKey(date);
+      if (content.trim().isEmpty) {
+        await prefs.remove(key);
+      } else {
+        await prefs.setString(key, content);
+      }
+    } catch (e) {
+      print("Error saving draft: $e");
+    }
+  }
+
+  Future<String?> getDraft(DateTime date) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_getDraftKey(date));
+    } catch (e) {
+      print("Error getting draft: $e");
+      return null;
+    }
+  }
+
+  Future<void> clearDraft(DateTime date) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_getDraftKey(date));
+    } catch (e) {
+      print("Error clearing draft: $e");
     }
   }
 }
