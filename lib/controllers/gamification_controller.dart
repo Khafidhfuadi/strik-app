@@ -34,7 +34,7 @@ class GamificationController extends GetxController {
       return const LevelBenefits(
         level: 1, // Represents 1-3
         completeHabit: 5,
-        skipHabit: -5,
+        skipHabit: -3,
         newMomentz: 1.5,
         react: 1,
         newHabit: 10,
@@ -46,7 +46,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 4,
           completeHabit: 6,
-          skipHabit: -5,
+          skipHabit: -3,
           newMomentz: 2,
           react: 1.5,
           newHabit: 15,
@@ -56,7 +56,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 5,
           completeHabit: 7,
-          skipHabit: -5,
+          skipHabit: -3,
           newMomentz: 2.5,
           react: 2,
           newHabit: 20,
@@ -66,7 +66,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 6,
           completeHabit: 8,
-          skipHabit: -5,
+          skipHabit: -3,
           newMomentz: 3,
           react: 2.5,
           newHabit: 25,
@@ -76,7 +76,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 7,
           completeHabit: 9,
-          skipHabit: -4.5,
+          skipHabit: -3,
           newMomentz: 3.5,
           react: 3,
           newHabit: 30,
@@ -86,7 +86,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 8,
           completeHabit: 10,
-          skipHabit: -4,
+          skipHabit: -3,
           newMomentz: 4,
           react: 3.5,
           newHabit: 35,
@@ -96,7 +96,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 9,
           completeHabit: 11,
-          skipHabit: -3.5,
+          skipHabit: -3,
           newMomentz: 4.5,
           react: 4,
           newHabit: 40,
