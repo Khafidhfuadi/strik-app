@@ -35,18 +35,22 @@ serve(async (req: Request) => {
     // 2. Determine Previous Week Range (Monday-Sunday)
     // Runs on Monday morning 8AM. We want the previous Mon-Sun.
     const now = new Date()
-    // If today is Monday, previous week start is 7 days ago.
-    // If today is not Monday (debugging), adjust logic accordingly. 
-    // Assuming accurate cron schedule: '0 8 * * 1' (At 08:00 on Monday)
     
-    // Normalize to start of current day (Monday)
-    const currentWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    
-    // End of last week = Current Monday 00:00 minus 1ms
-    const endOfLastWeek = new Date(currentWeekStart.getTime() - 1)
-    
-    // Start of last week = Current Monday minus 7 days
-    const startOfLastWeek = new Date(currentWeekStart.getTime() - (7 * 24 * 60 * 60 * 1000))
+    // Robust "Last Week" Calculation:
+    // Find the Monday of the current week (or correct relative to now if today is Sunday)
+    // We treat Monday as start of week.
+    const day = now.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+    const diffToMon = (day + 6) % 7 // Distance from Mon (0 if Mon)
+    const currentMonday = new Date(now)
+    currentMonday.setDate(now.getDate() - diffToMon)
+    currentMonday.setHours(0, 0, 0, 0) // Start of this week
+
+    // Start of Last Week = This Monday - 7 days
+    const startOfLastWeek = new Date(currentMonday)
+    startOfLastWeek.setDate(currentMonday.getDate() - 7)
+
+    // End of Last Week = This Monday - 1ms (Sunday 23:59:59.999)
+    const endOfLastWeek = new Date(currentMonday.getTime() - 1)
 
     console.log(`Calculating for range: ${startOfLastWeek.toISOString()} to ${endOfLastWeek.toISOString()}`)
 
@@ -65,13 +69,14 @@ serve(async (req: Request) => {
     const userScores: UserScore[] = []
 
     for (const user of users) {
-      // a. Get Habits
+      // a. Get Habits (Active during the last week)
+      // Only select habits created BEFORE or ON the end of last week.
       const { data: habits } = await supabase
         .from('habits')
-        .select('id, frequency, days_of_week, frequency_count')
+        .select('id, frequency, days_of_week, frequency_count, created_at')
         .eq('user_id', user.id)
+        .lte('created_at', endOfLastWeek.toISOString())
 
-      if (!habits || habits.length === 0) {
       if (!habits || habits.length === 0) {
         userScores.push({ 
             userId: user.id, 
@@ -88,14 +93,12 @@ serve(async (req: Request) => {
       let totalExpected = 0
       for (const h of habits) {
         if (h.frequency === 'daily') {
-          // days_of_week is typically stored as JSON/array in DB, often stringified if simple wrappers used.
-          // Assuming simple array of integers (1-7) or strings. 
-          // Adjust based on Dart: days_of_week as List?.
+          // days_of_week is typically stored as JSON/array in DB
           const days = h.days_of_week
           if (Array.isArray(days) && days.length > 0) {
-            totalExpected += days.length
+            totalExpected += days.length // Specific days selected
           } else {
-            totalExpected += 7
+            totalExpected += 7 // Everyday
           }
         } else {
           // weekly or monthly
@@ -125,6 +128,7 @@ serve(async (req: Request) => {
       let completionRate = 0
       if (totalExpected > 0) {
         completionRate = (totalCompleted / totalExpected) * 100
+        if (completionRate > 100) completionRate = 100
       }
       
       const hybridScore = (completionRate * 1.0) + (totalCompleted * 0.5)
