@@ -2261,14 +2261,14 @@ class _SocialScreenState extends State<SocialScreen> {
             ),
 
             // DEBUG BUTTON
-            // TextButton(
-            //   onPressed: _controller.debugBackfillLastWeekHistory,
-            //   child: const Text(
-            //     'Debug: Generate Data Minggu Lalu',
-            //     style: TextStyle(color: Colors.white24),
-            //   ),
-            // ),
-            // const SizedBox(height: 16),
+            TextButton(
+              onPressed: _controller.debugBackfillLastWeekHistory,
+              child: const Text(
+                'Debug: Generate Data Minggu Lalu',
+                style: TextStyle(color: Colors.white24),
+              ),
+            ),
+            const SizedBox(height: 16),
             Expanded(
               child: Obx(() {
                 if (_controller.isLoadingHistory.value) {
@@ -2321,73 +2321,246 @@ class _SocialScreenState extends State<SocialScreen> {
                     final dateStr =
                         '${DateFormat('d MMM').format(date)} - ${DateFormat('d MMM yyyy').format(endDate)}';
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white10),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                    return GestureDetector(
+                      onTap: () => _showHistoryDetailSheet(data),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900],
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.emoji_events_outlined,
+                                color: AppTheme.primary,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.emoji_events_outlined,
-                              color: AppTheme.primary,
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    dateStr,
+                                    style: const TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    data['total_participants'] != null
+                                        ? 'Rank #${data['rank']} dari ${data['total_participants']}'
+                                        : 'Rank #${data['rank']}',
+                                    style: const TextStyle(
+                                      fontFamily: 'Space Grotesk',
+                                      color: AppTheme.secondary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  dateStr,
+                                  '${data['total_points']} pts',
                                   style: const TextStyle(
-                                    fontFamily: 'Plus Jakarta Sans',
-                                    color: Colors.white,
+                                    fontFamily: 'Space Grotesk',
+                                    color: Colors.amber,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  data['total_participants'] != null
-                                      ? 'Rank #${data['rank']} dari ${data['total_participants']}'
-                                      : 'Rank #${data['rank']}',
+                                  '${(data['completion_rate'] as num).toStringAsFixed(0)}% Rate • ${data['total_habits'] ?? 0} Habits',
                                   style: const TextStyle(
-                                    fontFamily: 'Space Grotesk',
-                                    color: AppTheme.secondary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    color: Colors.grey,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ],
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              color: Colors.white24,
+                              size: 14,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  void _showHistoryDetailSheet(Map<String, dynamic> historyData) {
+    final date = DateTime.parse(historyData['week_start_date']);
+    final endDate = date.add(const Duration(days: 6));
+    final dateStr =
+        '${DateFormat('d MMM').format(date)} - ${DateFormat('d MMM yyyy').format(endDate)}';
+
+    // Fetch the data
+    _controller.fetchHistoricalLeaderboard(date);
+
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.8,
+        padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () => Get.back(),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                ),
+                Expanded(
+                  child: Text(
+                    'Leaderboard $dateStr',
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(width: 48), // Balance for back button
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Obx(() {
+                if (_controller.isLoadingHistoricalLeaderboard.value) {
+                  return const Center(child: CustomLoadingIndicator());
+                }
+
+                if (_controller.historicalLeaderboard.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Data tidak ditemukan.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }
+
+                // Reuse logic to display list, but simpler than main tab
+                final list = _controller.historicalLeaderboard;
+                return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  itemCount: list.length,
+                  itemBuilder: (context, index) {
+                    final data = list[index];
+                    final rank = index + 1;
+                    final isTop3 = rank <= 3;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isTop3
+                            ? Colors.amber.withOpacity(0.05)
+                            : Colors.grey[900]!.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: isTop3
+                            ? Border.all(color: Colors.amber.withOpacity(0.2))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 30,
+                            child: Text(
+                              '#$rank',
+                              style: TextStyle(
+                                fontFamily: 'Space Grotesk',
+                                color: isTop3 ? Colors.amber : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundImage: data['user'].avatarUrl != null
+                                ? NetworkImage(data['user'].avatarUrl)
+                                : null,
+                            backgroundColor: Colors.grey[800],
+                            child: data['user'].avatarUrl == null
+                                ? Text(
+                                    data['user'].username?[0].toUpperCase() ??
+                                        '?',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              data['user'].username ?? 'Unknown',
+                              style: const TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                '${data['total_points']} pts',
+                                '${data['score'].toStringAsFixed(1)} pts',
                                 style: const TextStyle(
                                   fontFamily: 'Space Grotesk',
-                                  color: Colors.amber,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                               ),
-                              const SizedBox(height: 4),
                               Text(
-                                '${(data['completion_rate'] as num).toStringAsFixed(0)}% Rate • ${data['total_habits'] ?? 0} Habits',
+                                '${data['completionRate'].toStringAsFixed(0)}% • ${data['totalCompleted']}/${data['totalExpected']}',
                                 style: const TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   color: Colors.grey,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                 ),
                               ),
                             ],

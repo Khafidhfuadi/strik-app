@@ -235,6 +235,28 @@ class FriendController extends GetxController {
     }
   }
 
+  // Historical Leaderboard Detail
+  var historicalLeaderboard = <Map<String, dynamic>>[].obs;
+  var isLoadingHistoricalLeaderboard = false.obs;
+
+  Future<void> fetchHistoricalLeaderboard(DateTime referenceDate) async {
+    isLoadingHistoricalLeaderboard.value = true;
+    historicalLeaderboard.clear();
+    try {
+      // Add buffer to ensure we catch the week correctly (e.g. +12h from Monday 00:00)
+      // The referenceDate passed from UI should be the Monday of that week.
+      // FriendRepository.getLeaderboard uses a reference date to calculate the week.
+      // If we pass Monday, it should work.
+      historicalLeaderboard.value = await _friendRepository.getLeaderboard(
+        referenceDate: referenceDate.add(const Duration(hours: 12)),
+      );
+    } catch (e) {
+      print('Error fetching historical leaderboard: $e');
+    } finally {
+      isLoadingHistoricalLeaderboard.value = false;
+    }
+  }
+
   // DEBUG: Force backfill for last week
   Future<void> debugBackfillLastWeekHistory() async {
     try {

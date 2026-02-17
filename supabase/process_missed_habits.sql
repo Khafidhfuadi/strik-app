@@ -1,5 +1,5 @@
 -- =============================================================================
--- PROCESS MISSED HABITS - Server-side cron for -5 XP penalty
+-- PROCESS MISSED HABITS - Server-side cron for -3 XP penalty
 -- =============================================================================
 -- Run this in Supabase SQL Editor (Dashboard > SQL Editor)
 -- Prerequisites: pg_cron extension must be enabled
@@ -23,7 +23,7 @@ DECLARE
     is_yesterday_sunday BOOLEAN;
     week_start DATE; -- Monday of yesterday's week
     week_end DATE;   -- Sunday of yesterday's week
-    penalty_amount INT := -5;
+    penalty_amount INT := -3;
     rec RECORD;
     ref_id TEXT;
 BEGIN
