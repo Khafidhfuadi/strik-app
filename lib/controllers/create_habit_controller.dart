@@ -329,6 +329,7 @@ class CreateHabitController extends GetxController {
         reminderEnabled: isReminder.value,
         isPublic: isPublic.value,
         endDate: hasEndDate.value ? endDate.value : null,
+        challengeId: _existingHabit?.challengeId,
       );
 
       String? createdHabitId;

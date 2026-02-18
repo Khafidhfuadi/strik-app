@@ -15,6 +15,7 @@ import 'package:strik_app/controllers/tour_controller.dart';
 import 'package:strik_app/controllers/habit_challenge_controller.dart';
 import 'dart:async';
 import 'package:shimmer/shimmer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   final Habit habit;
@@ -277,6 +278,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     BuildContext context,
     HabitDetailController controller,
   ) {
+    // Check permissions for challenge habits
+    final habitController = Get.find<HabitController>();
+    final currentHabit = habitController.habits.firstWhere(
+      (h) => h.id == widget.habit.id,
+      orElse: () => widget.habit,
+    );
+
+    final isCreator =
+        !currentHabit.isChallenge ||
+        (currentHabit.isChallenge &&
+            Get.find<HabitChallengeController>()
+                    .getChallengeForHabit(currentHabit.challengeId)
+                    ?.creatorId ==
+                Supabase.instance.client.auth.currentUser?.id);
+
     return AppBar(
       backgroundColor: AppTheme.background,
       elevation: 0,
@@ -284,23 +300,26 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
         onPressed: () => Get.back(),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
-          onPressed: () {
-            final habitController = Get.find<HabitController>();
-            final currentHabit = habitController.habits.firstWhere(
-              (h) => h.id == widget.habit.id,
-              orElse: () => widget.habit,
-            );
-            Get.to(() => CreateHabitScreen(habit: currentHabit));
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.delete_outline, color: AppTheme.textPrimary),
-          onPressed: () => _showDeleteConfirmation(context),
-        ),
-      ],
+      actions: isCreator
+          ? [
+              IconButton(
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: AppTheme.textPrimary,
+                ),
+                onPressed: () {
+                  Get.to(() => CreateHabitScreen(habit: currentHabit));
+                },
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: AppTheme.textPrimary,
+                ),
+                onPressed: () => _showDeleteConfirmation(context),
+              ),
+            ]
+          : null,
     );
   }
 

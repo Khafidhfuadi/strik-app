@@ -114,6 +114,27 @@ class HabitDetailController extends GetxController {
         }
       } catch (_) {}
 
+      // DELETE POST LOGIC
+      try {
+        // Fetch post_id from DB before deleting
+        final existingLog = await Supabase.instance.client
+            .from('habit_logs')
+            .select('post_id')
+            .eq('habit_id', habitId)
+            .eq('target_date', dateStr)
+            .maybeSingle();
+
+        final postIdToDelete = existingLog?['post_id'] as String?;
+        if (postIdToDelete != null) {
+          await Supabase.instance.client
+              .from('posts')
+              .delete()
+              .eq('id', postIdToDelete);
+        }
+      } catch (e) {
+        print('Error deleting associated post: $e');
+      }
+
       logs.removeAt(existingIndex);
       newStatus = null;
     } else {
@@ -128,12 +149,7 @@ class HabitDetailController extends GetxController {
             (h) => h.id == habitId,
           );
 
-          if (habit != null &&
-              habit.isChallenge &&
-              newStatus == 'completed' &&
-              targetDate.isAtSameMomentAs(
-                DateTime(today.year, today.month, today.day),
-              )) {
+          if (habit != null && habit.isChallenge && newStatus == 'completed') {
             final journal = await Supabase.instance.client
                 .from('habit_journals')
                 .select('id')
@@ -186,7 +202,74 @@ class HabitDetailController extends GetxController {
       if (newStatus == null) {
         await _habitRepository.deleteLog(habitId, targetDate);
       } else {
-        await _habitRepository.logHabit(habitId, targetDate, newStatus);
+        String? postId;
+
+        if (newStatus == 'completed' && Get.isRegistered<HabitController>()) {
+          final habitController = Get.find<HabitController>();
+          final habit = habitController.habits.firstWhereOrNull(
+            (h) => h.id == habitId,
+          );
+
+          if (habit != null && habit.isPublic) {
+            // Check if post already exists
+            final existingLog = await Supabase.instance.client
+                .from('habit_logs')
+                .select('post_id')
+                .eq('habit_id', habitId)
+                .eq('target_date', dateStr)
+                .maybeSingle();
+
+            if (existingLog == null || existingLog['post_id'] == null) {
+              try {
+                String postContent;
+                if (habit.isChallenge) {
+                  try {
+                    final journal = await Supabase.instance.client
+                        .from('habit_journals')
+                        .select('content')
+                        .eq('habit_id', habit.id!)
+                        .gte('created_at', '${dateStr}T00:00:00')
+                        .lte('created_at', '${dateStr}T23:59:59')
+                        .order('created_at', ascending: false)
+                        .limit(1)
+                        .maybeSingle();
+
+                    final journalContent = journal?['content'] as String?;
+                    postContent =
+                        journalContent != null && journalContent.isNotEmpty
+                        ? "Journaling '${habit.title}' today :\n\n$journalContent"
+                        : "Journaling '${habit.title}' today :\n\n(No content)";
+                  } catch (_) {
+                    postContent =
+                        "Journaling '${habit.title}' today :\n\n(No content)";
+                  }
+                } else {
+                  postContent = 'abis bantai "${habit.title}", nih!';
+                }
+
+                final createdPost = await Supabase.instance.client
+                    .from('posts')
+                    .insert({
+                      'user_id': Supabase.instance.client.auth.currentUser!.id,
+                      'content': postContent,
+                    })
+                    .select('id')
+                    .single();
+
+                postId = createdPost['id'] as String;
+              } catch (e) {
+                print('Failed to create auto-post: $e');
+              }
+            }
+          }
+        }
+
+        await _habitRepository.logHabit(
+          habitId,
+          targetDate,
+          newStatus,
+          postId: postId,
+        );
       }
 
       // Update challenge leaderboard if this is a challenge habit

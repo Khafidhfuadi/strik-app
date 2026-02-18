@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Added for HapticFeedback
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart'; // Added for HapticFeedback
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:strik_app/data/models/habit.dart';
@@ -983,6 +984,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
             const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Share.share(
+                    'Gaskeun join challenge "$habitTitle" di Strik! Pake kode ini: $inviteCode',
+                    subject: 'Mabar Challenge Strik',
+                  );
+                },
+                icon: const Icon(Icons.share, size: 18),
+                label: const Text(
+                  'Bagikan Undangan',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextButton(
               onPressed: () => Get.back(),
               child: const Text(
@@ -1110,6 +1139,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             _showChallengePreviewBottomSheet(
                               context,
                               challenge,
+                            );
+                          } else {
+                            Get.snackbar(
+                              'Oops',
+                              'Kode undangan tidak valid atau challenge tidak ditemukan',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
                             );
                           }
                         },
