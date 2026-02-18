@@ -286,6 +286,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       orElse: () => widget.habit,
     );
 
+    final isChallenge = currentHabit.isChallenge;
     final isCreator =
         !currentHabit.isChallenge ||
         (currentHabit.isChallenge &&
@@ -301,26 +302,150 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
         onPressed: () => Get.back(),
       ),
-      actions: isCreator
-          ? [
-              IconButton(
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  color: AppTheme.textPrimary,
+      actions: [
+        if (isChallenge)
+          IconButton(
+            icon: const Icon(
+              Icons.help_outline_rounded,
+              color: AppTheme.textPrimary,
+            ),
+            onPressed: () => _showChallengeHelp(context),
+          ),
+        if (isCreator) ...[
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
+            onPressed: () {
+              Get.to(() => CreateHabitScreen(habit: currentHabit));
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: AppTheme.textPrimary),
+            onPressed: () => _showDeleteConfirmation(context),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _showChallengeHelp(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                onPressed: () {
-                  Get.to(() => CreateHabitScreen(habit: currentHabit));
-                },
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: AppTheme.textPrimary,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Cara Main Challenge 🏆',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildHelpSection(
+              icon: Icons.camera_alt_outlined,
+              title: 'Cara Mengerjakan',
+              description:
+                  'Upload foto bukti (Momentz) sebagai jurnal habit kamu. Pastikan sesuai frekuensi yang ditentukan ya!',
+            ),
+            const SizedBox(height: 16),
+            _buildHelpSection(
+              icon: Icons.auto_awesome_outlined,
+              title: 'Setelah Complete',
+              description:
+                  'Kamu bakal dapet +XP buat naikin level, masuk leaderboard mingguan, dan streak api kamu bakal menyala! 🔥',
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Get.back(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: AppTheme.surface,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                onPressed: () => _showDeleteConfirmation(context),
+                child: const Text(
+                  'Siap, Paham!',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ]
-          : null,
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildHelpSection({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: AppTheme.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 14,
+                  color: Colors.white70,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

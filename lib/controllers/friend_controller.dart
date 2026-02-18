@@ -848,10 +848,10 @@ class FriendController extends GetxController {
       final item = activityFeed[index];
       // Check for XP Eligibility (48h)
       final itemTimestamp = item['timestamp'] as DateTime? ?? DateTime.now();
-      final fortyEightHoursAgo = DateTime.now().subtract(
+      final twentyFourHoursAgo = DateTime.now().subtract(
         const Duration(hours: 24),
       );
-      final isEligibleForXP = itemTimestamp.isAfter(fortyEightHoursAgo);
+      final isEligibleForXP = itemTimestamp.isAfter(twentyFourHoursAgo);
 
       // 2. Determine action (Add or Remove) based on current state
       final data = item['data'];
