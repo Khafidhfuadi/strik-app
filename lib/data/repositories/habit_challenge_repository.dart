@@ -107,8 +107,9 @@ class HabitChallengeRepository {
           .eq('user_id', userId)
           .maybeSingle();
 
-      if (existing != null)
+      if (existing != null) {
         throw Exception('Kamu sudah bergabung challenge ini');
+      }
 
       // 1. Create a copy of the habit for the joining user
       final habitRes = await supabase

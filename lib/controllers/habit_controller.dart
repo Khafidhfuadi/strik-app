@@ -403,6 +403,32 @@ class HabitController extends GetxController {
       newStatus = 'completed';
     }
 
+    // Challenge habit: require journal before completion (only for today)
+    if (habit.isChallenge &&
+        newStatus == 'completed' &&
+        targetDate.isAtSameMomentAs(today)) {
+      try {
+        final journal = await Supabase.instance.client
+            .from('habit_journals')
+            .select('id')
+            .eq('habit_id', habit.id!)
+            .gte('created_at', '${dateStr}T00:00:00')
+            .lte('created_at', '${dateStr}T23:59:59')
+            .maybeSingle();
+
+        if (journal == null) {
+          Get.snackbar(
+            'Jurnal Dulu!',
+            'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          return;
+        }
+      } catch (e) {
+        print('Error checking journal for challenge: $e');
+      }
+    }
+
     // Optimistic UI updates
     final currentMap = Map<String, String>.from(weeklyLogs[habit.id] ?? {});
     if (newStatus == null) {
@@ -453,6 +479,17 @@ class HabitController extends GetxController {
         await _habitRepository.deleteLog(habit.id!, targetDate);
       } else {
         await _habitRepository.logHabit(habit.id!, targetDate, newStatus);
+      }
+
+      // Update challenge leaderboard if this is a challenge habit
+      if (newStatus == 'completed' && habit.isChallenge) {
+        try {
+          if (Get.isRegistered<HabitChallengeController>()) {
+            Get.find<HabitChallengeController>().fetchChallengeLeaderboard(
+              habit.challengeId!,
+            );
+          }
+        } catch (_) {}
       }
     } catch (e) {
       Get.snackbar(

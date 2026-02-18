@@ -1096,8 +1096,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             );
                             return;
                           }
-                          if (!Get.isRegistered<HabitChallengeController>())
+                          if (!Get.isRegistered<HabitChallengeController>()) {
                             return;
+                          }
 
                           isSearching.value = true;
                           final ctrl = Get.find<HabitChallengeController>();

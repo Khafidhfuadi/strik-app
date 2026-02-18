@@ -2,6 +2,9 @@ import 'package:get/get.dart';
 
 import 'package:strik_app/data/repositories/habit_repository.dart';
 import 'package:strik_app/controllers/gamification_controller.dart';
+import 'package:strik_app/controllers/habit_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:strik_app/controllers/habit_challenge_controller.dart';
 
 class HabitDetailController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
@@ -94,6 +97,42 @@ class HabitDetailController extends GetxController {
       // Doesn't exist, Create 'completed'
       newStatus = 'completed';
 
+      // Journal Check for Challenge Habit
+      try {
+        if (Get.isRegistered<HabitController>()) {
+          final habitController = Get.find<HabitController>();
+          final habit = habitController.habits.firstWhereOrNull(
+            (h) => h.id == habitId,
+          );
+
+          if (habit != null &&
+              habit.isChallenge &&
+              newStatus == 'completed' &&
+              targetDate.isAtSameMomentAs(
+                DateTime(today.year, today.month, today.day),
+              )) {
+            final journal = await Supabase.instance.client
+                .from('habit_journals')
+                .select('id')
+                .eq('habit_id', habitId)
+                .gte('created_at', '${dateStr}T00:00:00')
+                .lte('created_at', '${dateStr}T23:59:59')
+                .maybeSingle();
+
+            if (journal == null) {
+              Get.snackbar(
+                'Jurnal Dulu!',
+                'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini',
+                snackPosition: SnackPosition.BOTTOM,
+              );
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        print('Error checking journal: $e');
+      }
+
       // XP Logic
       try {
         if (!isTooOldForXP && Get.isRegistered<GamificationController>()) {
@@ -125,6 +164,23 @@ class HabitDetailController extends GetxController {
         await _habitRepository.deleteLog(habitId, targetDate);
       } else {
         await _habitRepository.logHabit(habitId, targetDate, newStatus);
+      }
+
+      // Update challenge leaderboard if this is a challenge habit
+      if (newStatus == 'completed' && Get.isRegistered<HabitController>()) {
+        final habitController = Get.find<HabitController>();
+        final habit = habitController.habits.firstWhereOrNull(
+          (h) => h.id == habitId,
+        );
+        if (habit != null && habit.isChallenge) {
+          try {
+            if (Get.isRegistered<HabitChallengeController>()) {
+              Get.find<HabitChallengeController>().fetchChallengeLeaderboard(
+                habit.challengeId!,
+              );
+            }
+          } catch (_) {}
+        }
       }
     } catch (e) {
       // Revert (simplified)

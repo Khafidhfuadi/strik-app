@@ -98,15 +98,29 @@ CREATE POLICY "Anyone can read challenge leaderboard"
     TO authenticated
     USING (true);
 
-CREATE POLICY "Users can upsert own leaderboard entry"
+CREATE POLICY "Participants can insert leaderboard entries"
     ON habit_challenge_leaderboard FOR INSERT
     TO authenticated
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM habit_challenge_participants
+            WHERE challenge_id = habit_challenge_leaderboard.challenge_id
+            AND user_id = auth.uid()
+            AND status = 'active'
+        )
+    );
 
-CREATE POLICY "Users can update own leaderboard entry"
+CREATE POLICY "Participants can update leaderboard entries"
     ON habit_challenge_leaderboard FOR UPDATE
     TO authenticated
-    USING (auth.uid() = user_id);
+    USING (
+        EXISTS (
+            SELECT 1 FROM habit_challenge_participants
+            WHERE challenge_id = habit_challenge_leaderboard.challenge_id
+            AND user_id = auth.uid()
+            AND status = 'active'
+        )
+    );
 
 -- =============================================================================
 -- INDEXES
