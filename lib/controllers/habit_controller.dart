@@ -6,6 +6,7 @@ import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:strik_app/services/alarm_manager_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/controllers/gamification_controller.dart';
+import 'package:strik_app/controllers/habit_challenge_controller.dart';
 
 class HabitController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
@@ -130,6 +131,31 @@ class HabitController extends GetxController {
       }
     }
 
+    // Challenge habit: require journal before completion
+    if (habit.isChallenge && newStatus == 'completed') {
+      try {
+        final formattedDate = today.toIso8601String().split('T')[0];
+        final journal = await Supabase.instance.client
+            .from('habit_journals')
+            .select('id')
+            .eq('habit_id', habit.id!)
+            .gte('created_at', '${formattedDate}T00:00:00')
+            .lte('created_at', '${formattedDate}T23:59:59')
+            .maybeSingle();
+
+        if (journal == null) {
+          Get.snackbar(
+            'Jurnal Dulu!',
+            'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          return;
+        }
+      } catch (e) {
+        print('Error checking journal for challenge: $e');
+      }
+    }
+
     // Optimistic update
     final String? oldStatus = todayLogs[habit.id];
     if (newStatus == null) {
@@ -213,12 +239,39 @@ class HabitController extends GetxController {
           // Only create post if one doesn't exist yet
           if (existingPostId == null) {
             try {
+              // For challenge habits, use journal content as post
+              String postContent;
+              if (habit.isChallenge) {
+                try {
+                  final journal = await Supabase.instance.client
+                      .from('habit_journals')
+                      .select('content')
+                      .eq('habit_id', habit.id!)
+                      .gte('created_at', '${formattedDate}T00:00:00')
+                      .lte('created_at', '${formattedDate}T23:59:59')
+                      .order('created_at', ascending: false)
+                      .limit(1)
+                      .maybeSingle();
+
+                  final journalContent = journal?['content'] as String?;
+                  postContent =
+                      journalContent != null && journalContent.isNotEmpty
+                      ? '[${habit.title}] $journalContent'
+                      : 'challenge habit "${habit.title}" hari ini beres!';
+                } catch (_) {
+                  postContent =
+                      'challenge habit "${habit.title}" hari ini beres!';
+                }
+              } else {
+                postContent = 'abis bantai "${habit.title}", nih!';
+              }
+
               // Create post and get its ID
               final createdPost = await Supabase.instance.client
                   .from('posts')
                   .insert({
                     'user_id': Supabase.instance.client.auth.currentUser!.id,
-                    'content': 'abis bantai "${habit.title}", nih! 💪',
+                    'content': postContent,
                   })
                   .select('id')
                   .single();
@@ -237,6 +290,17 @@ class HabitController extends GetxController {
           newStatus,
           postId: postId,
         );
+
+        // Update challenge leaderboard if this is a challenge habit
+        if (newStatus == 'completed' && habit.isChallenge) {
+          try {
+            if (Get.isRegistered<HabitChallengeController>()) {
+              Get.find<HabitChallengeController>().fetchChallengeLeaderboard(
+                habit.challengeId!,
+              );
+            }
+          } catch (_) {}
+        }
       }
       // Also update weekly logs locally to reflect the change immediately in weekly view if visible
       // Only simpler way is to re-fetch or manuall update the map.

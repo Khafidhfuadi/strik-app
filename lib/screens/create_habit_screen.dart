@@ -229,7 +229,9 @@ class CreateHabitScreen extends StatelessWidget {
                     Obx(
                       () => Switch(
                         value: controller.isPublic.value,
-                        onChanged: (value) => controller.isPublic.value = value,
+                        onChanged: controller.isChallengeEnabled.value
+                            ? null
+                            : (value) => controller.isPublic.value = value,
                         activeThumbColor: Colors.white,
                         activeTrackColor: AppTheme.primary,
                       ),
@@ -261,7 +263,7 @@ class CreateHabitScreen extends StatelessWidget {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  'Tantang dirimu dan teman-temanmu!',
+                                  'Tantang dirimu bersama circlemu!',
                                   style: TextStyle(
                                     color: Colors.white54,
                                     fontSize: 12,
@@ -287,42 +289,6 @@ class CreateHabitScreen extends StatelessWidget {
                         ],
                       ),
                       if (controller.isChallengeEnabled.value) ...[
-                        const SizedBox(height: 12),
-                        Divider(color: Colors.grey[800]),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Challenge with Circle',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Bagikan link undangan ke temanmu',
-                                  style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Switch(
-                              value: controller.isChallengeWithCircle.value,
-                              onChanged: (val) =>
-                                  controller.isChallengeWithCircle.value = val,
-                              activeThumbColor: Colors.white,
-                              activeTrackColor: const Color(0xFFF59E0B),
-                            ),
-                          ],
-                        ),
                         if (controller
                             .generatedInviteCode
                             .value
@@ -715,8 +681,9 @@ class CreateHabitScreen extends StatelessWidget {
                         Obx(
                           () => Switch(
                             value: controller.hasEndDate.value,
-                            onChanged: (val) =>
-                                controller.hasEndDate.value = val,
+                            onChanged: controller.isChallengeEnabled.value
+                                ? null
+                                : (val) => controller.hasEndDate.value = val,
                             activeThumbColor: Colors.white,
                             activeTrackColor: AppTheme.primary,
                           ),

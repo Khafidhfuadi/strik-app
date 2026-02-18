@@ -22,6 +22,8 @@ import 'package:strik_app/widgets/custom_text_field.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 import 'package:strik_app/screens/notification_debug_screen.dart';
 import 'package:strik_app/controllers/gamification_controller.dart';
+import 'package:strik_app/controllers/habit_challenge_controller.dart';
+import 'package:strik_app/data/models/habit_challenge.dart';
 import 'package:strik_app/screens/level_progression_screen.dart';
 import 'package:strik_app/screens/suhu_home_screen.dart';
 import 'package:strik_app/screens/legend_home_screen.dart';
@@ -315,6 +317,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onPressed: () => _showFilterBottomSheet(context),
             ),
             IconButton(
+              icon: const Icon(Icons.group_add_outlined, color: Colors.white),
+              onPressed: () => _showJoinChallengeBottomSheet(context),
+              tooltip: 'Gabung Challenge',
+            ),
+            IconButton(
               key: Get.find<TourController>().keyHomeFab,
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () => _navigateAndRefresh(context),
@@ -506,6 +513,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ),
         Expanded(child: _buildTodayList(controller)),
+        // Archived challenges link
+        if (Get.isRegistered<HabitChallengeController>())
+          Obx(() {
+            final archivedCount =
+                Get.find<HabitChallengeController>().archivedChallenges.length;
+            if (archivedCount == 0) return const SizedBox.shrink();
+            return InkWell(
+              onTap: () => _showArchivedChallengesBottomSheet(context),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.archive_outlined,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Arsip Challenge ($archivedCount)',
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
       ],
     );
   }
@@ -817,6 +857,564 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _navigateAndRefresh(BuildContext context) async {
     await Get.to(() => const CreateHabitScreen());
     Get.find<HabitController>().fetchHabitsAndLogs(isRefresh: true);
+
+    // Check if a challenge was just created
+    if (Get.isRegistered<HabitChallengeController>()) {
+      final challengeCtrl = Get.find<HabitChallengeController>();
+      if (challengeCtrl.pendingInviteCode.value.isNotEmpty) {
+        final code = challengeCtrl.pendingInviteCode.value;
+        final title = challengeCtrl.pendingHabitTitle.value;
+        challengeCtrl.pendingInviteCode.value = '';
+        challengeCtrl.pendingHabitTitle.value = '';
+        // Delay to let the navigation settle
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted) _showChallengeInviteBottomSheet(context, code, title);
+        });
+      }
+    }
+  }
+
+  void _showChallengeInviteBottomSheet(
+    BuildContext context,
+    String inviteCode,
+    String habitTitle,
+  ) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[700],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Icon(
+              Icons.emoji_events_rounded,
+              color: Color(0xFFF59E0B),
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Challenge Dibuat!',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Bagikan kode ini ke temanmu untuk bergabung challenge "$habitTitle"',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 14,
+                color: Colors.white54,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.link, color: Color(0xFFF59E0B), size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    inviteCode,
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: inviteCode));
+                  Get.snackbar(
+                    'Tersalin!',
+                    'Kode undangan berhasil disalin',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                },
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text(
+                  'Salin Kode Undangan',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF59E0B),
+                  foregroundColor: Colors.black87,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text(
+                'Tutup',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.white54,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  void _showJoinChallengeBottomSheet(BuildContext context) {
+    final codeController = TextEditingController();
+    final isSearching = false.obs;
+
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text(
+              'Gabung Challenge',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Masukkan kode undangan dari temanmu',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 14,
+                color: Colors.white54,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: codeController,
+              textCapitalization: TextCapitalization.characters,
+              style: const TextStyle(
+                color: Colors.white,
+                fontFamily: 'Space Grotesk',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 3,
+              ),
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                hintText: 'KODE UNDANGAN',
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  letterSpacing: 3,
+                ),
+                filled: true,
+                fillColor: AppTheme.background,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Obx(
+              () => SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isSearching.value
+                      ? null
+                      : () async {
+                          final code = codeController.text.trim();
+                          if (code.isEmpty) {
+                            Get.snackbar(
+                              'Oops',
+                              'Masukkan kode undangan dulu',
+                              snackPosition: SnackPosition.BOTTOM,
+                            );
+                            return;
+                          }
+                          if (!Get.isRegistered<HabitChallengeController>())
+                            return;
+
+                          isSearching.value = true;
+                          final ctrl = Get.find<HabitChallengeController>();
+                          final challenge = await ctrl.lookupChallenge(code);
+                          isSearching.value = false;
+
+                          if (challenge != null) {
+                            Get.back(); // Close input sheet
+                            _showChallengePreviewBottomSheet(
+                              context,
+                              challenge,
+                            );
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF59E0B),
+                    foregroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: isSearching.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Cari Challenge',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  void _showChallengePreviewBottomSheet(
+    BuildContext context,
+    dynamic challenge,
+  ) {
+    final isJoining = false.obs;
+    final habitChallenge = challenge as HabitChallenge;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[700],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Icon(
+              Icons.emoji_events_rounded,
+              color: Color(0xFFF59E0B),
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              habitChallenge.habitTitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            if (habitChallenge.habitDescription != null &&
+                habitChallenge.habitDescription!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                habitChallenge.habitDescription!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 13,
+                  color: Colors.white54,
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.background,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                children: [
+                  _buildChallengeInfoRow(
+                    'Frekuensi',
+                    habitChallenge.habitFrequency.capitalizeFirst ?? '',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildChallengeInfoRow(
+                    'Berakhir',
+                    '${habitChallenge.endDate.day}/${habitChallenge.endDate.month}/${habitChallenge.endDate.year}',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Obx(
+              () => SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: isJoining.value
+                      ? null
+                      : () async {
+                          isJoining.value = true;
+                          final ctrl = Get.find<HabitChallengeController>();
+                          final success = await ctrl.joinChallenge(
+                            habitChallenge,
+                          );
+                          isJoining.value = false;
+                          if (success) {
+                            Get.back();
+                            Get.find<HabitController>().fetchHabitsAndLogs(
+                              isRefresh: true,
+                            );
+                          }
+                        },
+                  icon: isJoining.value
+                      ? const SizedBox.shrink()
+                      : const Icon(Icons.handshake_outlined, size: 18),
+                  label: isJoining.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Gabung Challenge!',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF59E0B),
+                    foregroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text(
+                'Batal',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.white54,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  void _showArchivedChallengesBottomSheet(BuildContext context) {
+    final challenges = Get.find<HabitChallengeController>().archivedChallenges;
+
+    Get.bottomSheet(
+      Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[700],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Row(
+              children: [
+                Icon(Icons.archive_outlined, color: Colors.grey[400], size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Arsip Challenge',
+                  style: TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: challenges.length,
+                separatorBuilder: (_, __) =>
+                    Divider(color: Colors.grey[800], height: 1),
+                itemBuilder: (context, index) {
+                  final c = challenges[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
+                      Icons.emoji_events_rounded,
+                      color: Colors.grey,
+                      size: 28,
+                    ),
+                    title: Text(
+                      c.habitTitle,
+                      style: const TextStyle(
+                        fontFamily: 'Space Grotesk',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Berakhir: ${c.endDate.day}/${c.endDate.month}/${c.endDate.year}',
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        c.status == 'completed' ? 'Selesai' : 'Arsip',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 11,
+                          color: Colors.grey[400],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _buildChallengeInfoRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            fontSize: 13,
+            color: Colors.white54,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
   }
 
   void _showProfileBottomSheet(BuildContext context) {

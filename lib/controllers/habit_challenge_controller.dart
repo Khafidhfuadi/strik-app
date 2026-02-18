@@ -12,6 +12,10 @@ class HabitChallengeController extends GetxController {
   var isLoading = false.obs;
   var isLoadingLeaderboard = false.obs;
 
+  // Pending invite code to show in bottom sheet after challenge creation
+  var pendingInviteCode = ''.obs;
+  var pendingHabitTitle = ''.obs;
+
   @override
   void onInit() {
     super.onInit();

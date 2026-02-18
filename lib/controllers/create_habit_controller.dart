@@ -64,7 +64,6 @@ class CreateHabitController extends GetxController {
 
   // Challenge fields
   var isChallengeEnabled = false.obs;
-  var isChallengeWithCircle = false.obs;
   var generatedInviteCode = ''.obs;
 
   @override
@@ -110,7 +109,6 @@ class CreateHabitController extends GetxController {
     }
     if (habit.isChallenge) {
       isChallengeEnabled.value = true;
-      isChallengeWithCircle.value = true;
     }
     isRepeat.value = true; // For editing existing complex habits
   }
@@ -379,8 +377,14 @@ class CreateHabitController extends GetxController {
               endDate: endDate.value!,
               creatorHabitId: createdHabitId,
             );
-            if (challenge != null && isChallengeWithCircle.value) {
+            if (challenge != null) {
               generatedInviteCode.value = challenge.inviteCode;
+              // Store on persistent controller for HomeScreen bottom sheet
+              if (Get.isRegistered<HabitChallengeController>()) {
+                final challengeCtrl = Get.find<HabitChallengeController>();
+                challengeCtrl.pendingInviteCode.value = challenge.inviteCode;
+                challengeCtrl.pendingHabitTitle.value = titleController.text;
+              }
             }
           }
         } catch (e) {
