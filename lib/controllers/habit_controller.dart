@@ -34,6 +34,32 @@ class HabitController extends GetxController {
         isLoading.value = true;
       }
       final fetchedHabits = await _habitRepository.getHabits();
+
+      // Filter out archived or expired habits
+      final activeHabits = fetchedHabits.where((habit) {
+        // If it's a challenge, check challenge status
+        if (habit.challenge != null) {
+          return habit.challenge!.isActive;
+        }
+
+        // If regular habit has end date, check expiration
+        if (habit.endDate != null) {
+          // Keep active until end of the end_date day
+          final endOfDay = DateTime(
+            habit.endDate!.year,
+            habit.endDate!.month,
+            habit.endDate!.day,
+            23,
+            59,
+            59,
+          );
+          return DateTime.now().isBefore(endOfDay);
+        }
+
+        // Regular ongoing habit
+        return true;
+      }).toList();
+
       final today = DateTime.now();
 
       // Fetch today's logs
@@ -50,7 +76,7 @@ class HabitController extends GetxController {
         weekEnd,
       );
 
-      habits.value = fetchedHabits;
+      habits.value = activeHabits;
       todayLogs.value = logs;
       weeklyLogs.value = rangeLogs;
       _lastFetchTime = DateTime.now();
@@ -172,6 +198,12 @@ class HabitController extends GetxController {
           final xp = gamification.getXPReward('complete_habit');
           gamification.awardXP(xp, reason: 'Completed Habit');
         } catch (_) {}
+
+        // Handle Alarm: If today (or relevant), cancel and schedule next
+        // Since toggleHabitStatus is usually for "today" (swipe action)
+        if (habit.id != null) {
+          await AlarmManagerService.instance.completeHabit(habit.id!);
+        }
       } else if (newStatus == 'skipped') {
         // Deduct XP for skipping
         try {
@@ -186,6 +218,11 @@ class HabitController extends GetxController {
           final xp = gamification.getXPReward('complete_habit');
           gamification.awardXP(-xp, reason: 'Undo Completion');
         } catch (_) {}
+
+        // Handle Alarm: Restore alarm if undone
+        if (habit.id != null) {
+          await AlarmManagerService.instance.ensureAlarmsAreScheduled([habit]);
+        }
       } else if (oldStatus == 'skipped' && newStatus == null) {
         // Undo skipped -> Return XP
         try {
@@ -461,6 +498,11 @@ class HabitController extends GetxController {
         if (newStatus == 'completed') {
           final xp = gamification.getXPReward('complete_habit');
           gamification.awardXP(xp, reason: 'Completed Habit');
+
+          // Alarm Logic
+          if (habit.id != null) {
+            await AlarmManagerService.instance.completeHabit(habit.id!);
+          }
         } else if (newStatus == 'skipped') {
           final xp = gamification.getXPReward('skip_habit'); // Returns negative
           gamification.awardXP(xp, reason: 'Skipped Habit');
@@ -468,6 +510,13 @@ class HabitController extends GetxController {
           // Undo completed
           final xp = gamification.getXPReward('complete_habit');
           gamification.awardXP(-xp, reason: 'Undo Completion');
+
+          // Alarm Logic: Restore
+          if (habit.id != null) {
+            await AlarmManagerService.instance.ensureAlarmsAreScheduled([
+              habit,
+            ]);
+          }
         } else if (currentStatus == 'skipped' && newStatus == null) {
           // Undo skipped
           final xp = gamification.getXPReward('skip_habit'); // is negative

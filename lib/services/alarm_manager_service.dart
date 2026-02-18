@@ -67,9 +67,10 @@ class AlarmManagerService {
   DateTime? _calculateNextOccurrence(
     String frequency,
     List<dynamic>? daysOfWeek,
-    TimeOfDay reminderTime,
-  ) {
-    final now = DateTime.now();
+    TimeOfDay reminderTime, {
+    DateTime? referenceDate,
+  }) {
+    final now = referenceDate ?? DateTime.now();
     DateTime nextTime = DateTime(
       now.year,
       now.month,
@@ -87,8 +88,12 @@ class AlarmManagerService {
       for (int i = 0; i <= 14; i++) {
         final candidate = nextTime.add(Duration(days: i));
 
-        // If it's today, make sure time hasn't passed
-        if (i == 0 && candidate.isBefore(now)) {
+        // If it's today (relative to referenceDate), make sure time hasn't passed
+        // ONLY if referenceDate was NOT provided (meaning we are scheduling from now)
+        // If referenceDate IS provided (e.g. "tomorrow"), we accept the time even if it's earlier in the day than now
+        if (referenceDate == null &&
+            i == 0 &&
+            candidate.isBefore(DateTime.now())) {
           continue;
         }
 
@@ -99,7 +104,7 @@ class AlarmManagerService {
         }
       }
     } else if (frequency == 'weekly') {
-      // Just add 7 days
+      // Just add 7 days (simplified logic for now, assumes starting from a valid day)
       return nextTime.add(const Duration(days: 7));
     } else if (frequency == 'monthly') {
       // Find next valid date in month
@@ -107,7 +112,7 @@ class AlarmManagerService {
         return null;
       }
 
-      // Start from tomorrow
+      // Start from current month (relative to referenceDate)
       for (int monthOffset = 0; monthOffset <= 12; monthOffset++) {
         final baseDate = DateTime(now.year, now.month + monthOffset, 1);
 
@@ -121,8 +126,9 @@ class AlarmManagerService {
               reminderTime.minute,
             );
 
-            // Check if this date is valid and in the future
-            if (candidate.month == baseDate.month && candidate.isAfter(now)) {
+            // Check if this date is valid and in the future relative to now
+            if (candidate.month == baseDate.month &&
+                candidate.isAfter(DateTime.now())) {
               return candidate;
             }
           } catch (e) {
@@ -200,6 +206,80 @@ class AlarmManagerService {
 
     await _deleteAlarmMetadata(baseId);
     print('Alarm cancelled for habit $habitId');
+  }
+
+  /// Call this when a habit is completed EARLY.
+  /// It cancels the current pending alarm (if any) and schedules the NEXT one.
+  Future<void> completeHabit(String habitId) async {
+    int baseId = habitId.hashCode;
+    if (baseId < 0) baseId = -baseId;
+    baseId = baseId & ~1;
+
+    // 1. Get metadata
+    final metadata = await _getAlarmMetadata(baseId);
+    if (metadata == null) {
+      print('No alarm metadata found for completed habit $habitId');
+      return;
+    }
+
+    // 2. Stop current alarms (so it doesn't ring today)
+    await Alarm.stop(baseId);
+    await Alarm.stop(baseId + 1);
+
+    // 3. Calculate NEXT occurrence starting from TOMORROW (or next week/month)
+    // We assume if you completed it today, you don't want another alarm today.
+
+    final frequency = metadata['frequency'];
+    final daysOfWeek = (metadata['daysOfWeek'] as List?)?.cast<int>();
+    final reminderTimeMap = metadata['reminderTime'];
+    final reminderTime = TimeOfDay(
+      hour: reminderTimeMap['hour'],
+      minute: reminderTimeMap['minute'],
+    );
+
+    DateTime referenceDate;
+    if (frequency == 'weekly') {
+      // For weekly, we just add 7 days from now?
+      // Actually, if I complete it today (Monday), and it's a Weekly habit for Monday,
+      // the next one is next Monday.
+      // If I complete it today (Tuesday), and it's a Weekly habit for Monday (overdue?),
+      // the logic is tricky.
+      // Let's use the standard "Next Occurrence" logic but starting from TOMORROW.
+      referenceDate = DateTime.now().add(const Duration(days: 1));
+    } else {
+      // Daily/Monthly: Start searching from tomorrow
+      referenceDate = DateTime.now().add(const Duration(days: 1));
+    }
+
+    final nextDateTime = _calculateNextOccurrence(
+      frequency,
+      daysOfWeek,
+      reminderTime,
+      referenceDate: referenceDate,
+    );
+
+    if (nextDateTime != null) {
+      // 4. Schedule the next one
+      // Toggle ID mechanism isn't strictly needed here since we stopped both,
+      // but let's stick to baseId for simplicity or toggle if we want to be fancy.
+      // Since we stopped both, we can just use baseId.
+
+      final newAlarmSettings = AlarmSettings(
+        id: baseId,
+        dateTime: nextDateTime,
+        assetAudioPath: 'assets/src/alarm.mp3',
+        volumeSettings: VolumeSettings.fixed(volume: 0.8),
+        notificationSettings: NotificationSettings(
+          title: metadata['habitTitle'] ?? 'Habit Reminder',
+          body: 'Yuk semangat kerjain habit kamu! 🔥',
+          stopButton: 'Stop',
+          icon: '@mipmap/ic_launcher',
+        ),
+      );
+
+      await Alarm.set(alarmSettings: newAlarmSettings);
+      print('Alarm rescheduled after completion for: $nextDateTime');
+    }
   }
 
   Future<void> _saveAlarmMetadata(
