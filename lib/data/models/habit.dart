@@ -15,6 +15,7 @@ class Habit {
   final DateTime? endDate;
   final bool isPublic;
   final int? sortOrder;
+  final String? challengeId;
 
   Habit({
     this.id,
@@ -31,7 +32,10 @@ class Habit {
     this.endDate,
     this.isPublic = true,
     this.sortOrder,
+    this.challengeId,
   });
+
+  bool get isChallenge => challengeId != null;
 
   factory Habit.fromJson(Map<String, dynamic> json) {
     TimeOfDay? reminder;
@@ -73,6 +77,7 @@ class Habit {
           : null,
       isPublic: json['is_public'] ?? true,
       sortOrder: json['sort_order'],
+      challengeId: json['challenge_id'],
     );
   }
 
@@ -105,6 +110,7 @@ class Habit {
       'end_date': endDate?.toUtc().toIso8601String(),
       'is_public': isPublic,
       'sort_order': sortOrder,
+      'challenge_id': challengeId,
     };
   }
 }

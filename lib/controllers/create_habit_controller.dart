@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
+import 'package:strik_app/controllers/habit_challenge_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
@@ -61,6 +62,11 @@ class CreateHabitController extends GetxController {
   Habit? _existingHabit;
   bool get isEdit => _existingHabit != null;
 
+  // Challenge fields
+  var isChallengeEnabled = false.obs;
+  var isChallengeWithCircle = false.obs;
+  var generatedInviteCode = ''.obs;
+
   @override
   void onClose() {
     titleController.dispose();
@@ -101,6 +107,10 @@ class CreateHabitController extends GetxController {
     if (habit.endDate != null) {
       hasEndDate.value = true;
       endDate.value = habit.endDate;
+    }
+    if (habit.isChallenge) {
+      isChallengeEnabled.value = true;
+      isChallengeWithCircle.value = true;
     }
     isRepeat.value = true; // For editing existing complex habits
   }
@@ -264,6 +274,17 @@ class CreateHabitController extends GetxController {
       return;
     }
 
+    // Validate challenge requirements
+    if (isChallengeEnabled.value &&
+        (!hasEndDate.value || endDate.value == null)) {
+      Get.snackbar(
+        'Oops',
+        'Habit Challenge wajib punya tanggal berakhir (goal)!',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     isLoading.value = true;
 
     try {
@@ -338,6 +359,33 @@ class CreateHabitController extends GetxController {
             );
           }
         } catch (_) {}
+      }
+
+      // Create challenge if enabled
+      if (!isEdit && isChallengeEnabled.value && createdHabitId != null) {
+        try {
+          if (Get.isRegistered<HabitChallengeController>()) {
+            final challengeCtrl = Get.find<HabitChallengeController>();
+            final challenge = await challengeCtrl.createChallenge(
+              habitTitle: titleController.text,
+              habitDescription: descriptionController.text.isNotEmpty
+                  ? descriptionController.text
+                  : null,
+              habitColor:
+                  '0x${colors[selectedColorIndex.value].toARGB32().toRadixString(16).toUpperCase()}',
+              habitFrequency: frequency,
+              habitDaysOfWeek: daysOfWeek,
+              habitFrequencyCount: frequencyCount,
+              endDate: endDate.value!,
+              creatorHabitId: createdHabitId,
+            );
+            if (challenge != null && isChallengeWithCircle.value) {
+              generatedInviteCode.value = challenge.inviteCode;
+            }
+          }
+        } catch (e) {
+          print('Failed to create challenge: $e');
+        }
       }
 
       // Auto-create post if habit is public AND it's a new habit

@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:strik_app/controllers/tour_controller.dart';
+import 'package:strik_app/controllers/habit_challenge_controller.dart';
 import 'dart:async';
 
 class HabitDetailScreen extends StatefulWidget {
@@ -41,6 +42,14 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       tag: widget.habit.id,
     );
     _scrollController.addListener(_onScroll);
+
+    // Fetch challenge leaderboard if this is a challenge habit
+    if (widget.habit.isChallenge &&
+        Get.isRegistered<HabitChallengeController>()) {
+      Get.find<HabitChallengeController>().fetchChallengeLeaderboard(
+        widget.habit.challengeId!,
+      );
+    }
 
     // Start Tour after loading
     ever(controller.isLoading, (isLoading) {
@@ -203,6 +212,11 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 _buildStats(controller, currentHabit),
 
                 const SizedBox(height: 32),
+
+                // Challenge Leaderboard
+                if (currentHabit.isChallenge)
+                  _buildChallengeLeaderboard(currentHabit),
+                if (currentHabit.isChallenge) const SizedBox(height: 32),
 
                 // History Calendar
                 _buildCalendarHeader(controller),
@@ -1815,6 +1829,224 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildChallengeLeaderboard(Habit habit) {
+    if (!Get.isRegistered<HabitChallengeController>()) {
+      return const SizedBox.shrink();
+    }
+    final challengeCtrl = Get.find<HabitChallengeController>();
+    final challenge = challengeCtrl.getChallengeForHabit(habit.challengeId);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Challenge Leaderboard',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            if (challenge != null)
+              GestureDetector(
+                onTap: () => challengeCtrl.copyInviteLink(challenge),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.copy, size: 14, color: Color(0xFFF59E0B)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Salin Kode',
+                        style: TextStyle(
+                          color: Color(0xFFF59E0B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Obx(() {
+          if (challengeCtrl.isLoadingLeaderboard.value) {
+            return Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final leaderboard = challengeCtrl.challengeLeaderboard;
+          if (leaderboard.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: const Center(
+                child: Text(
+                  'Belum ada peserta',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                ),
+              ),
+            );
+          }
+
+          return Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            child: Column(
+              children: leaderboard.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final item = entry.value;
+                final isFirst = idx == 0;
+                final isLast = idx == leaderboard.length - 1;
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isFirst
+                        ? const Color(0xFFF59E0B).withValues(alpha: 0.08)
+                        : null,
+                    borderRadius: BorderRadius.only(
+                      topLeft: isFirst
+                          ? const Radius.circular(20)
+                          : Radius.zero,
+                      topRight: isFirst
+                          ? const Radius.circular(20)
+                          : Radius.zero,
+                      bottomLeft: isLast
+                          ? const Radius.circular(20)
+                          : Radius.zero,
+                      bottomRight: isLast
+                          ? const Radius.circular(20)
+                          : Radius.zero,
+                    ),
+                    border: !isLast
+                        ? Border(
+                            bottom: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.05),
+                            ),
+                          )
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      // Rank
+                      SizedBox(
+                        width: 28,
+                        child: Text(
+                          isFirst ? '\u{1F451}' : '#${item.rank}',
+                          style: TextStyle(
+                            fontFamily: 'Space Grotesk',
+                            fontSize: isFirst ? 18 : 14,
+                            fontWeight: FontWeight.bold,
+                            color: isFirst
+                                ? const Color(0xFFF59E0B)
+                                : AppTheme.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Avatar
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.grey[700],
+                        backgroundImage: item.user?.avatarUrl != null
+                            ? NetworkImage(item.user!.avatarUrl!)
+                            : null,
+                        child: item.user?.avatarUrl == null
+                            ? const Icon(
+                                Icons.person,
+                                size: 16,
+                                color: Colors.white54,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      // Username
+                      Expanded(
+                        child: Text(
+                          item.user?.username ?? 'User',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 14,
+                            color: isFirst
+                                ? Colors.white
+                                : AppTheme.textPrimary,
+                            fontWeight: isFirst
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Stats
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${item.score.toStringAsFixed(0)} pts',
+                            style: TextStyle(
+                              fontFamily: 'Space Grotesk',
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isFirst
+                                  ? const Color(0xFFF59E0B)
+                                  : AppTheme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '${item.completionRate.toStringAsFixed(0)}% | ${item.currentStreak}d streak',
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 10,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          );
+        }),
       ],
     );
   }

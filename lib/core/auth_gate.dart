@@ -9,6 +9,7 @@ import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/controllers/friend_controller.dart';
 import 'package:strik_app/controllers/gamification_controller.dart';
+import 'package:strik_app/controllers/habit_challenge_controller.dart';
 import 'package:strik_app/services/push_notification_service.dart';
 
 class AuthGate extends StatelessWidget {
@@ -46,6 +47,7 @@ class AuthGate extends StatelessWidget {
           Get.put(HomeController(), permanent: false);
           Get.put(FriendController(), permanent: false);
           Get.put(GamificationController(), permanent: false);
+          Get.put(HabitChallengeController(), permanent: false);
 
           // Refresh/Init Push Notifications (will save token if user logged in)
           PushNotificationService().init();

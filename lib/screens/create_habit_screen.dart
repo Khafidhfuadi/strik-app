@@ -5,6 +5,7 @@ import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/widgets/custom_text_field.dart';
 import 'package:strik_app/widgets/primary_button.dart';
 import 'package:strik_app/controllers/create_habit_controller.dart';
+import 'package:flutter/services.dart';
 
 class CreateHabitScreen extends StatelessWidget {
   final Habit? habit;
@@ -234,6 +235,172 @@ class CreateHabitScreen extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // ===== HABIT CHALLENGE SECTION =====
+              _buildSectionContainer(
+                child: Obx(
+                  () => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Habit Challenge',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Tantang dirimu dan teman-temanmu!',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: controller.isChallengeEnabled.value,
+                            onChanged: controller.isEdit
+                                ? null
+                                : (val) {
+                                    controller.isChallengeEnabled.value = val;
+                                    if (val) {
+                                      controller.isPublic.value = true;
+                                      controller.hasEndDate.value = true;
+                                    }
+                                  },
+                            activeThumbColor: Colors.white,
+                            activeTrackColor: const Color(0xFFF59E0B),
+                          ),
+                        ],
+                      ),
+                      if (controller.isChallengeEnabled.value) ...[
+                        const SizedBox(height: 12),
+                        Divider(color: Colors.grey[800]),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Challenge with Circle',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Bagikan link undangan ke temanmu',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Switch(
+                              value: controller.isChallengeWithCircle.value,
+                              onChanged: (val) =>
+                                  controller.isChallengeWithCircle.value = val,
+                              activeThumbColor: Colors.white,
+                              activeTrackColor: const Color(0xFFF59E0B),
+                            ),
+                          ],
+                        ),
+                        if (controller
+                            .generatedInviteCode
+                            .value
+                            .isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFF59E0B,
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFFF59E0B,
+                                ).withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.link,
+                                  color: Color(0xFFF59E0B),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Kode: ${controller.generatedInviteCode.value}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: 'Inter',
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    Clipboard.setData(
+                                      ClipboardData(
+                                        text: controller
+                                            .generatedInviteCode
+                                            .value,
+                                      ),
+                                    );
+                                    Get.snackbar(
+                                      'Tersalin!',
+                                      'Kode undangan berhasil disalin',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF59E0B),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Salin',
+                                      style: TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

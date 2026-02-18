@@ -48,7 +48,7 @@ class HabitCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: status == 'completed'
                     ? AppTheme.primary
-                    : Colors.white.withOpacity(0.1),
+                    : Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 border: status == null
                     ? Border.all(color: Colors.black12)
@@ -65,18 +65,61 @@ class HabitCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    habit.title,
-                    style: TextStyle(
-                      color: (status == 'completed' || status == 'skipped')
-                          ? Colors.grey
-                          : Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      decoration: status == 'completed'
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          habit.title,
+                          style: TextStyle(
+                            color:
+                                (status == 'completed' || status == 'skipped')
+                                ? Colors.grey
+                                : Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            decoration: status == 'completed'
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (habit.isChallenge) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFFF59E0B,
+                            ).withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.emoji_events,
+                                size: 12,
+                                color: Colors.black87,
+                              ),
+                              SizedBox(width: 3),
+                              Text(
+                                'Challenge',
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
