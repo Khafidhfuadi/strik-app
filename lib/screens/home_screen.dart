@@ -1276,7 +1276,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           );
                           isJoining.value = false;
                           if (success) {
-                            Get.back();
+                            Navigator.of(context).pop();
                             Get.find<HabitController>().fetchHabitsAndLogs(
                               isRefresh: true,
                             );

@@ -234,9 +234,12 @@ class HabitChallengeRepository {
     }
   }
 
-  /// Recalculate leaderboard for a challenge
+  /// Recalculate leaderboard for current user only
   Future<void> updateChallengeLeaderboard(String challengeId) async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
       // Get challenge details
       final challengeRes = await supabase
           .from('habit_challenges')
@@ -245,117 +248,103 @@ class HabitChallengeRepository {
           .single();
       final challenge = HabitChallenge.fromJson(challengeRes);
 
-      // Get all participants
-      final participants = await supabase
+      // Get current user's participant entry
+      final participantRes = await supabase
           .from('habit_challenge_participants')
-          .select('user_id, habit_id')
+          .select('habit_id')
           .eq('challenge_id', challengeId)
-          .eq('status', 'active');
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .maybeSingle();
 
+      if (participantRes == null) return; // User not active participant
+
+      final habitId = participantRes['habit_id'] as String;
       final startDate = challenge.createdAt ?? DateTime.now();
       final endDate = challenge.endDate;
       final now = DateTime.now();
       final effectiveEnd = now.isBefore(endDate) ? now : endDate;
 
-      List<Map<String, dynamic>> entries = [];
+      // Count completions
+      final completedRes = await supabase
+          .from('habit_logs')
+          .select('id')
+          .eq('habit_id', habitId)
+          .eq('status', 'completed')
+          .gte('target_date', startDate.toIso8601String().split('T')[0])
+          .lte('target_date', effectiveEnd.toIso8601String().split('T')[0]);
 
-      for (var p in participants) {
-        final userId = p['user_id'] as String;
-        final habitId = p['habit_id'] as String;
+      final totalCompleted = (completedRes as List).length;
 
-        // Count completions
-        final completedRes = await supabase
-            .from('habit_logs')
-            .select('id')
-            .eq('habit_id', habitId)
-            .eq('status', 'completed')
-            .gte('target_date', startDate.toIso8601String().split('T')[0])
-            .lte('target_date', effectiveEnd.toIso8601String().split('T')[0]);
+      // Calculate expected days
+      final daysDiff = effectiveEnd.difference(startDate).inDays + 1;
+      int totalExpected = daysDiff; // Simplified for daily frequency
 
-        final totalCompleted = (completedRes as List).length;
+      if (challenge.habitFrequency == 'weekly') {
+        totalExpected =
+            (daysDiff / 7).ceil() * (challenge.habitFrequencyCount ?? 1);
+      }
 
-        // Calculate expected days
-        final daysDiff = effectiveEnd.difference(startDate).inDays + 1;
-        int totalExpected = daysDiff; // Simplified for daily frequency
+      final completionRate = totalExpected > 0
+          ? (totalCompleted / totalExpected) * 100
+          : 0.0;
 
-        if (challenge.habitFrequency == 'weekly') {
-          totalExpected =
-              (daysDiff / 7).ceil() * (challenge.habitFrequencyCount ?? 1);
-        }
+      // Calculate streak
+      int streak = 0;
+      final logsRes = await supabase
+          .from('habit_logs')
+          .select('target_date')
+          .eq('habit_id', habitId)
+          .eq('status', 'completed')
+          .order('target_date', ascending: false);
 
-        final completionRate = totalExpected > 0
-            ? (totalCompleted / totalExpected) * 100
-            : 0.0;
+      if ((logsRes as List).isNotEmpty) {
+        final dates = logsRes
+            .map((l) => DateTime.parse(l['target_date'] as String))
+            .toList();
+        final today = DateTime(now.year, now.month, now.day);
+        final lastDate = DateTime(dates[0].year, dates[0].month, dates[0].day);
 
-        // Calculate streak
-        int streak = 0;
-        final logsRes = await supabase
-            .from('habit_logs')
-            .select('target_date')
-            .eq('habit_id', habitId)
-            .eq('status', 'completed')
-            .order('target_date', ascending: false);
-
-        if ((logsRes as List).isNotEmpty) {
-          final dates = logsRes
-              .map((l) => DateTime.parse(l['target_date'] as String))
-              .toList();
-          final today = DateTime(now.year, now.month, now.day);
-          final lastDate = DateTime(
-            dates[0].year,
-            dates[0].month,
-            dates[0].day,
-          );
-
-          if (today.difference(lastDate).inDays <= 1) {
-            streak = 1;
-            for (int i = 0; i < dates.length - 1; i++) {
-              final d1 = DateTime(dates[i].year, dates[i].month, dates[i].day);
-              final d2 = DateTime(
-                dates[i + 1].year,
-                dates[i + 1].month,
-                dates[i + 1].day,
-              );
-              if (d1.difference(d2).inDays == 1) {
-                streak++;
-              } else {
-                break;
-              }
+        if (today.difference(lastDate).inDays <= 1) {
+          streak = 1;
+          for (int i = 0; i < dates.length - 1; i++) {
+            final d1 = DateTime(dates[i].year, dates[i].month, dates[i].day);
+            final d2 = DateTime(
+              dates[i + 1].year,
+              dates[i + 1].month,
+              dates[i + 1].day,
+            );
+            if (d1.difference(d2).inDays == 1) {
+              streak++;
+            } else {
+              break;
             }
           }
         }
-
-        final score =
-            (completionRate * 1.0) + (totalCompleted * 0.5) + (streak * 2.0);
-
-        entries.add({
-          'challenge_id': challengeId,
-          'user_id': userId,
-          'total_completed': totalCompleted,
-          'total_expected': totalExpected,
-          'completion_rate': completionRate,
-          'current_streak': streak,
-          'score': score,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        });
       }
 
-      // Sort by score descending and assign rank
-      entries.sort(
-        (a, b) => (b['score'] as double).compareTo(a['score'] as double),
-      );
-      for (int i = 0; i < entries.length; i++) {
-        entries[i]['rank'] = i + 1;
-      }
+      final score =
+          (completionRate * 1.0) + (totalCompleted * 0.5) + (streak * 2.0);
 
-      // Upsert all entries
-      for (var entry in entries) {
-        await supabase
-            .from('habit_challenge_leaderboard')
-            .upsert(entry, onConflict: 'challenge_id,user_id');
-      }
+      // Upsert ONLY current user entry
+      await supabase.from('habit_challenge_leaderboard').upsert({
+        'challenge_id': challengeId,
+        'user_id': userId,
+        'total_completed': totalCompleted,
+        'total_expected': totalExpected,
+        'completion_rate': completionRate,
+        'current_streak': streak,
+        'score': score,
+        // rank will be recalculated by fetching and sorting in the controller or DB view
+        // But for now we just save the stats.
+        // Rank update logic needs to happen after fetching all.
+        // For simple apps, we can just save stats here.
+        'rank': 0, // Placeholder, will be sorted on fetch
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'challenge_id,user_id');
     } catch (e) {
-      throw Exception('Failed to update challenge leaderboard: $e');
+      print('Failed to update my challenge stats: $e');
+      // Non-blocking error
     }
   }
 
@@ -420,6 +409,45 @@ class HabitChallengeRepository {
       return (res as List).length;
     } catch (e) {
       return 0;
+    }
+  }
+
+  /// Remove a participant from a challenge (Kick)
+  Future<void> removeParticipant(String challengeId, String userId) async {
+    try {
+      // 1. Get participant's habit ID
+      final participantRes = await supabase
+          .from('habit_challenge_participants')
+          .select('habit_id')
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (participantRes == null) return;
+      final habitId = participantRes['habit_id'] as String;
+
+      // 2. Unlink habit (set challenge_id and is_public to null/false or keep public?)
+      // We revert it to a regular habit
+      await supabase
+          .from('habits')
+          .update({'challenge_id': null})
+          .eq('id', habitId);
+
+      // 3. Remove from leaderboard
+      await supabase
+          .from('habit_challenge_leaderboard')
+          .delete()
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId);
+
+      // 4. Remove from participants
+      await supabase
+          .from('habit_challenge_participants')
+          .delete()
+          .eq('challenge_id', challengeId)
+          .eq('user_id', userId);
+    } catch (e) {
+      throw Exception('Failed to remove participant: $e');
     }
   }
 }

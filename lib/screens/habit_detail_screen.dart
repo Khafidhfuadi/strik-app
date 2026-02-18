@@ -14,6 +14,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:strik_app/controllers/tour_controller.dart';
 import 'package:strik_app/controllers/habit_challenge_controller.dart';
 import 'dart:async';
+import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -1922,7 +1923,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             ),
             if (challenge != null)
               GestureDetector(
-                onTap: () => challengeCtrl.copyInviteLink(challenge),
+                onTap: () {
+                  Share.share(
+                    'Yuk join challenge "${challenge.habitTitle}" di Strik!\nKode: ${challenge.inviteCode}',
+                    subject: 'Undangan Challenge Strik',
+                  );
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -1938,10 +1944,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.copy, size: 14, color: Color(0xFFF59E0B)),
+                      Icon(Icons.share, size: 14, color: Color(0xFFF59E0B)),
                       SizedBox(width: 4),
                       Text(
-                        'Salin Kode',
+                        'Bagikan',
                         style: TextStyle(
                           color: Color(0xFFF59E0B),
                           fontSize: 12,
@@ -2043,19 +2049,79 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           }
 
           final leaderboard = challengeCtrl.challengeLeaderboard;
-          if (leaderboard.isEmpty) {
+          if (leaderboard.length <= 1) {
             return Container(
               padding: const EdgeInsets.all(24),
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
-              child: const Center(
-                child: Text(
-                  'Belum ada peserta',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-                ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.group_add_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Masih Sendirian Nih?',
+                    style: TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Gas undang teman untuk mulai challenge habit!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      color: AppTheme.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  if (challenge != null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Share.share(
+                            'Yuk join challenge "${challenge.habitTitle}" di Strik!\nKode: ${challenge.inviteCode}',
+                            subject: 'Undangan Challenge Strik',
+                          );
+                        },
+                        icon: const Icon(Icons.share, size: 18),
+                        label: const Text(
+                          'Bagikan Undangan',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF59E0B),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             );
           }
@@ -2072,6 +2138,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 final item = entry.value;
                 final isFirst = idx == 0;
                 final isLast = idx == leaderboard.length - 1;
+
+                // Check if current user is creator and this item is NOT the creator
+                final currentUser = Supabase.instance.client.auth.currentUser;
+                final isCreatorView = challenge?.creatorId == currentUser?.id;
+                final isSelf = item.userId == currentUser?.id;
+                final canKick = isCreatorView && !isSelf;
 
                 return Container(
                   padding: const EdgeInsets.symmetric(
@@ -2180,6 +2252,98 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                           ),
                         ],
                       ),
+                      // Kick Button
+                      if (canKick) ...[
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: AppTheme.textSecondary,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            if (challenge != null) {
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 24,
+                                    horizontal: 16,
+                                  ),
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.surface,
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(24),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 4,
+                                        margin: const EdgeInsets.only(
+                                          bottom: 24,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[700],
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
+                                        ),
+                                      ),
+                                      ListTile(
+                                        leading: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.delete_outline,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                        title: const Text(
+                                          'Hapus Peserta',
+                                          style: TextStyle(
+                                            fontFamily: 'Plus Jakarta Sans',
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                        subtitle: const Text(
+                                          'Keluarkan dari challenge ini',
+                                          style: TextStyle(
+                                            fontFamily: 'Plus Jakarta Sans',
+                                            fontSize: 12,
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          Navigator.pop(context); // Close sheet
+                                          _showKickConfirmation(
+                                            context,
+                                            challenge.id!,
+                                            item.userId,
+                                            item.user?.username ?? 'User',
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 16),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ],
                     ],
                   ),
                 );
@@ -2188,6 +2352,61 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           );
         }),
       ],
+    );
+  }
+
+  void _showKickConfirmation(
+    BuildContext context,
+    String challengeId,
+    String userId,
+    String username,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Hapus Peserta?',
+          style: TextStyle(
+            fontFamily: 'Space Grotesk',
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        content: Text(
+          'Yakin ingin mengeluarkan "$username" dari challenge ini?',
+          style: const TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal', style: TextStyle(color: Colors.white)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Get.find<HabitChallengeController>().kickParticipant(
+                challengeId,
+                userId,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

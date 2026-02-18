@@ -180,4 +180,32 @@ class ChallengeLeaderboardEntry {
       'rank': rank,
     };
   }
+
+  ChallengeLeaderboardEntry copyWith({
+    String? id,
+    String? challengeId,
+    String? userId,
+    int? totalCompleted,
+    int? totalExpected,
+    double? completionRate,
+    int? currentStreak,
+    double? score,
+    int? rank,
+    DateTime? updatedAt,
+    UserModel? user,
+  }) {
+    return ChallengeLeaderboardEntry(
+      id: id ?? this.id,
+      challengeId: challengeId ?? this.challengeId,
+      userId: userId ?? this.userId,
+      totalCompleted: totalCompleted ?? this.totalCompleted,
+      totalExpected: totalExpected ?? this.totalExpected,
+      completionRate: completionRate ?? this.completionRate,
+      currentStreak: currentStreak ?? this.currentStreak,
+      score: score ?? this.score,
+      rank: rank ?? this.rank,
+      updatedAt: updatedAt ?? this.updatedAt,
+      user: user ?? this.user,
+    );
+  }
 }

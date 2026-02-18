@@ -121,9 +121,14 @@ class HabitChallengeController extends GetxController {
       // Update scores first
       await _repository.updateChallengeLeaderboard(challengeId);
       // Then fetch
-      challengeLeaderboard.value = await _repository.getChallengeLeaderboard(
-        challengeId,
-      );
+      final rawList = await _repository.getChallengeLeaderboard(challengeId);
+
+      // Assign ranks based on sort order (index)
+      challengeLeaderboard.value = rawList
+          .asMap()
+          .entries
+          .map((e) => e.value.copyWith(rank: e.key + 1))
+          .toList();
     } catch (e) {
       print('Error fetching challenge leaderboard: $e');
     } finally {
@@ -153,6 +158,18 @@ class HabitChallengeController extends GetxController {
       } catch (_) {
         return null;
       }
+    }
+  }
+
+  /// Kick participant
+  Future<void> kickParticipant(String challengeId, String userId) async {
+    try {
+      await _repository.removeParticipant(challengeId, userId);
+      // Refresh leaderboard after kicking
+      await fetchChallengeLeaderboard(challengeId);
+      Get.snackbar('Bye Bye 👋', 'Peserta berhasil dikeluarkan dari challenge');
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal mengeluarkan peserta: $e');
     }
   }
 
