@@ -12,6 +12,10 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:strik_app/controllers/gamification_controller.dart';
+import 'package:strik_app/data/models/habit.dart';
+import 'package:strik_app/controllers/story_controller.dart';
+import 'package:strik_app/controllers/habit_controller.dart';
+import 'package:flutter/material.dart'; // For Colors
 
 class HabitJournalController extends GetxController {
   final String habitId;
@@ -224,6 +228,29 @@ class HabitJournalController extends GetxController {
         return;
       }
 
+      // 1. Fetch Habit to check if it represents a Challenge
+      final habitResponse = await _supabase
+          .from('habits')
+          .select('*, challenge:habit_challenges(*)')
+          .eq('id', habitId)
+          .single();
+      final habit = Habit.fromJson(habitResponse);
+
+      // 2. Validation: Challenge requires image
+      // Check if linked to a challenge
+      if (habit.challengeId != null) {
+        if (imageFile == null) {
+          Get.snackbar(
+            'Challenge Requirement',
+            'Habit Challenge wajib menyertakan foto bukti! 📸',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.TOP,
+          );
+          return;
+        }
+      }
+
       final userId = _supabase.auth.currentUser!.id;
       String? imageUrl;
 
@@ -251,6 +278,29 @@ class HabitJournalController extends GetxController {
 
       _checkTodayJournal();
       await clearDraft(targetDate);
+
+      // 3. Auto-Momentz for Challenge
+      if (habit.challengeId != null && imageFile != null) {
+        try {
+          if (Get.isRegistered<StoryController>()) {
+            final storyCtrl = Get.find<StoryController>();
+            final caption =
+                "🏆 Progress Habit Challenge '${habit.title}' 🏆\n$content";
+            storyCtrl.createStory(imageFile, caption: caption);
+          }
+        } catch (e) {
+          print('Error auto-posting to Momentz: $e');
+        }
+
+        // Auto-complete the habit!
+        try {
+          if (Get.isRegistered<HabitController>()) {
+            await Get.find<HabitController>().markHabitAsCompleted(habit);
+          }
+        } catch (e) {
+          print('Error auto-completing habit: $e');
+        }
+      }
 
       // Award XP (dynamic based on level)
       try {

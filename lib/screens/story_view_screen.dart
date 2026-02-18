@@ -544,30 +544,6 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
             ),
           ),
 
-          // Viewers Eye Icon (Only for My Story)
-          if (isMyStory)
-            Positioned(
-              bottom:
-                  40, // Adjust if caption pushes this? Or maybe let caption flow above/below?
-              // Actually, simpler to keep this absolute and let caption be centered text which might overlap validly or just be short.
-              // But to be safe, maybe we rely on the Column below to respect layout?
-              // No, this is absolute. Let's leave it for now.
-              left: 20,
-              child: GestureDetector(
-                onTap: () => _showViewers(story),
-                child: Column(
-                  children: [
-                    const Icon(Icons.remove_red_eye, color: Colors.white),
-                    // We could fetch count here, but maybe just show icon
-                    Text(
-                      "${story.viewers.length} Stalker",
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
           // Bottom Area: Caption & Reaction Bar
           Positioned(
             bottom: 20,
@@ -655,6 +631,50 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                                   _buildReactionButton('🔥'),
                                 ],
                               ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Viewer Count (My Story) - Moved here to prevent overlap
+                  if (isMyStory)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: 10,
+                        left: 20,
+                        bottom: 10,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: GestureDetector(
+                          onTap: () => _showViewers(story),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black45,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.remove_red_eye,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "${story.viewers.length} Stalker",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

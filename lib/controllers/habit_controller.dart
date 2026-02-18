@@ -127,8 +127,9 @@ class HabitController extends GetxController {
   Future<void> toggleHabitStatus(
     Habit habit,
     String? currentStatus,
-    DismissDirection direction,
-  ) async {
+    DismissDirection direction, {
+    bool skipJournalCheck = false,
+  }) async {
     final today = DateTime.now();
     String? newStatus;
 
@@ -146,8 +147,8 @@ class HabitController extends GetxController {
       }
     }
 
-    // Challenge habit: require journal before completion
-    if (habit.isChallenge && newStatus == 'completed') {
+    // Challenge habit: require journal before completion (only for today)
+    if (habit.isChallenge && newStatus == 'completed' && !skipJournalCheck) {
       try {
         final formattedDate = today.toIso8601String().split('T')[0];
         final journal = await Supabase.instance.client
@@ -249,8 +250,8 @@ class HabitController extends GetxController {
         // User is completing/skipping
         String? postId;
 
-        // Only create post if completing a public habit
-        if (newStatus == 'completed' && habit.isPublic) {
+        // Only create post if completing a public habit AND NOT A CHALLENGE (Challenges use Momentz)
+        if (newStatus == 'completed' && habit.isPublic && !habit.isChallenge) {
           // Check if log already exists with a post_id
           final formattedDate = today.toIso8601String().split('T')[0];
           final existingLog = await Supabase.instance.client
@@ -265,32 +266,7 @@ class HabitController extends GetxController {
           // Only create post if one doesn't exist yet
           if (existingPostId == null) {
             try {
-              // For challenge habits, use journal content as post
-              String postContent;
-              if (habit.isChallenge) {
-                try {
-                  final journal = await Supabase.instance.client
-                      .from('habit_journals')
-                      .select('content')
-                      .eq('habit_id', habit.id!)
-                      .gte('created_at', '${formattedDate}T00:00:00')
-                      .lte('created_at', '${formattedDate}T23:59:59')
-                      .order('created_at', ascending: false)
-                      .limit(1)
-                      .maybeSingle();
-
-                  final journalContent = journal?['content'] as String?;
-                  postContent =
-                      journalContent != null && journalContent.isNotEmpty
-                      ? "Journaling '${habit.title}' today :\n\n$journalContent"
-                      : "Journaling '${habit.title}' today :\n\n(No content)";
-                } catch (_) {
-                  postContent =
-                      "Journaling '${habit.title}' today :\n\n(No content)";
-                }
-              } else {
-                postContent = 'abis bantai "${habit.title}", nih!';
-              }
+              String postContent = 'abis bantai "${habit.title}", nih!';
 
               // Create post and get its ID
               final createdPost = await Supabase.instance.client
@@ -557,5 +533,21 @@ class HabitController extends GetxController {
     } catch (e) {
       Get.snackbar('Error', 'Gagal hapus habit: $e');
     }
+  }
+
+  // Helper to mark habit as completed (called by HabitJournalController)
+  Future<void> markHabitAsCompleted(Habit habit) async {
+    // Check current status
+    final status = todayLogs[habit.id];
+    if (status == 'completed') return; // Already completed
+
+    // Toggle to completed
+    // We use DismissDirection.startToEnd as proxy for "Complete"
+    await toggleHabitStatus(
+      habit,
+      status,
+      DismissDirection.startToEnd,
+      skipJournalCheck: true,
+    );
   }
 }

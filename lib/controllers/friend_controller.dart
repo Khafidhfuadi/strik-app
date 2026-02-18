@@ -849,7 +849,7 @@ class FriendController extends GetxController {
       // Check for XP Eligibility (48h)
       final itemTimestamp = item['timestamp'] as DateTime? ?? DateTime.now();
       final fortyEightHoursAgo = DateTime.now().subtract(
-        const Duration(hours: 48),
+        const Duration(hours: 24),
       );
       final isEligibleForXP = itemTimestamp.isAfter(fortyEightHoursAgo);
 

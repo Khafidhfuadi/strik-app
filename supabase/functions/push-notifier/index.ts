@@ -280,8 +280,8 @@ serve(async (req: Request) => {
         if (!p.fcm_token) return Promise.resolve(null);
         return sendFCM(
           p.fcm_token, 
-          `Feed Baru!`, 
-          `${creatorName} baru aja nge-feed, klik notif biar ga FOMO!`,
+          `${creatorName} ngepost!`, 
+          record.content || 'Cek postingan baru!',
           { post_id: record.id, type: 'new_post' }
         )
       })
@@ -290,129 +290,13 @@ serve(async (req: Request) => {
       
       return new Response(JSON.stringify({ message: `Sent ${promises.length} notifications (post)` }), { status: 200 })
     }
-    // Notify Story/Post Owner
+    // CASE B: REACTIONS (Table: reactions) - DEPRECATED/REMOVED to avoid duplicates
+    // Logic moved to 'notifications' table trigger.
+    /*
     else if (table === 'reactions') {
-      const reactorId = record.user_id
-      const storyId = record.story_id
-      const postId = record.post_id // Added capture
-      const reactionType = record.type // e.g., '❤️'
-      
-      console.log(`Processing Reaction: reactor=${reactorId}, story=${storyId}, post=${postId}, type=${reactionType}`)
-
-      // CASE B.1: STORY REACTION
-      if (storyId) {
-        // 1. Fetch Story to find Owner
-        const { data: story, error: storyError } = await supabaseAdmin
-        .from('stories')
-        .select('user_id')
-        .eq('id', storyId)
-        .single()
-      
-      if (storyError || !story) {
-        console.error('Error fetching story:', storyError)
-        console.error('Payload Story ID:', storyId)
-        // Try to list recent stories to see available IDs? (optional, maybe too noisy)
-        throw new Error(`Story not found for ID: ${storyId}. Error: ${JSON.stringify(storyError)}`)
-      }
-
-      const ownerId = story.user_id
-
-      // Don't notify if reacting to own story (though UI hinders this)
-      if (ownerId === reactorId) {
-        console.log('Skipping self-reaction notification')
-        return new Response(JSON.stringify({ message: 'Self-reaction ignored' }), { status: 200 })
-      }
-
-      // 2. Fetch Reactor Name
-      const { data: reactor } = await supabaseAdmin
-        .from('profiles')
-        .select('username')
-        .eq('id', reactorId)
-        .single()
-      
-      const reactorName = reactor?.username || 'Someone'
-
-      // 3. Fetch Owner Token
-      const { data: owner } = await supabaseAdmin
-        .from('profiles')
-        .select('fcm_token')
-        .eq('id', ownerId)
-        .single()
-      
-      if (!owner?.fcm_token) {
-        console.log(`Owner ${ownerId} has no FCM token`)
-        return new Response(JSON.stringify({ message: 'Owner has no FCM token' }), { status: 200 })
-      }
-
-      // 4. Send Notification
-      const result = await sendFCM(
-        owner.fcm_token,
-        'Strik!',
-        `${reactorName} nge-react momentz lo: ${reactionType}`,
-        { story_id: storyId, type: 'story_reaction' }
-      )
-
-      return new Response(JSON.stringify(result), { status: 200 })
-      } 
-      
-      // CASE B.2: POST REACTION
-      else if (postId) {
-        console.log(`Processing Post Reaction: reactor=${reactorId}, post=${postId}, type=${reactionType}`)
-
-        // 1. Fetch Post to find Owner
-        const { data: post, error: postError } = await supabaseAdmin
-          .from('posts')
-          .select('user_id')
-          .eq('id', postId)
-          .single()
-        
-        if (postError || !post) {
-          console.error('Error fetching post:', postError)
-          return new Response(JSON.stringify({ error: 'Post not found' }), { status: 404 })
-        }
-
-        const ownerId = post.user_id
-
-        if (ownerId === reactorId) {
-           return new Response(JSON.stringify({ message: 'Self-reaction ignored' }), { status: 200 }) 
-        }
-
-        // 2. Fetch Reactor Name
-        const { data: reactor } = await supabaseAdmin
-          .from('profiles')
-          .select('username')
-          .eq('id', reactorId)
-          .single()
-        
-        const reactorName = reactor?.username || 'Someone'
-
-        // 3. Fetch Owner Token
-        const { data: owner } = await supabaseAdmin
-          .from('profiles')
-          .select('fcm_token')
-          .eq('id', ownerId)
-          .single()
-        
-        if (!owner?.fcm_token) {
-           return new Response(JSON.stringify({ message: 'Owner has no FCM token' }), { status: 200 })
-        }
-
-        // 4. Send Notification
-        const result = await sendFCM(
-          owner.fcm_token,
-          'Strik!',
-          `${reactorName} baru nge-strik feed lo, nih!`,
-          { post_id: postId, type: 'post_reaction' }
-        )
-
-        return new Response(JSON.stringify(result), { status: 200 })
-      } 
-      
-      else {
-        console.log('Unknown reaction target')
-         return new Response(JSON.stringify({ message: 'Unknown reaction target' }), { status: 200 })
-      }
+       // ... (removed to prevent double notifications) ...
     }
+    */
 
     // CASE D: NOTIFICATIONS TABLE (poke, friend request, etc.)
     // Triggered by webhook on INSERT to 'notifications' table
@@ -438,6 +322,7 @@ serve(async (req: Request) => {
          { 
            type: record.type || 'general',
            post_id: record.post_id || '',
+           story_id: record.story_id || '', // Added support for stories
            habit_log_id: record.habit_log_id || '',
          }
        )
