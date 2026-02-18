@@ -941,7 +941,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           Row(
             children: [
               Text(
-                'Jawara Strik',
+                'Jawara Strik Aktif',
                 style: const TextStyle(
                   fontFamily: 'Space Grotesk',
                   fontSize: 18,

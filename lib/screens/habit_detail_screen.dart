@@ -969,7 +969,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     // Mutable state for the dialog
     File? selectedImage;
     String? existingImageUrl = journal?.imageUrl;
-    Timer? _debounce;
+    Timer? debounce;
 
     // Status tracking
     final ValueNotifier<String> saveStatus = ValueNotifier<String>('');
@@ -1030,8 +1030,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                               ValueListenableBuilder<String>(
                                 valueListenable: saveStatus,
                                 builder: (context, status, _) {
-                                  if (status.isEmpty)
+                                  if (status.isEmpty) {
                                     return const SizedBox.shrink();
+                                  }
                                   return Row(
                                     children: [
                                       const SizedBox(width: 8),
@@ -1142,8 +1143,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     // Enable for both Edit and New
                     saveStatus.value = 'Menyimpan...';
 
-                    if (_debounce?.isActive ?? false) _debounce!.cancel();
-                    _debounce = Timer(
+                    if (debounce?.isActive ?? false) debounce!.cancel();
+                    debounce = Timer(
                       const Duration(milliseconds: 1000),
                       () async {
                         await journalController.saveDraft(value, displayDate);
@@ -1319,7 +1320,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       isDismissible: false,
       enableDrag: false,
     ).then((_) {
-      _debounce?.cancel();
+      debounce?.cancel();
     });
   }
 
