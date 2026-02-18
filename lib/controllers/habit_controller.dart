@@ -256,11 +256,11 @@ class HabitController extends GetxController {
                   final journalContent = journal?['content'] as String?;
                   postContent =
                       journalContent != null && journalContent.isNotEmpty
-                      ? '[${habit.title}] $journalContent'
-                      : 'challenge habit "${habit.title}" hari ini beres!';
+                      ? "Journaling '${habit.title}' today :\n\n$journalContent"
+                      : "Journaling '${habit.title}' today :\n\n(No content)";
                 } catch (_) {
                   postContent =
-                      'challenge habit "${habit.title}" hari ini beres!';
+                      "Journaling '${habit.title}' today :\n\n(No content)";
                 }
               } else {
                 postContent = 'abis bantai "${habit.title}", nih!';
