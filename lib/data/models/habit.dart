@@ -1,39 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:strik_app/data/models/habit_challenge.dart';
 
 class Habit {
   final String? id;
   final String userId;
-  final String title;
-  final String? description;
-  final String color;
-  final String frequency;
-  final List<int>? daysOfWeek;
-  final int? frequencyCount;
-  final TimeOfDay? reminderTime;
+  // Backing fields for local data
+  final String _title;
+  final String? _description;
+  final String _color;
+  final String _frequency;
+  final List<int>? _daysOfWeek;
+  final int? _frequencyCount;
+  final DateTime? _endDate;
+  final TimeOfDay? _reminderTime; // Renamed backing field
+
   final bool reminderEnabled;
   final DateTime? createdAt;
-  final DateTime? endDate;
   final bool isPublic;
   final int? sortOrder;
   final String? challengeId;
+  final HabitChallenge? challenge; // Reference to the challenge source of truth
 
   Habit({
     this.id,
     required this.userId,
-    required this.title,
-    this.description,
-    required this.color,
-    required this.frequency,
-    this.daysOfWeek,
-    this.frequencyCount,
-    this.reminderTime,
+    required String title,
+    String? description,
+    required String color,
+    required String frequency,
+    List<int>? daysOfWeek,
+    int? frequencyCount,
+    TimeOfDay? reminderTime, // Constructor parameter remains same
     this.reminderEnabled = false,
     this.createdAt,
-    this.endDate,
+    DateTime? endDate,
     this.isPublic = true,
     this.sortOrder,
     this.challengeId,
-  });
+    this.challenge,
+  }) : _title = title,
+       _description = description,
+       _color = color,
+       _frequency = frequency,
+       _daysOfWeek = daysOfWeek,
+       _frequencyCount = frequencyCount,
+       _endDate = endDate,
+       _reminderTime = reminderTime;
+
+  // Getters that prioritize Challenge data if linked
+  String get title => challenge?.habitTitle ?? _title;
+  String? get description => challenge?.habitDescription ?? _description;
+  String get color => challenge?.habitColor ?? _color;
+  String get frequency => challenge?.habitFrequency ?? _frequency;
+  List<int>? get daysOfWeek => challenge?.habitDaysOfWeek ?? _daysOfWeek;
+  int? get frequencyCount => challenge?.habitFrequencyCount ?? _frequencyCount;
+  DateTime? get endDate => challenge?.endDate ?? _endDate;
+
+  // For reminder, we prioritize challenge reminder if exists
+  TimeOfDay? get reminderTime => challenge?.reminderTime ?? _reminderTime;
 
   bool get isChallenge => challengeId != null;
 
@@ -59,10 +83,10 @@ class Habit {
     return Habit(
       id: json['id'],
       userId: json['user_id'],
-      title: json['title'],
+      title: json['title'] ?? '',
       description: json['description'],
-      color: json['color'],
-      frequency: json['frequency'],
+      color: json['color'] ?? '0xFF000000',
+      frequency: json['frequency'] ?? 'daily',
       daysOfWeek: json['days_of_week'] != null
           ? List<int>.from(json['days_of_week'])
           : null,
@@ -77,7 +101,10 @@ class Habit {
           : null,
       isPublic: json['is_public'] ?? true,
       sortOrder: json['sort_order'],
-      challengeId: json['challenge_id'],
+      challengeId: json['challenge_id'] as String?,
+      challenge: json['challenge'] != null
+          ? HabitChallenge.fromJson(json['challenge'])
+          : null,
     );
   }
 

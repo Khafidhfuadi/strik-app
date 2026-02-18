@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:strik_app/data/models/user_model.dart';
 
 class HabitChallenge {
@@ -10,6 +11,7 @@ class HabitChallenge {
   final List<int>? habitDaysOfWeek;
   final int? habitFrequencyCount;
   final DateTime endDate;
+  final TimeOfDay? reminderTime; // New field
   final bool showInFeed;
   final String inviteCode;
   final String status; // 'active', 'completed', 'archived'
@@ -26,6 +28,7 @@ class HabitChallenge {
     this.habitDaysOfWeek,
     this.habitFrequencyCount,
     required this.endDate,
+    this.reminderTime,
     this.showInFeed = true,
     required this.inviteCode,
     this.status = 'active',
@@ -39,6 +42,24 @@ class HabitChallenge {
   String get inviteUrl => 'https://strik.app/challenge/$inviteCode';
 
   factory HabitChallenge.fromJson(Map<String, dynamic> json) {
+    TimeOfDay? reminder;
+    if (json['habit_reminder_time'] != null) {
+      final parts = (json['habit_reminder_time'] as String).split(':');
+      if (parts.length >= 2) {
+        final now = DateTime.now();
+        // Assume stored time is UTC
+        final utcWithTime = DateTime.utc(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+        );
+        final localTime = utcWithTime.toLocal();
+        reminder = TimeOfDay(hour: localTime.hour, minute: localTime.minute);
+      }
+    }
+
     return HabitChallenge(
       id: json['id'],
       creatorId: json['creator_id'],
@@ -51,6 +72,7 @@ class HabitChallenge {
           : null,
       habitFrequencyCount: json['habit_frequency_count'],
       endDate: DateTime.parse(json['end_date']).toLocal(),
+      reminderTime: reminder,
       showInFeed: json['show_in_feed'] ?? true,
       inviteCode: json['invite_code'],
       status: json['status'] ?? 'active',

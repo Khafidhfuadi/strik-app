@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:strik_app/data/models/habit_challenge.dart';
 import 'package:strik_app/main.dart';
 
@@ -19,6 +20,7 @@ class HabitChallengeRepository {
     List<int>? habitDaysOfWeek,
     int? habitFrequencyCount,
     required DateTime endDate,
+    TimeOfDay? habitReminderTime, // New parameter
     required String creatorHabitId,
   }) async {
     try {
@@ -26,6 +28,20 @@ class HabitChallengeRepository {
       if (userId == null) throw Exception('User not logged in');
 
       final inviteCode = _generateInviteCode();
+
+      String? reminderTimeString;
+      if (habitReminderTime != null) {
+        final now = DateTime.now();
+        final localDateTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          habitReminderTime.hour,
+          habitReminderTime.minute,
+        );
+        final utcDateTime = localDateTime.toUtc();
+        reminderTimeString = '${utcDateTime.hour}:${utcDateTime.minute}';
+      }
 
       // 1. Create the challenge
       final challengeRes = await supabase
@@ -39,6 +55,7 @@ class HabitChallengeRepository {
             'habit_days_of_week': habitDaysOfWeek,
             'habit_frequency_count': habitFrequencyCount,
             'end_date': endDate.toUtc().toIso8601String(),
+            'habit_reminder_time': reminderTimeString,
             'invite_code': inviteCode,
           })
           .select()
@@ -451,10 +468,24 @@ class HabitChallengeRepository {
     }
   }
 
-  /// Update a challenge and sync changes to all participant habits
+  /// Update a challenge (Template)
+  /// Changes will automatically be reflected in participant habits because they reference this source of truth.
   Future<void> updateChallenge(HabitChallenge challenge) async {
     try {
-      // 1. Update the challenge definition
+      String? reminderTimeString;
+      if (challenge.reminderTime != null) {
+        final now = DateTime.now();
+        final localDateTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          challenge.reminderTime!.hour,
+          challenge.reminderTime!.minute,
+        );
+        final utcDateTime = localDateTime.toUtc();
+        reminderTimeString = '${utcDateTime.hour}:${utcDateTime.minute}';
+      }
+
       await supabase
           .from('habit_challenges')
           .update({
@@ -465,24 +496,9 @@ class HabitChallengeRepository {
             'habit_days_of_week': challenge.habitDaysOfWeek,
             'habit_frequency_count': challenge.habitFrequencyCount,
             'end_date': challenge.endDate.toUtc().toIso8601String(),
+            'habit_reminder_time': reminderTimeString,
           })
           .eq('id', challenge.id!);
-
-      // 2. Sync changes to all participant habits (Instances)
-      // Uses RPC to bypass RLS (only creator can do this via the function logic)
-      await supabase.rpc(
-        'update_challenge_participant_habits',
-        params: {
-          'p_challenge_id': challenge.id,
-          'p_title': challenge.habitTitle,
-          'p_description': challenge.habitDescription,
-          'p_color': challenge.habitColor,
-          'p_frequency': challenge.habitFrequency,
-          'p_days_of_week': challenge.habitDaysOfWeek,
-          'p_frequency_count': challenge.habitFrequencyCount,
-          'p_end_date': challenge.endDate.toUtc().toIso8601String(),
-        },
-      );
     } catch (e) {
       throw Exception('Failed to update challenge: $e');
     }

@@ -318,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onPressed: () => _showFilterBottomSheet(context),
             ),
             IconButton(
-              icon: const Icon(Icons.group_add_outlined, color: Colors.white),
+              icon: const Icon(Icons.add_link_rounded, color: Colors.white),
               onPressed: () => _showJoinChallengeBottomSheet(context),
               tooltip: 'Gabung Challenge',
             ),

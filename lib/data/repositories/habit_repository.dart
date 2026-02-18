@@ -38,7 +38,7 @@ class HabitRepository {
 
       final response = await supabase
           .from('habits')
-          .select()
+          .select('*, challenge:habit_challenges(*)')
           .eq('user_id', userId) // Only fetch current user's habits
           .order('sort_order', ascending: true)
           .order('created_at', ascending: false);
