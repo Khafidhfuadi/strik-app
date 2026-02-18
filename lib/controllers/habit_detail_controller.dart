@@ -57,6 +57,29 @@ class HabitDetailController extends GetxController {
       return; // Can't log future
     }
 
+    // Check if target date is before habit creation date
+    if (Get.isRegistered<HabitController>()) {
+      final habitController = Get.find<HabitController>();
+      final habit = habitController.habits.firstWhereOrNull(
+        (h) => h.id == habitId,
+      );
+      if (habit != null && habit.createdAt != null) {
+        final creationDate = DateTime(
+          habit.createdAt!.year,
+          habit.createdAt!.month,
+          habit.createdAt!.day,
+        );
+        if (targetDate.isBefore(creationDate)) {
+          Get.snackbar(
+            'Belum Dibuat',
+            'Habit ini belum dibuat pada tanggal tersebut 😅',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+          return;
+        }
+      }
+    }
+
     final dateStr = targetDate.toIso8601String().split('T')[0];
 
     // Check current status

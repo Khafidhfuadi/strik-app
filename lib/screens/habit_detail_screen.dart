@@ -14,6 +14,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:strik_app/controllers/tour_controller.dart';
 import 'package:strik_app/controllers/habit_challenge_controller.dart';
 import 'dart:async';
+import 'package:shimmer/shimmer.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   final Habit habit;
@@ -308,7 +309,52 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       key: Get.find<TourController>().keyDetailStats,
       child: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return Shimmer.fromColors(
+            baseColor: Colors.grey[800]!,
+            highlightColor: Colors.grey[700]!,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  for (int i = 0; i < 3; i++) ...[
+                    Column(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: 40,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (i < 2)
+                      Container(
+                        height: 40,
+                        width: 1,
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          );
         }
 
         // Calculate Goal Progress if endDate exists
@@ -1892,13 +1938,88 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         const SizedBox(height: 16),
         Obx(() {
           if (challengeCtrl.isLoadingLeaderboard.value) {
-            return Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(20),
+            return Shimmer.fromColors(
+              baseColor: Colors.grey[800]!,
+              highlightColor: Colors.grey[700]!,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Column(
+                  children: List.generate(
+                    5,
+                    (index) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: index < 4
+                            ? Border(
+                                bottom: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                ),
+                              )
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.white,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 100,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  width: 60,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: 40,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              child: const Center(child: CircularProgressIndicator()),
             );
           }
 
