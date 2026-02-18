@@ -469,19 +469,20 @@ class HabitChallengeRepository {
           .eq('id', challenge.id!);
 
       // 2. Sync changes to all participant habits (Instances)
-      // This ensures all users see the updated title, description, etc.
-      await supabase
-          .from('habits')
-          .update({
-            'title': challenge.habitTitle,
-            'description': challenge.habitDescription,
-            'color': challenge.habitColor,
-            'frequency': challenge.habitFrequency,
-            'days_of_week': challenge.habitDaysOfWeek,
-            'frequency_count': challenge.habitFrequencyCount,
-            'end_date': challenge.endDate.toUtc().toIso8601String(),
-          })
-          .eq('challenge_id', challenge.id!);
+      // Uses RPC to bypass RLS (only creator can do this via the function logic)
+      await supabase.rpc(
+        'update_challenge_participant_habits',
+        params: {
+          'p_challenge_id': challenge.id,
+          'p_title': challenge.habitTitle,
+          'p_description': challenge.habitDescription,
+          'p_color': challenge.habitColor,
+          'p_frequency': challenge.habitFrequency,
+          'p_days_of_week': challenge.habitDaysOfWeek,
+          'p_frequency_count': challenge.habitFrequencyCount,
+          'p_end_date': challenge.endDate.toUtc().toIso8601String(),
+        },
+      );
     } catch (e) {
       throw Exception('Failed to update challenge: $e');
     }
