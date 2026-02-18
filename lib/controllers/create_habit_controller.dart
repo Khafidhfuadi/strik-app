@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/data/models/habit.dart';
+import 'package:strik_app/data/models/habit_challenge.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart';
 import 'package:strik_app/controllers/habit_challenge_controller.dart';
@@ -335,7 +336,41 @@ class CreateHabitController extends GetxController {
       String? createdHabitId;
 
       if (isEdit) {
-        await _habitRepository.updateHabit(habit);
+        // Check if this is a challenge and user is creator
+        if (habit.challengeId != null &&
+            Get.isRegistered<HabitChallengeController>()) {
+          final challengeCtrl = Get.find<HabitChallengeController>();
+          final challenge = challengeCtrl.getChallengeForHabit(
+            habit.challengeId,
+          );
+
+          if (challenge != null && challenge.creatorId == user.id) {
+            // Update challenge definition & sync to all participants
+            final updatedChallenge = HabitChallenge(
+              id: challenge.id,
+              creatorId: challenge.creatorId,
+              habitTitle: habit.title,
+              habitDescription: habit.description,
+              habitColor: habit.color,
+              habitFrequency: habit.frequency,
+              habitDaysOfWeek: habit.daysOfWeek,
+              habitFrequencyCount: habit.frequencyCount,
+              endDate: habit.endDate ?? challenge.endDate,
+              inviteCode: challenge.inviteCode,
+              status: challenge.status,
+              createdAt: challenge.createdAt,
+              creator: challenge.creator,
+            );
+            await challengeCtrl.updateChallenge(updatedChallenge);
+          } else {
+            // Just update my own habit instance
+            await _habitRepository.updateHabit(habit);
+          }
+        } else {
+          // Regular habit update
+          await _habitRepository.updateHabit(habit);
+        }
+
         // Update local list in HabitController
         final habitController = Get.find<HabitController>();
         final idx = habitController.habits.indexWhere((h) => h.id == habit.id);

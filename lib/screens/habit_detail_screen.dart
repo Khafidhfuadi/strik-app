@@ -583,6 +583,27 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           TextButton(
             onPressed: () {
               Get.back(); // Close dialog
+
+              // Check if it's a challenge & user is creator
+              if (widget.habit.challengeId != null &&
+                  Get.isRegistered<HabitChallengeController>()) {
+                final challengeCtrl = Get.find<HabitChallengeController>();
+                final challenge = challengeCtrl.getChallengeForHabit(
+                  widget.habit.challengeId,
+                );
+
+                // If challenge exists and I am the creator
+                if (challenge != null &&
+                    challenge.creatorId ==
+                        Supabase.instance.client.auth.currentUser?.id) {
+                  // Delete entire challenge (cascade to participants)
+                  challengeCtrl.deleteChallenge(challenge.id!);
+                  Get.back(); // Close screen
+                  return;
+                }
+              }
+
+              // Normal habit delete (or just leaving challenge if participant)
               final habitController = Get.find<HabitController>();
               habitController.deleteHabit(widget.habit.id!);
             },

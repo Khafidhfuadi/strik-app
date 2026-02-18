@@ -173,6 +173,37 @@ class HabitChallengeController extends GetxController {
     }
   }
 
+  /// Update challenge and sync to participants
+  Future<void> updateChallenge(HabitChallenge challenge) async {
+    try {
+      await _repository.updateChallenge(challenge);
+      await fetchActiveChallenges();
+      // Also update local list if needed
+      final index = activeChallenges.indexWhere((c) => c.id == challenge.id);
+      if (index != -1) {
+        activeChallenges[index] = challenge;
+      }
+      Get.snackbar(
+        'Berhasil',
+        'Challenge berhasil diupdate untuk semua peserta',
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal update challenge: $e');
+    }
+  }
+
+  /// Delete challenge and all participant data
+  Future<void> deleteChallenge(String challengeId) async {
+    try {
+      await _repository.deleteChallenge(challengeId);
+      activeChallenges.removeWhere((c) => c.id == challengeId);
+      archivedChallenges.removeWhere((c) => c.id == challengeId);
+      Get.snackbar('Berhasil', 'Challenge berhasil dihapus');
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal menghapus challenge: $e');
+    }
+  }
+
   /// Refresh all
   Future<void> refreshAll() async {
     await _repository.archiveExpiredChallenges();

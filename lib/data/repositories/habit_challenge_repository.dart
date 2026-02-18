@@ -450,4 +450,61 @@ class HabitChallengeRepository {
       throw Exception('Failed to remove participant: $e');
     }
   }
+
+  /// Update a challenge and sync changes to all participant habits
+  Future<void> updateChallenge(HabitChallenge challenge) async {
+    try {
+      // 1. Update the challenge definition
+      await supabase
+          .from('habit_challenges')
+          .update({
+            'habit_title': challenge.habitTitle,
+            'habit_description': challenge.habitDescription,
+            'habit_color': challenge.habitColor,
+            'habit_frequency': challenge.habitFrequency,
+            'habit_days_of_week': challenge.habitDaysOfWeek,
+            'habit_frequency_count': challenge.habitFrequencyCount,
+            'end_date': challenge.endDate.toUtc().toIso8601String(),
+          })
+          .eq('id', challenge.id!);
+
+      // 2. Sync changes to all participant habits (Instances)
+      // This ensures all users see the updated title, description, etc.
+      await supabase
+          .from('habits')
+          .update({
+            'title': challenge.habitTitle,
+            'description': challenge.habitDescription,
+            'color': challenge.habitColor,
+            'frequency': challenge.habitFrequency,
+            'days_of_week': challenge.habitDaysOfWeek,
+            'frequency_count': challenge.habitFrequencyCount,
+            'end_date': challenge.endDate.toUtc().toIso8601String(),
+          })
+          .eq('challenge_id', challenge.id!);
+    } catch (e) {
+      throw Exception('Failed to update challenge: $e');
+    }
+  }
+
+  /// Delete a challenge and cascade delete participant habits
+  Future<void> deleteChallenge(String challengeId) async {
+    try {
+      // 1. Delete all participant habits
+      await supabase.from('habits').delete().eq('challenge_id', challengeId);
+
+      // 2. Delete the challenge (cascade should handle participants & leaderboard if FK set, but doing it manually to be safe)
+      await supabase
+          .from('habit_challenge_participants')
+          .delete()
+          .eq('challenge_id', challengeId);
+      await supabase
+          .from('habit_challenge_leaderboard')
+          .delete()
+          .eq('challenge_id', challengeId);
+      await supabase.from('habit_challenges').delete().eq('id', challengeId);
+    } catch (e) {
+      throw Exception('Failed to delete challenge: $e');
+    }
+  }
 }
