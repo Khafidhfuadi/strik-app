@@ -148,15 +148,15 @@ BEGIN
 
     -- Recalculate level (cumulative thresholds matching Flutter)
     new_level := CASE
-        WHEN new_xp >= 2500 THEN 10
-        WHEN new_xp >= 2100 THEN 9
-        WHEN new_xp >= 1700 THEN 8
-        WHEN new_xp >= 1300 THEN 7
-        WHEN new_xp >= 950  THEN 6
-        WHEN new_xp >= 700  THEN 5
-        WHEN new_xp >= 500  THEN 4
-        WHEN new_xp >= 350  THEN 3
-        WHEN new_xp >= 250  THEN 2
+        WHEN new_xp >= 7100 THEN 10
+        WHEN new_xp >= 5900 THEN 9
+        WHEN new_xp >= 4800 THEN 8
+        WHEN new_xp >= 3800 THEN 7
+        WHEN new_xp >= 2900 THEN 6
+        WHEN new_xp >= 2100 THEN 5
+        WHEN new_xp >= 1400 THEN 4
+        WHEN new_xp >= 800  THEN 3
+        WHEN new_xp >= 300  THEN 2
         WHEN new_xp >= 100  THEN 1
         ELSE 1
     END;

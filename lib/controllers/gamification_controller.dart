@@ -482,24 +482,24 @@ class GamificationController extends GetxController {
       case 1:
         return 100;
       case 2:
-        return 250;
+        return 300;
       case 3:
-        return 350;
+        return 800;
       case 4:
-        return 500;
+        return 1400;
       case 5:
-        return 700;
-      case 6:
-        return 950;
-      case 7:
-        return 1300;
-      case 8:
-        return 1700;
-      case 9:
         return 2100;
+      case 6:
+        return 2900;
+      case 7:
+        return 3800;
+      case 8:
+        return 4800;
+      case 9:
+        return 5900;
       case 10:
       default:
-        return 2500;
+        return 7100;
     }
   }
 
