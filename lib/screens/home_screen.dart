@@ -515,38 +515,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         Expanded(child: _buildTodayList(controller)),
         // Archived challenges link
-        if (Get.isRegistered<HabitChallengeController>())
+        if (controller.showCompleted.value) ...[
+          // Archived/History Button
           Obx(() {
             final archivedCount =
-                Get.find<HabitChallengeController>().archivedChallenges.length;
+                Get.find<HabitController>().archivedHabits.length;
+
             if (archivedCount == 0) return const SizedBox.shrink();
-            return InkWell(
-              onTap: () => _showArchivedChallengesBottomSheet(context),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.archive_outlined,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Arsip Challenge ($archivedCount)',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: InkWell(
+                onTap: () => _showArchivedChallengesBottomSheet(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.archive_outlined,
+                        color: Colors.grey[400],
+                        size: 20,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Text(
+                        'Arsip Habit ($archivedCount)',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 14,
+                          color: Colors.grey[300],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.grey[600],
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
           }),
+        ],
       ],
     );
   }
@@ -1328,7 +1349,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showArchivedChallengesBottomSheet(BuildContext context) {
-    final challenges = Get.find<HabitChallengeController>().archivedChallenges;
+    // Use HabitController to get unified archived list (Habits + Challenges)
+    final archivedHabits = Get.find<HabitController>().archivedHabits;
 
     Get.bottomSheet(
       Container(
@@ -1357,7 +1379,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Icon(Icons.archive_outlined, color: Colors.grey[400], size: 20),
                 const SizedBox(width: 8),
                 const Text(
-                  'Arsip Challenge',
+                  'Arsip Habit', // Changed title
                   style: TextStyle(
                     fontFamily: 'Space Grotesk',
                     fontSize: 20,
@@ -1369,59 +1391,88 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
             const SizedBox(height: 16),
             Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: challenges.length,
-                separatorBuilder: (_, __) =>
-                    Divider(color: Colors.grey[800], height: 1),
-                itemBuilder: (context, index) {
-                  final c = challenges[index];
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
-                      Icons.emoji_events_rounded,
-                      color: Colors.grey,
-                      size: 28,
-                    ),
-                    title: Text(
-                      c.habitTitle,
-                      style: const TextStyle(
-                        fontFamily: 'Space Grotesk',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Berakhir: ${c.endDate.day}/${c.endDate.month}/${c.endDate.year}',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+              child: Obx(() {
+                if (archivedHabits.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
                       child: Text(
-                        c.status == 'completed' ? 'Selesai' : 'Arsip',
+                        'Belum ada habit yang diarsip.',
                         style: TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
-                          fontSize: 11,
-                          color: Colors.grey[400],
-                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[600],
                         ),
                       ),
                     ),
                   );
-                },
-              ),
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: archivedHabits.length,
+                  separatorBuilder: (_, __) =>
+                      Divider(color: Colors.grey[800], height: 1),
+                  itemBuilder: (context, index) {
+                    final h = archivedHabits[index];
+                    String dateText = '-';
+                    if (h.endDate != null) {
+                      dateText =
+                          '${h.endDate!.day}/${h.endDate!.month}/${h.endDate!.year}';
+                    }
+
+                    return ListTile(
+                      onTap: () {
+                        Get.back(); // Close bottom sheet
+                        Get.to(() => HabitDetailScreen(habit: h));
+                      },
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        h.isChallenge
+                            ? Icons.emoji_events_rounded
+                            : Icons.calendar_today_rounded,
+                        color: Colors.grey,
+                        size: 28,
+                      ),
+                      title: Text(
+                        h.title,
+                        style: const TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Berakhir: $dateText',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          h.isChallenge ? 'Challenge' : 'Habit',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 11,
+                            color: Colors.grey[400],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }),
             ),
           ],
         ),
@@ -1609,6 +1660,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onTap: () {
                 Get.back(); // Close profile sheet
                 Get.to(() => const AlarmManagementScreen());
+              },
+            ),
+
+            // Arsip Habit
+            ListTile(
+              leading: const Icon(Icons.archive_outlined, color: Colors.white),
+              title: const Text(
+                'Arsip Habit',
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white54,
+              ),
+              onTap: () {
+                Get.back(); // Close profile sheet
+                _showArchivedChallengesBottomSheet(context);
               },
             ),
 

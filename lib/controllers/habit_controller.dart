@@ -12,6 +12,7 @@ class HabitController extends GetxController {
   final HabitRepository _habitRepository = HabitRepository();
 
   var habits = <Habit>[].obs;
+  var archivedHabits = <Habit>[].obs; // New list for archives
   var todayLogs = <String, String>{}.obs;
   var weeklyLogs = <String, Map<String, String>>{}.obs;
   var isLoading = true.obs;
@@ -35,30 +36,17 @@ class HabitController extends GetxController {
       }
       final fetchedHabits = await _habitRepository.getHabits();
 
-      // Filter out archived or expired habits
-      final activeHabits = fetchedHabits.where((habit) {
-        // If it's a challenge, check challenge status
-        if (habit.challenge != null) {
-          return habit.challenge!.isActive;
-        }
+      // Partition habits into active and archived
+      final activeList = <Habit>[];
+      final archivedList = <Habit>[];
 
-        // If regular habit has end date, check expiration
-        if (habit.endDate != null) {
-          // Keep active until end of the end_date day
-          final endOfDay = DateTime(
-            habit.endDate!.year,
-            habit.endDate!.month,
-            habit.endDate!.day,
-            23,
-            59,
-            59,
-          );
-          return DateTime.now().isBefore(endOfDay);
+      for (var habit in fetchedHabits) {
+        if (!habit.isArchived) {
+          activeList.add(habit);
+        } else {
+          archivedList.add(habit);
         }
-
-        // Regular ongoing habit
-        return true;
-      }).toList();
+      }
 
       final today = DateTime.now();
 
@@ -76,7 +64,8 @@ class HabitController extends GetxController {
         weekEnd,
       );
 
-      habits.value = activeHabits;
+      habits.value = activeList;
+      archivedHabits.value = archivedList; // Update archived list
       todayLogs.value = logs;
       weeklyLogs.value = rangeLogs;
       _lastFetchTime = DateTime.now();

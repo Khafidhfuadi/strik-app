@@ -265,7 +265,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 ],
 
                 // Journal Section
-                _buildJournalSection(context),
+                _buildJournalSection(context, currentHabit),
                 const SizedBox(height: 32),
               ],
             ),
@@ -784,28 +784,28 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   }
 
                   return GestureDetector(
-                    onLongPress: () {
-                      if (!isFuture) {
-                        // Find existing journal to edit, or null to create new
-                        final journal = journalController.journals
-                            .firstWhereOrNull((j) {
-                              final jDate = j.createdAt.toLocal();
-                              return jDate.year == date.year &&
-                                  jDate.month == date.month &&
-                                  jDate.day == date.day;
-                            });
-                        _showJournalDialog(
-                          context,
-                          journal: journal,
-                          date: date,
-                        );
-                      }
-                    },
-                    onTap: () {
-                      if (!isFuture) {
-                        controller.toggleLog(date);
-                      }
-                    },
+                    onLongPress: (currentHabit.isArchived || isFuture)
+                        ? null
+                        : () {
+                            // Find existing journal to edit, or null to create new
+                            final journal = journalController.journals
+                                .firstWhereOrNull((j) {
+                                  final jDate = j.createdAt.toLocal();
+                                  return jDate.year == date.year &&
+                                      jDate.month == date.month &&
+                                      jDate.day == date.day;
+                                });
+                            _showJournalDialog(
+                              context,
+                              journal: journal,
+                              date: date,
+                            );
+                          },
+                    onTap: (currentHabit.isArchived || isFuture)
+                        ? null
+                        : () {
+                            controller.toggleLog(date);
+                          },
                     child: Container(
                       decoration: BoxDecoration(
                         color: bgColor,
@@ -855,7 +855,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     });
   }
 
-  Widget _buildJournalSection(BuildContext context) {
+  Widget _buildJournalSection(BuildContext context, Habit currentHabit) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -889,28 +889,29 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 ),
               ],
             ),
-            Obx(() {
-              if (journalController.todayJournal.value == null) {
-                return TextButton.icon(
-                  onPressed: () => _showJournalDialog(context),
-                  icon: const Icon(
-                    Icons.add,
-                    size: 16,
-                    color: AppTheme.primary,
-                  ),
-                  label: Text(
-                    'Tulis Jurnal',
-                    style: const TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
+            if (!currentHabit.isArchived)
+              Obx(() {
+                if (journalController.todayJournal.value == null) {
+                  return TextButton.icon(
+                    onPressed: () => _showJournalDialog(context),
+                    icon: const Icon(
+                      Icons.add,
+                      size: 16,
                       color: AppTheme.primary,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                );
-              } else {
-                return const SizedBox.shrink();
-              }
-            }),
+                    label: Text(
+                      'Tulis Jurnal',
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                } else {
+                  return const SizedBox.shrink();
+                }
+              }),
           ],
         ),
         const SizedBox(height: 16),

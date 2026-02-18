@@ -61,6 +61,24 @@ class Habit {
 
   bool get isChallenge => challengeId != null;
 
+  bool get isArchived {
+    if (challenge != null) {
+      return !challenge!.isActive;
+    }
+    if (endDate != null) {
+      final endOfDay = DateTime(
+        endDate!.year,
+        endDate!.month,
+        endDate!.day,
+        23,
+        59,
+        59,
+      );
+      return DateTime.now().isAfter(endOfDay);
+    }
+    return false;
+  }
+
   factory Habit.fromJson(Map<String, dynamic> json) {
     TimeOfDay? reminder;
     if (json['reminder_time'] != null) {
