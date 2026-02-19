@@ -98,7 +98,7 @@ class StoryController extends GetxController {
       myArchive.assignAll(archive);
 
       // Update Android Widget
-      await _updateHomeWidget(active);
+      // await _updateHomeWidget(active);
     } catch (e) {
       print('Error fetching stories in controller: $e');
     } finally {
@@ -106,35 +106,35 @@ class StoryController extends GetxController {
     }
   }
 
-  Future<void> _updateHomeWidget(List<StoryModel> stories) async {
-    try {
-      final myId = supabase.auth.currentUser?.id;
-      // Get latest story from a friend (not me)
-      final friendStories = stories.where((s) => s.userId != myId).toList();
+  // Future<void> _updateHomeWidget(List<StoryModel> stories) async {
+  //   try {
+  //     final myId = supabase.auth.currentUser?.id;
+  //     // Get latest story from a friend (not me)
+  //     final friendStories = stories.where((s) => s.userId != myId).toList();
 
-      // Sort by created_at desc (newest first)
-      friendStories.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  //     // Sort by created_at desc (newest first)
+  //     friendStories.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      if (friendStories.isNotEmpty) {
-        final latest = friendStories.first;
-        final user = latest.user;
-        final username = user?.username ?? 'Friend';
+  //     if (friendStories.isNotEmpty) {
+  //       final latest = friendStories.first;
+  //       final user = latest.user;
+  //       final username = user?.username ?? 'Friend';
 
-        await HomeWidgetService.updateWidget(
-          title: "Momentz: $username",
-          subtitle: "Baru aja upload!",
-          imageUrl: latest.mediaUrl,
-        );
-      } else {
-        await HomeWidgetService.updateWidget(
-          title: "Strik Momentz",
-          subtitle: "Belum ada story baru.",
-        );
-      }
-    } catch (e) {
-      print("Widget Update Error: $e");
-    }
-  }
+  //       await HomeWidgetService.updateWidget(
+  //         title: "Momentz: $username",
+  //         subtitle: "Baru aja upload!",
+  //         imageUrl: latest.mediaUrl,
+  //       );
+  //     } else {
+  //       await HomeWidgetService.updateWidget(
+  //         title: "Strik Momentz",
+  //         subtitle: "Belum ada story baru.",
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print("Widget Update Error: $e");
+  //   }
+  // }
 
   // Group active stories by User
   Map<String, List<StoryModel>> get groupedStories {

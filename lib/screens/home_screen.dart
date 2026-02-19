@@ -1545,26 +1545,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 shape: BoxShape.circle,
                 color: AppTheme.primary.withValues(alpha: 0.2),
                 border: Border.all(color: AppTheme.primary, width: 2),
-                image: avatarUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(avatarUrl),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
+                image: DecorationImage(
+                  image: avatarUrl != null
+                      ? NetworkImage(avatarUrl)
+                      : const AssetImage('assets/images/default_avatar.png')
+                            as ImageProvider,
+                  fit: BoxFit.cover,
+                ),
               ),
-              child: avatarUrl == null
-                  ? Center(
-                      child: Text(
-                        username.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(
-                          fontFamily: 'Outfit',
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    )
-                  : null,
             ),
             const SizedBox(height: 16),
 
