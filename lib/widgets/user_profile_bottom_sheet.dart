@@ -351,7 +351,7 @@ class UserProfileBottomSheet extends StatelessWidget {
             ),
             child: const Center(
               child: Text(
-                'Menunggu Konfirmasi',
+                'Pending Request Friend',
                 style: TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
                   fontWeight: FontWeight.w600,

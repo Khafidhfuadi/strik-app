@@ -121,15 +121,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Builder(
                   builder: (context) {
-                    String label;
+                    String freqLabel;
                     if (currentHabit.frequency == 'daily') {
                       if (currentHabit.daysOfWeek != null &&
                           currentHabit.daysOfWeek!.isNotEmpty) {
                         if (currentHabit.daysOfWeek!.length == 7) {
-                          label = 'Tiap Hari';
+                          freqLabel = 'Tiap Hari';
                         } else {
                           const days = [
                             'Sen',
@@ -140,20 +140,19 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                             'Sab',
                             'Min',
                           ];
-                          // Sort safely
                           final sortedDays = List<int>.from(
                             currentHabit.daysOfWeek!,
                           )..sort();
-                          label = sortedDays.map((d) => days[d]).join(', ');
+                          freqLabel = sortedDays.map((d) => days[d]).join(', ');
                         }
                       } else {
-                        label = 'Tiap Hari';
+                        freqLabel = 'Tiap Hari';
                       }
                     } else if (currentHabit.frequency == 'weekly') {
                       if (currentHabit.frequencyCount != null) {
-                        label = 'Mingguan: ${currentHabit.frequencyCount}x';
+                        freqLabel = 'Mingguan: ${currentHabit.frequencyCount}x';
                       } else {
-                        label = 'Mingguan';
+                        freqLabel = 'Mingguan';
                       }
                     } else if (currentHabit.frequency == 'monthly') {
                       if (currentHabit.daysOfWeek != null &&
@@ -161,54 +160,134 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                         final sortedDates = List<int>.from(
                           currentHabit.daysOfWeek!,
                         )..sort();
-                        label = 'Bulanan: Tanggal ${sortedDates.join(', ')}';
+                        freqLabel = 'Bulanan: Tgl ${sortedDates.join(', ')}';
                       } else {
-                        label = 'Bulanan';
+                        freqLabel = 'Bulanan';
                       }
                     } else {
-                      label = currentHabit.frequency.capitalizeFirst!;
+                      freqLabel = currentHabit.frequency.capitalizeFirst!;
                     }
 
-                    return Text(
-                      label,
-                      style: const TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 16,
-                        color: AppTheme.textSecondary,
-                      ),
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        // Challenge pill
+                        if (currentHabit.isChallenge)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFF59E0B,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFFF59E0B,
+                                ).withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.emoji_events_rounded,
+                                  size: 13,
+                                  color: Color(0xFFF59E0B),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Challenge',
+                                  style: TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFF59E0B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Frequency pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.repeat_rounded,
+                                size: 13,
+                                color: AppTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                freqLabel,
+                                style: const TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Reminder pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: currentHabit.reminderEnabled
+                                ? AppTheme.primary.withValues(alpha: 0.12)
+                                : Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                currentHabit.reminderEnabled
+                                    ? Icons.notifications_active_rounded
+                                    : Icons.notifications_off_outlined,
+                                size: 13,
+                                color: currentHabit.reminderEnabled
+                                    ? AppTheme.primary
+                                    : AppTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                currentHabit.reminderEnabled &&
+                                        currentHabit.reminderTime != null
+                                    ? currentHabit.reminderTime!.format(context)
+                                    : 'Off',
+                                style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: currentHabit.reminderEnabled
+                                      ? AppTheme.primary
+                                      : AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     );
                   },
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      currentHabit.reminderEnabled
-                          ? Icons.notifications_active_outlined
-                          : Icons.notifications_off_outlined,
-                      size: 16,
-                      color: currentHabit.reminderEnabled
-                          ? AppTheme.primary
-                          : AppTheme.textSecondary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      currentHabit.reminderEnabled &&
-                              currentHabit.reminderTime != null
-                          ? 'Diingetin: ${currentHabit.reminderTime!.format(context)}'
-                          : 'Reminder Off',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 14,
-                        color: currentHabit.reminderEnabled
-                            ? AppTheme.primary
-                            : AppTheme.textSecondary,
-                        fontWeight: currentHabit.reminderEnabled
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 32),
 

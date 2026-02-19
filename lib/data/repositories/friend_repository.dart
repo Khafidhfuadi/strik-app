@@ -807,18 +807,14 @@ class FriendRepository {
     return (response as List).map((e) => UserModel.fromJson(e)).toList();
   }
 
-  // Get active habit count for a user (non-archived and not expired)
+  // Get active habit count for a user via RPC (bypasses RLS)
   Future<int> getUserActiveHabitCount(String userId) async {
     try {
-      final now = DateTime.now().toUtc().toIso8601String();
-      final response = await _supabase
-          .from('habits')
-          .count(CountOption.exact)
-          .eq('user_id', userId)
-          .eq('is_archived', false)
-          .or('end_date.is.null,end_date.gte.$now');
-
-      return response;
+      final response = await _supabase.rpc(
+        'get_user_active_habit_count',
+        params: {'target_user_id': userId},
+      );
+      return (response as int?) ?? 0;
     } catch (e) {
       print('Error counting active habits: $e');
       return 0;
