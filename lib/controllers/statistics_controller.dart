@@ -186,7 +186,9 @@ class StatisticsController extends GetxController {
         _habitRepository.getAllLogs(),
       ]);
 
-      final newHabits = results[0] as List<Habit>;
+      final allHabits = results[0] as List<Habit>;
+      // Filter out archived habits
+      final newHabits = allHabits.where((h) => !h.isArchived).toList();
       final newAllLogs = results[1] as List<Map<String, dynamic>>;
 
       // Only update habits if different to avoid flicker
@@ -293,7 +295,10 @@ class StatisticsController extends GetxController {
     displayedEnd.value = end;
 
     // 2. Filter Logs
+    final visibleHabitIds = habits.map((h) => h.id).toSet();
     final filteredLogs = allLogs.where((log) {
+      if (!visibleHabitIds.contains(log['habit_id'])) return false;
+
       final date = DateTime.parse(log['target_date'] as String);
       return date.isAfter(start.subtract(const Duration(seconds: 1))) &&
           date.isBefore(end.add(const Duration(seconds: 1)));

@@ -549,16 +549,46 @@ class FriendController extends GetxController {
   }
 
   Future<void> acceptRequest(String friendshipId) async {
+    print('DEBUG: acceptRequest called for friendshipId: $friendshipId');
     try {
+      // 1. Get Friendship details to find requester
+      final friendship = await _friendRepository.getFriendship(friendshipId);
+      if (friendship == null) {
+        print('DEBUG: Friendship not found for ID: $friendshipId');
+        throw Exception('Friendship not found');
+      }
+
+      final requesterId = friendship['requester_id'] as String;
+      print('DEBUG: Found requesterId: $requesterId');
+
+      // 2. Accept Request
       await _friendRepository.acceptRequest(friendshipId);
+      print('DEBUG: Friend request accepted in DB');
 
       // Award XP
       try {
         if (Get.isRegistered<GamificationController>()) {
-          await Get.find<GamificationController>().awardXP(
+          final gameCtrl = Get.find<GamificationController>();
+
+          print('DEBUG: Awarding XP to current user (receiver)');
+          // Award Current User
+          await gameCtrl.awardXP(
             30.0,
             reason: 'New Friend',
+            referenceId: 'friend_$friendshipId', // Unique ref
           );
+
+          print('DEBUG: Awarding XP to requester (sender)');
+          // Award Requester
+          await gameCtrl.awardXPToUser(
+            requesterId,
+            30.0,
+            reason: 'New Friend',
+            referenceId:
+                'friend_$friendshipId', // Same ref unique to friendship-user pair in logic
+          );
+        } else {
+          print('DEBUG: GamificationController not registered');
         }
       } catch (e) {
         print('Error awarding XP: $e');
@@ -579,6 +609,7 @@ class FriendController extends GetxController {
         print('Error refreshing stories: $e');
       }
     } catch (e) {
+      print('DEBUG: Error in acceptRequest: $e');
       Get.snackbar('Ups...', 'Gagal nerima request, coba lagi dong! 😢');
     }
   }

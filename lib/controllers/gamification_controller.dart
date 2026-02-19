@@ -601,6 +601,73 @@ class GamificationController extends GetxController {
     }
   }
 
+  /// Award XP to a specific user (other than current user)
+  /// Used for friend requests, challenges, etc.
+  Future<void> awardXPToUser(
+    String userId,
+    double amount, {
+    String reason = 'Activity',
+    String? referenceId,
+  }) async {
+    print('DEBUG: awardXPToUser called for userId: $userId, amount: $amount');
+    try {
+      // 1. Check if already awarded
+      if (referenceId != null) {
+        final alreadyAwarded = await _repository.hasXPBeenAwarded(
+          referenceId,
+          userId: userId,
+        );
+        if (alreadyAwarded) {
+          print(
+            'DEBUG: XP already awarded to user $userId for ref $referenceId',
+          );
+          return;
+        }
+      }
+
+      // 2. Get User Data
+      print('DEBUG: Fetching gamification data for user $userId');
+      final user = await _repository.getUserGamificationData(userId);
+      if (user == null) {
+        print('DEBUG: User not found for gamification data: $userId');
+        return;
+      }
+
+      double newXP = user.xp + amount;
+      int newLevel = user.level;
+      print('DEBUG: Current XP: ${user.xp}, New XP: $newXP');
+
+      // 3. Calculate Level Up (Cumulative)
+      while (true) {
+        final threshold = getXPThreshold(newLevel);
+        if (newXP >= threshold) {
+          newLevel++;
+          print('DEBUG: Level Up! New Level: $newLevel');
+        } else {
+          break;
+        }
+      }
+
+      // 4. Update DB via Secure RPC
+      print('DEBUG: Calling secure RPC for user $userId');
+      await _repository.awardXPSecurely(
+        userId: userId,
+        amount: amount,
+        reason: reason,
+        referenceId:
+            referenceId ?? 'unknown_${DateTime.now().millisecondsSinceEpoch}',
+        newXP: newXP,
+        newLevel: newLevel,
+      );
+      print('DEBUG: XP Awarded securely for user $userId');
+
+      // Note: We don't update local state or show dialogs because this is for another user.
+      // Realtime subscription in their app should handle UI updates if implemented.
+    } catch (e) {
+      print('Error awarding XP to user $userId: $e');
+    }
+  }
+
   @override
   void onClose() {
     _authSubscription?.cancel();

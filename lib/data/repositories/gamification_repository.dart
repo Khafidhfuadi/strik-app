@@ -30,6 +30,47 @@ class GamificationRepository {
         .eq('id', user.id);
   }
 
+  Future<void> awardXPSecurely({
+    required String userId,
+    required double amount,
+    required String reason,
+    required String referenceId,
+    required double newXP,
+    required int newLevel,
+  }) async {
+    await _supabase.rpc(
+      'award_xp_securely',
+      params: {
+        'p_user_id': userId,
+        'p_amount': amount,
+        'p_reason': reason,
+        'p_reference_id': referenceId,
+        'p_new_xp': newXP,
+        'p_new_level': newLevel,
+      },
+    );
+  }
+
+  Future<UserModel?> getUserGamificationData(String userId) async {
+    final response = await _supabase
+        .from('profiles')
+        .select()
+        .eq('id', userId)
+        .single();
+    return UserModel.fromJson(response);
+  }
+
+  Future<void> updateXPAndLevelForUser(
+    String userId,
+    double newXP,
+    int newLevel,
+  ) async {
+    await _supabase
+        .from('profiles')
+        .update({'xp': newXP, 'level': newLevel})
+        .eq('id', userId);
+  }
+
   Future<int> getTotalCompletedHabitsCount() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return 0;
@@ -60,12 +101,13 @@ class GamificationRepository {
     double amount,
     String reason, {
     String? referenceId,
+    String? userId,
   }) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    final targetUserId = userId ?? _supabase.auth.currentUser?.id;
+    if (targetUserId == null) return;
 
     final data = <String, dynamic>{
-      'user_id': user.id,
+      'user_id': targetUserId,
       'amount': amount,
       'reason': reason,
     };
@@ -77,14 +119,14 @@ class GamificationRepository {
   }
 
   /// Check if XP has already been awarded for a specific reference.
-  Future<bool> hasXPBeenAwarded(String referenceId) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return false;
+  Future<bool> hasXPBeenAwarded(String referenceId, {String? userId}) async {
+    final targetUserId = userId ?? _supabase.auth.currentUser?.id;
+    if (targetUserId == null) return false;
 
     final response = await _supabase
         .from('xp_logs')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .eq('reference_id', referenceId)
         .maybeSingle();
 

@@ -57,6 +57,15 @@ class FriendRepository {
     }
   }
 
+  // Get friendship details
+  Future<Map<String, dynamic>?> getFriendship(String friendshipId) async {
+    return await _supabase
+        .from('friendships')
+        .select()
+        .eq('id', friendshipId)
+        .maybeSingle();
+  }
+
   // Reject a friend request (can also be used to remove friend)
   Future<void> rejectRequest(String friendshipId) async {
     await _supabase.from('friendships').delete().eq('id', friendshipId);
