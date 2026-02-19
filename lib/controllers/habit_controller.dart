@@ -150,19 +150,22 @@ class HabitController extends GetxController {
     // Challenge habit: require journal before completion (only for today)
     if (habit.isChallenge && newStatus == 'completed' && !skipJournalCheck) {
       try {
-        final formattedDate = today.toIso8601String().split('T')[0];
+        final localStart = DateTime(today.year, today.month, today.day);
+        final localEnd = localStart
+            .add(const Duration(days: 1))
+            .subtract(const Duration(seconds: 1));
         final journal = await Supabase.instance.client
             .from('habit_journals')
             .select('id')
             .eq('habit_id', habit.id!)
-            .gte('created_at', '${formattedDate}T00:00:00')
-            .lte('created_at', '${formattedDate}T23:59:59')
+            .gte('created_at', localStart.toUtc().toIso8601String())
+            .lte('created_at', localEnd.toUtc().toIso8601String())
             .maybeSingle();
 
         if (journal == null) {
           Get.snackbar(
             'Jurnal Dulu!',
-            'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini',
+            'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini 1',
             snackPosition: SnackPosition.BOTTOM,
           );
           return;
@@ -410,18 +413,26 @@ class HabitController extends GetxController {
         newStatus == 'completed' &&
         targetDate.isAtSameMomentAs(today)) {
       try {
+        final jLocalStart = DateTime(
+          targetDate.year,
+          targetDate.month,
+          targetDate.day,
+        );
+        final jLocalEnd = jLocalStart
+            .add(const Duration(days: 1))
+            .subtract(const Duration(seconds: 1));
         final journal = await Supabase.instance.client
             .from('habit_journals')
             .select('id')
             .eq('habit_id', habit.id!)
-            .gte('created_at', '${dateStr}T00:00:00')
-            .lte('created_at', '${dateStr}T23:59:59')
+            .gte('created_at', jLocalStart.toUtc().toIso8601String())
+            .lte('created_at', jLocalEnd.toUtc().toIso8601String())
             .maybeSingle();
 
         if (journal == null) {
           Get.snackbar(
             'Jurnal Dulu!',
-            'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini',
+            'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini 2',
             snackPosition: SnackPosition.BOTTOM,
           );
           return;

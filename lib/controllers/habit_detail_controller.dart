@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:strik_app/data/repositories/habit_repository.dart';
@@ -150,18 +151,29 @@ class HabitDetailController extends GetxController {
           );
 
           if (habit != null && habit.isChallenge && newStatus == 'completed') {
+            final localStart = DateTime(
+              targetDate.year,
+              targetDate.month,
+              targetDate.day,
+            );
+            final localEnd = localStart
+                .add(const Duration(days: 1))
+                .subtract(const Duration(seconds: 1));
+            final utcStart = localStart.toUtc().toIso8601String();
+            final utcEnd = localEnd.toUtc().toIso8601String();
+
             final journal = await Supabase.instance.client
                 .from('habit_journals')
                 .select('id')
                 .eq('habit_id', habitId)
-                .gte('created_at', '${dateStr}T00:00:00')
-                .lte('created_at', '${dateStr}T23:59:59')
+                .gte('created_at', utcStart)
+                .lte('created_at', utcEnd)
                 .maybeSingle();
 
             if (journal == null) {
               Get.snackbar(
                 'Jurnal Dulu!',
-                'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini',
+                'Tulis jurnal dulu sebelum menyelesaikan challenge habit ini 3',
                 snackPosition: SnackPosition.BOTTOM,
               );
               return;
@@ -224,12 +236,23 @@ class HabitDetailController extends GetxController {
                 String postContent;
                 if (habit.isChallenge) {
                   try {
+                    final jLocalStart = DateTime(
+                      targetDate.year,
+                      targetDate.month,
+                      targetDate.day,
+                    );
+                    final jLocalEnd = jLocalStart
+                        .add(const Duration(days: 1))
+                        .subtract(const Duration(seconds: 1));
                     final journal = await Supabase.instance.client
                         .from('habit_journals')
                         .select('content')
                         .eq('habit_id', habit.id!)
-                        .gte('created_at', '${dateStr}T00:00:00')
-                        .lte('created_at', '${dateStr}T23:59:59')
+                        .gte(
+                          'created_at',
+                          jLocalStart.toUtc().toIso8601String(),
+                        )
+                        .lte('created_at', jLocalEnd.toUtc().toIso8601String())
                         .order('created_at', ascending: false)
                         .limit(1)
                         .maybeSingle();
