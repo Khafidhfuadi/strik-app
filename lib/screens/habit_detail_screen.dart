@@ -17,6 +17,7 @@ import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:strik_app/widgets/user_profile_bottom_sheet.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   final Habit habit;
@@ -2342,36 +2343,44 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                       ),
                       const SizedBox(width: 12),
                       // Avatar
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.grey[700],
-                        backgroundImage: item.user?.avatarUrl != null
-                            ? NetworkImage(item.user!.avatarUrl!)
-                            : null,
-                        child: item.user?.avatarUrl == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 16,
-                                color: Colors.white54,
-                              )
-                            : null,
+                      GestureDetector(
+                        onTap: () =>
+                            UserProfileBottomSheet.show(context, item.userId),
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.grey[700],
+                          backgroundImage: item.user?.avatarUrl != null
+                              ? NetworkImage(item.user!.avatarUrl!)
+                              : null,
+                          child: item.user?.avatarUrl == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 16,
+                                  color: Colors.white54,
+                                )
+                              : null,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       // Username
                       Expanded(
-                        child: Text(
-                          item.user?.username ?? 'User',
-                          style: TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontSize: 14,
-                            color: isFirst
-                                ? Colors.white
-                                : AppTheme.textPrimary,
-                            fontWeight: isFirst
-                                ? FontWeight.w600
-                                : FontWeight.normal,
+                        child: GestureDetector(
+                          onTap: () =>
+                              UserProfileBottomSheet.show(context, item.userId),
+                          child: Text(
+                            item.user?.username ?? 'User',
+                            style: TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 14,
+                              color: isFirst
+                                  ? Colors.white
+                                  : AppTheme.textPrimary,
+                              fontWeight: isFirst
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       // Stats

@@ -13,6 +13,8 @@ import 'package:strik_app/screens/notifications_screen.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
 import 'package:strik_app/widgets/story_bar.dart';
 import 'package:strik_app/controllers/tour_controller.dart';
+import 'package:strik_app/widgets/user_profile_bottom_sheet.dart';
+import 'package:flutter/gestures.dart';
 
 class SocialScreen extends StatefulWidget {
   final Widget? bottomNavigationBar;
@@ -1586,18 +1588,21 @@ class _SocialScreenState extends State<SocialScreen> {
                     );
                   }
 
+                  String? userId;
                   if (type == 'habit_log') {
                     // Habit Log
                     final habit = data['habit'];
                     final user = habit['user'];
                     username = user['username'] ?? 'User';
                     avatarUrl = user['avatar_url'];
+                    userId = user['id'];
                     titleText = habit['title'];
                   } else {
                     // Post
                     final user = data['user'];
                     username = user['username'] ?? 'User';
                     avatarUrl = user['avatar_url'];
+                    userId = user['id'];
                     titleText = data['content'];
                   }
 
@@ -1620,14 +1625,21 @@ class _SocialScreenState extends State<SocialScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundImage: avatarUrl != null
-                                  ? NetworkImage(avatarUrl)
-                                  : null,
-                              child: avatarUrl == null
-                                  ? Text(username[0].toUpperCase())
-                                  : null,
+                            GestureDetector(
+                              onTap: () {
+                                if (userId != null) {
+                                  UserProfileBottomSheet.show(context, userId);
+                                }
+                              },
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundImage: avatarUrl != null
+                                    ? NetworkImage(avatarUrl)
+                                    : null,
+                                child: avatarUrl == null
+                                    ? Text(username[0].toUpperCase())
+                                    : null,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1647,6 +1659,15 @@ class _SocialScreenState extends State<SocialScreen> {
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                           ),
+                                          recognizer: TapGestureRecognizer()
+                                            ..onTap = () {
+                                              if (userId != null) {
+                                                UserProfileBottomSheet.show(
+                                                  context,
+                                                  userId,
+                                                );
+                                              }
+                                            },
                                         ),
                                         TextSpan(
                                           text: type == 'habit_log'

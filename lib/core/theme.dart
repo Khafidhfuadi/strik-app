@@ -4,6 +4,7 @@ class AppTheme {
   // Gen-Z Palette
   static const Color background = Color(0xFF050505); // Deep Dark
   static const Color surface = Color(0xFF18181B); // Zinc 900
+  static const Color surfaceLight = Color(0xFF27272A); // Zinc 800
   static const Color primary = Color(0xFFCCFF00); // Neon Lime
   static const Color secondary = Color(0xFF7000FF); // Electric Purple
   static const Color textPrimary = Color(0xFFFAFAFA); // Off-white

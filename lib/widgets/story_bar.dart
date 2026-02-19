@@ -107,7 +107,7 @@ class StoryBar extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Strik Momentz',
+            'Your Momentz',
             style: TextStyle(
               color: Colors.white,
               fontSize: 12,

@@ -806,4 +806,79 @@ class FriendRepository {
 
     return (response as List).map((e) => UserModel.fromJson(e)).toList();
   }
+
+  // Get active habit count for a user (non-archived and not expired)
+  Future<int> getUserActiveHabitCount(String userId) async {
+    try {
+      final now = DateTime.now().toUtc().toIso8601String();
+      final response = await _supabase
+          .from('habits')
+          .count(CountOption.exact)
+          .eq('user_id', userId)
+          .eq('is_archived', false)
+          .or('end_date.is.null,end_date.gte.$now');
+
+      return response;
+    } catch (e) {
+      print('Error counting active habits: $e');
+      return 0;
+    }
+  }
+
+  // Get User Profile Details including friend status
+  Future<Map<String, dynamic>> getUserProfileDetails(
+    String targetUserId,
+  ) async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) throw Exception('User not logged in');
+
+    // 1. Fetch User Profile
+    final profileRes = await _supabase
+        .from('profiles')
+        .select()
+        .eq('id', targetUserId)
+        .single();
+
+    final user = UserModel.fromJson(profileRes);
+
+    // 2. Fetch Active Habit Count
+    final habitCount = await getUserActiveHabitCount(targetUserId);
+
+    // 3. Determine Friend Status
+    String status = 'none';
+
+    if (currentUser.id == targetUserId) {
+      status = 'self';
+    } else {
+      // Check friendship status
+      // Check if they are friends (accepted)
+      final friendCheck = await _supabase
+          .from('friendships')
+          .select('status, requester_id, receiver_id')
+          .or(
+            'requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}',
+          )
+          .or('requester_id.eq.$targetUserId,receiver_id.eq.$targetUserId')
+          .maybeSingle();
+
+      if (friendCheck != null) {
+        final dbStatus = friendCheck['status'] as String;
+        if (dbStatus == 'accepted') {
+          status = 'accepted';
+        } else if (dbStatus == 'pending') {
+          if (friendCheck['requester_id'] == currentUser.id) {
+            status = 'sent';
+          } else {
+            status = 'pending'; // Received
+          }
+        }
+      }
+    }
+
+    return {
+      'user': user,
+      'active_habit_count': habitCount,
+      'friendship_status': status, // self, none, pending, sent, accepted
+    };
+  }
 }
