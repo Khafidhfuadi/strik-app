@@ -12,7 +12,6 @@ import 'package:strik_app/main.dart';
 import 'package:path/path.dart' as p;
 import 'package:image_cropper/image_cropper.dart'; // Added
 import 'package:strik_app/core/theme.dart'; // Needed for AppTheme
-import 'package:strik_app/services/home_widget_service.dart';
 import 'package:strik_app/controllers/gamification_controller.dart';
 
 class StoryController extends GetxController {
@@ -203,22 +202,18 @@ class StoryController extends GetxController {
       final userId = supabase.auth.currentUser!.id;
       await _repository.uploadStory(compressedFile, userId, caption: caption);
 
-      Get.back(); // Close snackbar
-      // Get.snackbar(
-      //   'Success',
-      //   'Story berhasil diupload!',
-      //   snackPosition: SnackPosition.BOTTOM,
-      // );
-
+      print('[StoryController] createStory: upload success, refreshing...');
       // Refresh
       fetchStories();
 
       // XP Award
       try {
         if (Get.isRegistered<GamificationController>()) {
-          Get.find<GamificationController>().awardXPForInteraction(
-            'new_momentz',
-          );
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            Get.find<GamificationController>().awardXPForInteraction(
+              'new_momentz',
+            );
+          });
         }
       } catch (_) {}
     } catch (e) {

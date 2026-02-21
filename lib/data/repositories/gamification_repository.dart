@@ -30,25 +30,22 @@ class GamificationRepository {
         .eq('id', user.id);
   }
 
-  Future<void> awardXPSecurely({
+  Future<Map<String, dynamic>> incrementUserXP({
     required String userId,
     required double amount,
     required String reason,
     required String referenceId,
-    required double newXP,
-    required int newLevel,
   }) async {
-    await _supabase.rpc(
-      'award_xp_securely',
+    final response = await _supabase.rpc(
+      'increment_user_xp',
       params: {
         'p_user_id': userId,
         'p_amount': amount,
         'p_reason': reason,
         'p_reference_id': referenceId,
-        'p_new_xp': newXP,
-        'p_new_level': newLevel,
       },
     );
+    return response as Map<String, dynamic>;
   }
 
   Future<UserModel?> getUserGamificationData(String userId) async {

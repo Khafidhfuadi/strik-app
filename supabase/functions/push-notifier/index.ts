@@ -213,10 +213,22 @@ serve(async (req: Request) => {
       // 4. Send Notifications in Loop (or Promise.all)
       const promises = profiles.map((p: any) => {
         if (!p.fcm_token) return Promise.resolve(null);
+
+        let notifTitle = `${creatorName} bikin momentz baru!`;
+        let notifBody = 'gas liat sekarang!';
+
+        if (record.caption) {
+          const match = record.caption.match(/^Progres Habit Challenge '([^']+)'/);
+          if (match) {
+            notifTitle = `${creatorName} selesain habit challenge '${match[1]}'`;
+            notifBody = 'Cek momentz-nya buat liat update!';
+          }
+        }
+
         return sendFCM(
           p.fcm_token, 
-          `${creatorName} bikin momentz baru!`, 
-          'gas liat sekarang!',
+          notifTitle, 
+          notifBody,
           { 
             story_id: record.id, 
             type: 'new_story',

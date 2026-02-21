@@ -16,6 +16,7 @@ import 'package:strik_app/controllers/habit_challenge_controller.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:strik_app/services/alarm_manager_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/widgets/user_profile_bottom_sheet.dart';
 
@@ -244,45 +245,53 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                           ),
                         ),
                         // Reminder pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                        GestureDetector(
+                          onTap: () => _showParticipantReminderSheet(
+                            context,
+                            currentHabit,
                           ),
-                          decoration: BoxDecoration(
-                            color: currentHabit.reminderEnabled
-                                ? AppTheme.primary.withValues(alpha: 0.12)
-                                : Colors.white.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                currentHabit.reminderEnabled
-                                    ? Icons.notifications_active_rounded
-                                    : Icons.notifications_off_outlined,
-                                size: 13,
-                                color: currentHabit.reminderEnabled
-                                    ? AppTheme.primary
-                                    : AppTheme.textSecondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                currentHabit.reminderEnabled &&
-                                        currentHabit.reminderTime != null
-                                    ? currentHabit.reminderTime!.format(context)
-                                    : 'Off',
-                                style: TextStyle(
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: currentHabit.reminderEnabled
+                                  ? AppTheme.primary.withValues(alpha: 0.12)
+                                  : Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  currentHabit.reminderEnabled
+                                      ? Icons.notifications_active_rounded
+                                      : Icons.notifications_off_outlined,
+                                  size: 13,
                                   color: currentHabit.reminderEnabled
                                       ? AppTheme.primary
                                       : AppTheme.textSecondary,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  currentHabit.reminderEnabled &&
+                                          currentHabit.reminderTime != null
+                                      ? currentHabit.reminderTime!.format(
+                                          context,
+                                        )
+                                      : 'Atur Reminder',
+                                  style: TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: currentHabit.reminderEnabled
+                                        ? AppTheme.primary
+                                        : AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -404,6 +413,251 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  void _showParticipantReminderSheet(BuildContext context, Habit currentHabit) {
+    bool isEnabled = currentHabit.reminderEnabled;
+    TimeOfDay? selectedTime = currentHabit.reminderTime;
+    bool isSaving = false;
+
+    Get.bottomSheet(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[700],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Atur Reminder',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Atur Alarmmu Sendiri Disini!',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        title: const Text(
+                          'Aktifkan Pengingat',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        value: isEnabled,
+                        activeThumbColor: AppTheme.primary,
+                        onChanged: (val) {
+                          setState(() {
+                            isEnabled = val;
+                            if (isEnabled && selectedTime == null) {
+                              selectedTime = const TimeOfDay(
+                                hour: 18,
+                                minute: 0,
+                              );
+                            }
+                          });
+                        },
+                      ),
+                      if (isEnabled) ...[
+                        const Divider(color: Colors.white12),
+                        ListTile(
+                          title: const Text(
+                            'Jam Pengingat',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              selectedTime != null
+                                  ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
+                                  : 'Pilih Waktu',
+                              style: const TextStyle(
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          onTap: () async {
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime:
+                                  selectedTime ??
+                                  const TimeOfDay(hour: 18, minute: 0),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: ThemeData.dark().copyWith(
+                                    colorScheme: const ColorScheme.dark(
+                                      primary: AppTheme.primary,
+                                      onPrimary: Colors.black,
+                                      surface: AppTheme.surface,
+                                      onSurface: Colors.white,
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (time != null) {
+                              setState(() => selectedTime = time);
+                            }
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            setState(() => isSaving = true);
+                            try {
+                              // We only want to update the reminder settings in the database directly
+                              // to avoid full object replacement complications.
+                              String? reminderString;
+                              if (selectedTime != null) {
+                                final now = DateTime.now();
+                                final localDateTime = DateTime(
+                                  now.year,
+                                  now.month,
+                                  now.day,
+                                  selectedTime!.hour,
+                                  selectedTime!.minute,
+                                );
+                                final utcDateTime = localDateTime.toUtc();
+                                reminderString =
+                                    '${utcDateTime.hour.toString().padLeft(2, '0')}:${utcDateTime.minute.toString().padLeft(2, '0')}';
+                              }
+
+                              await Supabase.instance.client
+                                  .from('habits')
+                                  .update({
+                                    'reminder_enabled': isEnabled,
+                                    if (reminderString != null)
+                                      'reminder_time': reminderString,
+                                    if (reminderString == null)
+                                      'reminder_time': null,
+                                  })
+                                  .eq('id', currentHabit.id!);
+
+                              // Refresh the HabitController so the new settings take effect locally
+                              await Get.find<HabitController>()
+                                  .fetchHabitsAndLogs(isRefresh: true);
+
+                              // Schedule the alarm immediately for the updated habit
+                              final updatedHabit = Get.find<HabitController>()
+                                  .habits
+                                  .firstWhere(
+                                    (h) => h.id == currentHabit.id,
+                                    orElse: () => currentHabit,
+                                  );
+
+                              if (updatedHabit.reminderEnabled &&
+                                  updatedHabit.reminderTime != null) {
+                                await AlarmManagerService.instance
+                                    .scheduleRecurringAlarm(
+                                      habitId: updatedHabit.id!,
+                                      habitTitle: updatedHabit.title,
+                                      frequency: updatedHabit.frequency,
+                                      daysOfWeek: updatedHabit.daysOfWeek,
+                                      reminderTime: updatedHabit.reminderTime!,
+                                    );
+                              } else {
+                                await AlarmManagerService.instance
+                                    .cancelHabitAlarm(updatedHabit.id!);
+                              }
+
+                              Get.back(); // close bottom sheet
+                            } catch (e) {
+                              Get.snackbar(
+                                'Error',
+                                'Gagal menyimpan pengaturan: $e',
+                                snackPosition: SnackPosition.BOTTOM,
+                              );
+                            } finally {
+                              if (mounted) setState(() => isSaving = false);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
+                          )
+                        : const Text(
+                            'Simpan Pengingat',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Plus Jakarta Sans',
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          );
+        },
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
     );
   }
 
@@ -1280,6 +1534,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
 
     // Status tracking
     final ValueNotifier<String> saveStatus = ValueNotifier<String>('');
+    final ValueNotifier<bool> isSubmitting = ValueNotifier<bool>(false);
 
     // Load draft logic
     // We check for draft regardless of editing or new, to show status if exists?
@@ -1568,53 +1823,77 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 ),
 
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final content = textController.text.trim();
-                      if (content.isEmpty &&
-                          selectedImage == null &&
-                          existingImageUrl == null) {
-                        Get.snackbar(
-                          'Error',
-                          'Isi konten atau upload foto dulu ya',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-                        return;
-                      }
+                ValueListenableBuilder<bool>(
+                  valueListenable: isSubmitting,
+                  builder: (context, submitting, _) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: submitting
+                            ? null
+                            : () async {
+                                final content = textController.text.trim();
+                                if (content.isEmpty &&
+                                    selectedImage == null &&
+                                    existingImageUrl == null) {
+                                  Get.snackbar(
+                                    'Error',
+                                    'Isi konten atau upload foto dulu ya',
+                                    snackPosition: SnackPosition.BOTTOM,
+                                  );
+                                  return;
+                                }
 
-                      if (isEditing) {
-                        journalController.updateJournal(
-                          journal.id!,
-                          content,
-                          newImageFile: selectedImage,
-                        );
-                      } else {
-                        journalController.addJournal(
-                          content,
-                          date: date,
-                          imageFile: selectedImage,
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                                isSubmitting.value = true;
+                                try {
+                                  if (isEditing) {
+                                    await journalController.updateJournal(
+                                      journal.id!,
+                                      content,
+                                      newImageFile: selectedImage,
+                                    );
+                                  } else {
+                                    await journalController.addJournal(
+                                      content,
+                                      date: date,
+                                      imageFile: selectedImage,
+                                    );
+                                  }
+                                } finally {
+                                  isSubmitting.value = false;
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          disabledBackgroundColor: AppTheme.primary.withValues(
+                            alpha: 0.5,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: submitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : Text(
+                                'Simpan',
+                                style: const TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
                       ),
-                    ),
-                    child: Text(
-                      'Simpan',
-                      style: const TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
               ],

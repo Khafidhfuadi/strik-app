@@ -128,21 +128,26 @@ class HabitChallengeRepository {
         throw Exception('Kamu sudah bergabung challenge ini');
       }
 
-      // 1. Create a copy of the habit for the joining user
+      // 1. Create a copy of the habit for the joining user.
+      // Reminder intentionally disabled for joining users - reminder is personal
+      // preference and timezone-dependent. Each user should configure their own.
+      final habitData = {
+        'user_id': userId,
+        'title': challenge.habitTitle,
+        'description': challenge.habitDescription,
+        'color': challenge.habitColor,
+        'frequency': challenge.habitFrequency,
+        'days_of_week': challenge.habitDaysOfWeek,
+        'frequency_count': challenge.habitFrequencyCount,
+        'is_public': true,
+        'challenge_id': challenge.id,
+        'end_date': challenge.endDate.toUtc().toIso8601String(),
+        'reminder_enabled': false,
+      };
+
       final habitRes = await supabase
           .from('habits')
-          .insert({
-            'user_id': userId,
-            'title': challenge.habitTitle,
-            'description': challenge.habitDescription,
-            'color': challenge.habitColor,
-            'frequency': challenge.habitFrequency,
-            'days_of_week': challenge.habitDaysOfWeek,
-            'frequency_count': challenge.habitFrequencyCount,
-            'is_public': true,
-            'challenge_id': challenge.id,
-            'end_date': challenge.endDate.toUtc().toIso8601String(),
-          })
+          .insert(habitData)
           .select()
           .single();
 
@@ -293,13 +298,43 @@ class HabitChallengeRepository {
 
       final totalCompleted = (completedRes as List).length;
 
-      // Calculate expected days
-      final daysDiff = effectiveEnd.difference(startDate).inDays + 1;
-      int totalExpected = daysDiff; // Simplified for daily frequency
+      // Calculate expected days using local dates
+      final localStart = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+      );
+      final localEnd = DateTime(
+        effectiveEnd.year,
+        effectiveEnd.month,
+        effectiveEnd.day,
+      );
+      final daysDiff = localEnd.difference(localStart).inDays + 1;
+      int totalExpected;
 
-      if (challenge.habitFrequency == 'weekly') {
+      if (challenge.habitFrequency == 'daily') {
+        if (challenge.habitDaysOfWeek != null &&
+            challenge.habitDaysOfWeek!.isNotEmpty &&
+            challenge.habitDaysOfWeek!.length < 7) {
+          // Count only scheduled days of week in the range
+          int count = 0;
+          for (int i = 0; i < daysDiff; i++) {
+            final day = localStart.add(Duration(days: i));
+            // DateTime.weekday: Mon=1..Sun=7, convert to 0-indexed Mon=0..Sun=6
+            final dowIndex = day.weekday - 1;
+            if (challenge.habitDaysOfWeek!.contains(dowIndex)) {
+              count++;
+            }
+          }
+          totalExpected = count > 0 ? count : 1;
+        } else {
+          totalExpected = daysDiff;
+        }
+      } else if (challenge.habitFrequency == 'weekly') {
         totalExpected =
             (daysDiff / 7).ceil() * (challenge.habitFrequencyCount ?? 1);
+      } else {
+        totalExpected = daysDiff;
       }
 
       final completionRate = totalExpected > 0

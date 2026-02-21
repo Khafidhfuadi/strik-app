@@ -159,20 +159,13 @@ class GamificationController extends GetxController {
     }
   }
 
-  /// Award XP only if it hasn't been awarded for this referenceId before.
+  /// Award XP using atomic RPC which inherently handles the idempotency safely.
   Future<void> awardXPIfNotAwarded(
     double amount, {
     required String reason,
     required String referenceId,
   }) async {
     try {
-      final alreadyAwarded = await _repository.hasXPBeenAwarded(referenceId);
-      if (alreadyAwarded) {
-        print(
-          'DEBUG: XP already awarded for reference: $referenceId, skipping.',
-        );
-        return;
-      }
       await awardXP(amount, reason: reason, referenceId: referenceId);
     } catch (e) {
       print('Error checking/awarding XP for reference $referenceId: $e');
@@ -226,6 +219,7 @@ class GamificationController extends GetxController {
         int expectedLevel = 1;
         // Logic similar to awardXP loop
         while (true) {
+          if (expectedLevel >= 10) break;
           final threshold = getXPThreshold(expectedLevel);
           if (userData.xp >= threshold) {
             expectedLevel++;
@@ -286,6 +280,7 @@ class GamificationController extends GetxController {
     double calcXP = retroactiveXP.toDouble();
     // Basic calculation loop matching awardXP logic
     while (true) {
+      if (calcLevel >= 10) break;
       final threshold = getXPThreshold(calcLevel);
       if (calcXP >= threshold) {
         // Cumulative: Do NOT subtract threshold
@@ -530,45 +525,44 @@ class GamificationController extends GetxController {
     String reason = 'Activity',
     String? referenceId,
   }) async {
-    double newXP = currentXP.value + amount;
-    int newLevel = currentLevel.value;
-    bool leveledUp = false;
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
 
-    // Check for level up loop (Cumulative)
-    while (true) {
-      final threshold = getXPThreshold(newLevel);
-      if (newXP >= threshold) {
-        // Cumulative: Do NOT subtract threshold
-        newLevel++;
-        leveledUp = true;
-      } else {
-        break;
-      }
-    }
-
-    // Update state
-    currentXP.value = newXP;
-    currentLevel.value = newLevel;
-
-    // Emit event for UI animations
-    _xpEventController.add({
-      'amount': amount,
-      'newLevel': newLevel,
-      'leveledUp': leveledUp,
-    });
-
-    // Persist
     try {
-      await _repository.updateXPAndLevel(newXP, newLevel);
-      await _repository.logXP(
-        amount,
-        reason,
-        referenceId: referenceId,
-      ); // Log history
-      fetchXPHistory(); // Refresh history
+      final response = await _repository.incrementUserXP(
+        userId: user.id,
+        amount: amount,
+        reason: reason,
+        referenceId:
+            referenceId ?? 'unknown_${DateTime.now().millisecondsSinceEpoch}',
+      );
 
-      if (leveledUp) {
-        _showLevelUpDialog(newLevel);
+      if (response['success'] == true) {
+        final newXP = (response['xp'] as num).toDouble();
+        final newLevel = response['level'] as int;
+        final leveledUp = response['leveled_up'] as bool;
+
+        currentXP.value = newXP;
+        currentLevel.value = newLevel;
+
+        _xpEventController.add({
+          'amount': amount,
+          'newLevel': newLevel,
+          'leveledUp': leveledUp,
+        });
+
+        fetchXPHistory();
+
+        if (leveledUp) {
+          _showLevelUpDialog(newLevel);
+        }
+      } else if (response['success'] == false) {
+        if (response['xp'] != null) {
+          currentXP.value = (response['xp'] as num).toDouble();
+        }
+        if (response['level'] != null) {
+          currentLevel.value = response['level'] as int;
+        }
       }
     } catch (e) {
       print('Error updating XP: $e');
@@ -601,8 +595,6 @@ class GamificationController extends GetxController {
     }
   }
 
-  /// Award XP to a specific user (other than current user)
-  /// Used for friend requests, challenges, etc.
   Future<void> awardXPToUser(
     String userId,
     double amount, {
@@ -611,58 +603,19 @@ class GamificationController extends GetxController {
   }) async {
     print('DEBUG: awardXPToUser called for userId: $userId, amount: $amount');
     try {
-      // 1. Check if already awarded
-      if (referenceId != null) {
-        final alreadyAwarded = await _repository.hasXPBeenAwarded(
-          referenceId,
-          userId: userId,
-        );
-        if (alreadyAwarded) {
-          print(
-            'DEBUG: XP already awarded to user $userId for ref $referenceId',
-          );
-          return;
-        }
-      }
-
-      // 2. Get User Data
-      print('DEBUG: Fetching gamification data for user $userId');
-      final user = await _repository.getUserGamificationData(userId);
-      if (user == null) {
-        print('DEBUG: User not found for gamification data: $userId');
-        return;
-      }
-
-      double newXP = user.xp + amount;
-      int newLevel = user.level;
-      print('DEBUG: Current XP: ${user.xp}, New XP: $newXP');
-
-      // 3. Calculate Level Up (Cumulative)
-      while (true) {
-        final threshold = getXPThreshold(newLevel);
-        if (newXP >= threshold) {
-          newLevel++;
-          print('DEBUG: Level Up! New Level: $newLevel');
-        } else {
-          break;
-        }
-      }
-
-      // 4. Update DB via Secure RPC
-      print('DEBUG: Calling secure RPC for user $userId');
-      await _repository.awardXPSecurely(
+      final response = await _repository.incrementUserXP(
         userId: userId,
         amount: amount,
         reason: reason,
         referenceId:
             referenceId ?? 'unknown_${DateTime.now().millisecondsSinceEpoch}',
-        newXP: newXP,
-        newLevel: newLevel,
       );
-      print('DEBUG: XP Awarded securely for user $userId');
 
-      // Note: We don't update local state or show dialogs because this is for another user.
-      // Realtime subscription in their app should handle UI updates if implemented.
+      if (response['success'] == true) {
+        print('DEBUG: XP Awarded securely for user $userId');
+      } else {
+        print('DEBUG: XP already awarded to user $userId for ref $referenceId');
+      }
     } catch (e) {
       print('Error awarding XP to user $userId: $e');
     }

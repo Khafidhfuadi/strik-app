@@ -45,9 +45,8 @@ class HabitJournalController extends GetxController {
   void onInit() {
     super.onInit();
     fetchJournals(refresh: true);
-    fetchJournals(refresh: true);
-    fetchMonthlyInsight(); // Check for existing insight for this month
-    _checkMonthlyEligibility(); // Check if eligible for this month
+    fetchMonthlyInsight();
+    _checkMonthlyEligibility();
   }
 
   void updateFocusMonth(DateTime month) {
@@ -228,6 +227,38 @@ class HabitJournalController extends GetxController {
         return;
       }
 
+      // Double-check from DB to prevent race condition (e.g. double-tap)
+      final startOfDay = DateTime(
+        targetDate.year,
+        targetDate.month,
+        targetDate.day,
+      ).toUtc().toIso8601String();
+      final endOfDay = DateTime(
+        targetDate.year,
+        targetDate.month,
+        targetDate.day,
+        23,
+        59,
+        59,
+      ).toUtc().toIso8601String();
+
+      final existingDb = await _supabase
+          .from('habit_journals')
+          .select('id')
+          .eq('habit_id', habitId)
+          .gte('created_at', startOfDay)
+          .lte('created_at', endOfDay)
+          .maybeSingle();
+
+      if (existingDb != null) {
+        Get.snackbar(
+          'Info',
+          'Kamu sudah menulis jurnal pada hari ini',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
       // 1. Fetch Habit to check if it represents a Challenge
       final habitResponse = await _supabase
           .from('habits')
@@ -281,39 +312,58 @@ class HabitJournalController extends GetxController {
 
       // 3. Auto-Momentz for Challenge
       if (habit.challengeId != null && imageFile != null) {
+        print(
+          '[Journal] challengeId=${habit.challengeId}, StoryController registered=${Get.isRegistered<StoryController>()}',
+        );
         try {
           if (Get.isRegistered<StoryController>()) {
             final storyCtrl = Get.find<StoryController>();
             final caption =
-                "🏆 Progress Habit Challenge '${habit.title}' 🏆\n$content";
-            storyCtrl.createStory(imageFile, caption: caption);
+                "Progres Habit Challenge '${habit.title}'\n$content";
+            print('[Journal] Memanggil createStory...');
+            await storyCtrl.createStory(imageFile, caption: caption);
+            print('[Journal] createStory selesai.');
+          } else {
+            print(
+              '[Journal] StoryController belum ter-register, skip auto-Momentz',
+            );
           }
         } catch (e) {
-          print('Error auto-posting to Momentz: $e');
+          print('[Journal] Error auto-posting to Momentz: $e');
         }
 
         // Auto-complete the habit!
         try {
           if (Get.isRegistered<HabitController>()) {
+            print('[Journal] Memanggil markHabitAsCompleted...');
             await Get.find<HabitController>().markHabitAsCompleted(habit);
+            print('[Journal] markHabitAsCompleted selesai.');
           }
         } catch (e) {
-          print('Error auto-completing habit: $e');
+          print('[Journal] Error auto-completing habit: $e');
         }
       }
 
-      // Award XP (dynamic based on level)
+      // Award XP for Journaling
       try {
         if (Get.isRegistered<GamificationController>()) {
-          await Get.find<GamificationController>().awardXPForInteraction(
-            'journaling',
-          );
+          // Delay sedikit agar tidak bertubrukan dengan Popup XP Completed Habit
+          Future.delayed(const Duration(milliseconds: 500), () async {
+            await Get.find<GamificationController>().awardXPForInteraction(
+              'journaling',
+            );
+          });
         }
       } catch (e) {
         print('Error awarding XP: $e');
       }
 
-      Get.back(); // Close dialog/sheet
+      if (habit.challengeId != null && imageFile != null) {
+        // Jika ini post challenge -> otomatis close detail habit dan balik ke Feed utama
+        Get.until((route) => route.settings.name == '/home' || route.isFirst);
+      } else {
+        Get.back(); // Close dialog/sheet jurnal biasa
+      }
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -384,7 +434,7 @@ class HabitJournalController extends GetxController {
       if (image == null) return null;
       return File(image.path);
     } catch (e) {
-      Get.snackbar('Error', 'Gagal mengambil gambar: $e');
+      // Get.snackbar('Error', 'Gagal mengambil gambar: $e');
       return null;
     }
   }

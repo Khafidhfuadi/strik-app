@@ -10,6 +10,7 @@ import 'package:strik_app/controllers/home_controller.dart';
 import 'package:strik_app/controllers/friend_controller.dart';
 import 'package:strik_app/controllers/gamification_controller.dart';
 import 'package:strik_app/controllers/habit_challenge_controller.dart';
+import 'package:strik_app/controllers/story_controller.dart';
 import 'package:strik_app/services/push_notification_service.dart';
 
 class AuthGate extends StatelessWidget {
@@ -23,10 +24,6 @@ class AuthGate extends StatelessWidget {
           debugPrint(
             'AuthGate: Auth Exception caught: ${error.message}, code: ${error.statusCode}',
           );
-          // Show error message via snackbar if context is available?
-          // Difficult inside StreamBuilder directly, but logging helps.
-          // Better: The error might not propagate to builder if handled here.
-          // Let's use a side effect if possible, or just let the error state render something.
         }
       }),
       builder: (context, snapshot) {
@@ -48,6 +45,10 @@ class AuthGate extends StatelessWidget {
           Get.put(FriendController(), permanent: false);
           Get.put(GamificationController(), permanent: false);
           Get.put(HabitChallengeController(), permanent: false);
+          // StoryController harus global agar auto-post dari jurnal challenge selalu bisa berjalan
+          if (!Get.isRegistered<StoryController>()) {
+            Get.put(StoryController(), permanent: false);
+          }
 
           // Refresh/Init Push Notifications (will save token if user logged in)
           PushNotificationService().init();
