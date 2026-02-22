@@ -852,7 +852,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           }
 
           final percentage = (progress * 100).toInt();
-          final daysLeft = end.difference(now).inDays;
+
+          // Calculate days left based on local calendar dates
+          final endLocal = end.toLocal();
+          final endDay = DateTime(endLocal.year, endLocal.month, endLocal.day);
+          final nowDay = DateTime(now.year, now.month, now.day);
+          final daysLeft = endDay.difference(nowDay).inDays;
 
           goalProgress = Column(
             children: [
