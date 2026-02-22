@@ -33,85 +33,85 @@ class GamificationController extends GetxController {
     if (level <= 3) {
       return const LevelBenefits(
         level: 1, // Represents 1-3
-        completeHabit: 5,
-        skipHabit: -3,
+        completeHabit: 2,
+        skipHabit: -1,
         newMomentz: 1,
-        react: 1,
-        newHabit: 10,
-        journaling: 3,
+        react: 0.5,
+        newHabit: 5,
+        journaling: 1,
       );
     }
     switch (level) {
       case 4:
         return const LevelBenefits(
           level: 4,
-          completeHabit: 5.5,
-          skipHabit: -3,
-          newMomentz: 1.5,
-          react: 1,
-          newHabit: 15,
-          journaling: 3.5,
+          completeHabit: 2.5,
+          skipHabit: -1,
+          newMomentz: 1,
+          react: 0.5,
+          newHabit: 6,
+          journaling: 1.5,
         );
       case 5:
         return const LevelBenefits(
           level: 5,
-          completeHabit: 6.5,
-          skipHabit: -3,
-          newMomentz: 2,
-          react: 1,
-          newHabit: 20,
-          journaling: 4,
+          completeHabit: 3,
+          skipHabit: -1,
+          newMomentz: 1,
+          react: 0.5,
+          newHabit: 7,
+          journaling: 2,
         );
       case 6:
         return const LevelBenefits(
           level: 6,
-          completeHabit: 7.5,
-          skipHabit: -3,
-          newMomentz: 2.5,
-          react: 1,
-          newHabit: 25,
-          journaling: 4.5,
+          completeHabit: 3.5,
+          skipHabit: -1,
+          newMomentz: 1,
+          react: 0.5,
+          newHabit: 8,
+          journaling: 2.5,
         );
       case 7:
         return const LevelBenefits(
           level: 7,
-          completeHabit: 8.5,
-          skipHabit: -3,
-          newMomentz: 3,
+          completeHabit: 4,
+          skipHabit: -1,
+          newMomentz: 2,
           react: 1,
-          newHabit: 30,
-          journaling: 5,
+          newHabit: 9,
+          journaling: 3,
         );
       case 8:
         return const LevelBenefits(
           level: 8,
-          completeHabit: 9.5,
-          skipHabit: -3,
-          newMomentz: 3.5,
+          completeHabit: 4.5,
+          skipHabit: -1,
+          newMomentz: 2,
           react: 1,
-          newHabit: 35,
-          journaling: 5.5,
+          newHabit: 10,
+          journaling: 3.5,
         );
       case 9:
         return const LevelBenefits(
           level: 9,
-          completeHabit: 10.5,
-          skipHabit: -3,
-          newMomentz: 4,
+          completeHabit: 5,
+          skipHabit: -1,
+          newMomentz: 2,
           react: 1,
-          newHabit: 40,
-          journaling: 6,
+          newHabit: 11,
+          journaling: 4,
         );
       case 10:
       default:
         return const LevelBenefits(
           level: 10,
-          completeHabit: 11.5,
-          skipHabit: -3,
-          newMomentz: 4.5,
-          react: 1,
-          newHabit: 45,
-          journaling: 6.5,
+          completeHabit: 5.5,
+          skipHabit: -1,
+          newMomentz: 3,
+          react: 1.5,
+          newHabit: 12,
+          journaling: 4.5,
         );
     }
   }

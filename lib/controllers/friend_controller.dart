@@ -326,40 +326,6 @@ class FriendController extends GetxController {
         )
         .subscribe();
 
-    // Subscribe to public.habit_logs
-    supabase
-        .channel('public:habit_logs')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'habit_logs',
-          callback: (payload) async {
-            // Only care about completed logs
-            if (payload.newRecord['status'] == 'completed') {
-              final newLogId = payload.newRecord['id'];
-              if (newLogId != null) {
-                final newLog = await _friendRepository.getHabitLogById(
-                  newLogId,
-                );
-                if (newLog != null) {
-                  activityFeed.insert(0, newLog);
-                  // Only increment if user is NOT viewing Feed tab
-                  // and the log is NOT from the current user
-                  final logUserId =
-                      payload.newRecord['user_id'] ??
-                      newLog['data']?['habit']?['user']?['id'];
-                  final myId = supabase.auth.currentUser?.id;
-                  if (!_isFeedTabActive && logUserId != myId) {
-                    newFeedCount.value++;
-                    hasNewSocialActivity.value = true;
-                  }
-                }
-              }
-            }
-          },
-        )
-        .subscribe();
-
     // Subscribe to public.reactions
     supabase
         .channel('public:reactions')
