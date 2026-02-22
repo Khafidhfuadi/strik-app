@@ -606,32 +606,57 @@ class HabitJournalController extends GetxController {
       ''';
 
       // 2. Call API
-      final apiKey = dotenv.env['OPENROUTER_API_KEY'];
-      if (apiKey == null) throw Exception('No OPENROUTER_API_KEY found');
+      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
 
-      final url = Uri.parse('https://openrouter.ai/api/v1/chat/completions');
+      final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
+      );
       final response = await http.post(
         url,
-        headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://github.com/Khafidhfuadi/strik-app',
-          'X-Title': 'Strik App',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "model": "deepseek/deepseek-r1-0528:free",
-          "messages": [
-            {"role": "user", "content": prompt},
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {"text": prompt},
+              ],
+            },
           ],
-          "max_tokens": 1024,
+          "generationConfig": {"maxOutputTokens": 2048},
+          "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {
+              "category": "HARM_CATEGORY_HATE_SPEECH",
+              "threshold": "BLOCK_NONE",
+            },
+            {
+              "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              "threshold": "BLOCK_NONE",
+            },
+            {
+              "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+              "threshold": "BLOCK_NONE",
+            },
+          ],
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        String? content = data['choices'][0]['message']['content'];
+        String? content;
+
+        try {
+          content = data['candidates'][0]['content']['parts'][0]['text'];
+        } catch (e) {
+          content = null;
+        }
         if (content != null && content.isNotEmpty) {
           content = content.trim();
+          // Remove thinking block if deepseek-r1 outputs it on other platforms, though we're moving to gemini
+          if (content.contains('</think>')) {
+            content = content.split('</think>').last.trim();
+          }
           aiInsight.value = content;
 
           // 3. Save to DB
@@ -649,7 +674,7 @@ class HabitJournalController extends GetxController {
           aiQuotaUsed.value++;
         }
       } else {
-        print("AI Error: ${response.body}");
+        print("AI Error: ${response.statusCode} - ${response.body}");
         Get.snackbar('Error', 'Gagal menghubungi Coach AI. Coba lagi nanti.');
       }
     } catch (e) {

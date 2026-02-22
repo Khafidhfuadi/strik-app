@@ -195,7 +195,8 @@ class UserProfileBottomSheet extends StatelessWidget {
                         icon: Icons.star_rounded,
                         iconColor: const Color(0xFFFFD700),
                         title: 'Lvl. ${user.level}',
-                        subtitle: '${(user.xp).toStringAsFixed(0)} XP',
+                        subtitle:
+                            '${user.xp % 1 == 0 ? user.xp.toInt() : user.xp} XP',
                       ),
                     ),
                     const SizedBox(width: 10),

@@ -6,7 +6,6 @@ import 'package:strik_app/data/repositories/habit_repository.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/utils/habit_utils.dart';
 
@@ -437,9 +436,8 @@ class StatisticsController extends GetxController {
     }
 
     // Try Gemini First
-    // Try OpenRouter AI First
-    final apiKey = dotenv.env['OPENROUTER_API_KEY'];
-    if (apiKey != null && apiKey.isNotEmpty) {
+    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    if (apiKey.isNotEmpty) {
       _fetchGeminiInsight(completedLogs, totalActioned).catchError((e) {
         // Handle error gracefully - maybe show error message in insight
         aiInsight.value =
@@ -517,32 +515,52 @@ class StatisticsController extends GetxController {
       - Speak DIRECTLY to the user.
       ''';
 
-      final apiKey = dotenv.env['OPENROUTER_API_KEY'];
-      if (apiKey == null) throw Exception('No OPENROUTER_API_KEY found');
+      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
 
-      final url = Uri.parse('https://openrouter.ai/api/v1/chat/completions');
+      final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
+      );
       final response = await http.post(
         url,
-        headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
-          'HTTP-Referer':
-              'https://github.com/Khafidhfuadi/strik-app', // Optional: Your site URL
-          'X-Title': 'Strik App', // Optional: Your site name
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "model": "deepseek/deepseek-r1-0528:free",
-          "messages": [
-            {"role": "user", "content": prompt},
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {"text": prompt},
+              ],
+            },
           ],
-          "max_tokens": 512,
-          "stream": false,
+          "generationConfig": {"maxOutputTokens": 2048},
+          "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {
+              "category": "HARM_CATEGORY_HATE_SPEECH",
+              "threshold": "BLOCK_NONE",
+            },
+            {
+              "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              "threshold": "BLOCK_NONE",
+            },
+            {
+              "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+              "threshold": "BLOCK_NONE",
+            },
+          ],
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        String? content = data['choices'][0]['message']['content'];
+        String? content;
+
+        try {
+          content = data['candidates'][0]['content']['parts'][0]['text'];
+        } catch (e) {
+          content = null;
+        }
+
         if (content != null && content.isNotEmpty) {
           // Cleanup potential garbage formatting
           content = content.trim();
@@ -550,20 +568,24 @@ class StatisticsController extends GetxController {
           if (content.startsWith('"') && content.endsWith('"')) {
             content = content.substring(1, content.length - 1);
           }
+          // Remove thinking block if deepseek-r1 outputs it on other platforms, though we're moving to gemini
+          if (content.contains('</think>')) {
+            content = content.split('</think>').last.trim();
+          }
+
           aiInsight.value = content;
           _saveAiInsight(content);
-          incrementAiQuota();
           incrementAiQuota();
         } else {
           aiInsight.value = "Coach Strik lagi bengong. Coba lagi ya! 😶";
         }
       } else {
-        print("OpenRouter API Error: ${response.body}");
+        print("Gemini API Error: ${response.statusCode} - ${response.body}");
         aiInsight.value =
             "Coach Strik lagi error nih. Cek koneksi atau kuota API! ⚠️";
       }
     } catch (e) {
-      print("OpenRouter Critical Error: $e");
+      print("Gemini Critical Error: $e");
       aiInsight.value = "Ada masalah teknis di otak Coach Strik. 🤯";
     } finally {
       isGeneratingAI.value = false;
