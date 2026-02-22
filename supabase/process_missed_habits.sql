@@ -23,7 +23,7 @@ DECLARE
     is_yesterday_sunday BOOLEAN;
     week_start DATE; -- Monday of yesterday's week
     week_end DATE;   -- Sunday of yesterday's week
-    penalty_amount INT := -3;
+    penalty_amount INT := -1;
     rec RECORD;
     ref_id TEXT;
 BEGIN
