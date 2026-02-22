@@ -535,23 +535,23 @@ class _LevelProgressionScreenState extends State<LevelProgressionScreen> {
                 _buildBenefitItem(
                   Icons.people_alt_rounded,
                   'Mutual Friend',
-                  '+30 XP',
+                  '+5 XP',
                 ),
                 _buildBenefitItem(
                   Icons.emoji_events_rounded,
                   'Rank Mingguan #1',
-                  '+50 XP',
+                  '+15 XP',
                   isSpecial: true,
                 ),
                 _buildBenefitItem(
                   Icons.emoji_events_rounded,
                   'Rank Mingguan #2',
-                  '+30 XP',
+                  '+10 XP',
                 ),
                 _buildBenefitItem(
                   Icons.emoji_events_rounded,
                   'Rank Mingguan #3',
-                  '+15 XP',
+                  '+5 XP',
                 ),
               ],
             ),

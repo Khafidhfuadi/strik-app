@@ -93,11 +93,12 @@ class FriendController extends GetxController {
             if (u.id == currentUser.id) {
               int xp = 0;
               if (i == 0) {
-                xp = 50;
-              } else if (i == 1)
-                xp = 30;
-              else if (i == 2)
                 xp = 15;
+              } else if (i == 1) {
+                xp = 10;
+              } else if (i == 2) {
+                xp = 5;
+              }
 
               if (xp > 0) {
                 // Award XP
@@ -539,7 +540,7 @@ class FriendController extends GetxController {
           print('DEBUG: Awarding XP to current user (receiver)');
           // Award Current User
           await gameCtrl.awardXP(
-            30.0,
+            5.0,
             reason: 'New Friend',
             referenceId: 'friend_$friendshipId', // Unique ref
           );
@@ -548,7 +549,7 @@ class FriendController extends GetxController {
           // Award Requester
           await gameCtrl.awardXPToUser(
             requesterId,
-            30.0,
+            5.0,
             reason: 'New Friend',
             referenceId:
                 'friend_$friendshipId', // Same ref unique to friendship-user pair in logic
