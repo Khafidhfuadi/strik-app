@@ -149,11 +149,22 @@ class GamificationRepository {
     for (var log in logs) {
       final reason = log['reason'] as String?;
       final referenceId = log['reference_id'] as String?;
-      if (referenceId != null &&
+
+      // Validate if it's a UUID v4 loosely
+      bool isUuid = false;
+      if (referenceId != null) {
+        final uuidRegExp = RegExp(
+          r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+          caseSensitive: false,
+        );
+        isUuid = uuidRegExp.hasMatch(referenceId);
+      }
+
+      if (isUuid &&
           (reason == 'Completed Habit' ||
               reason == 'Skipped Habit' ||
               reason == 'New Habit')) {
-        habitIds.add(referenceId);
+        habitIds.add(referenceId!);
       }
     }
 

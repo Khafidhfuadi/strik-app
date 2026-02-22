@@ -337,56 +337,54 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         body: controller.isLoading.value
             ? const Center(child: CustomLoadingIndicator())
-            : Builder(
-                builder: (context) {
-                  // Ensure PageView is synced with currentTab after loading finishes and widgets mount
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (_pageController.hasClients) {
-                      final targetPage =
-                          homeController.currentTab.value == 'Mingguan' ? 1 : 0;
-                      final currentPage = _pageController.page?.round() ?? 0;
-                      if (currentPage != targetPage) {
-                        _pageController.jumpToPage(targetPage);
-                      }
+            : (() {
+                // Ensure PageView is synced with currentTab after loading finishes and widgets mount
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_pageController.hasClients) {
+                    final targetPage =
+                        homeController.currentTab.value == 'Mingguan' ? 1 : 0;
+                    final currentPage = _pageController.page?.round() ?? 0;
+                    if (currentPage != targetPage) {
+                      _pageController.jumpToPage(targetPage);
                     }
-                  });
+                  }
+                });
 
-                  return Column(
-                    children: [
-                      _buildGamificationHeader(gamificationController),
-                      // Tab Bar
-                      Container(
-                        key: Get.find<TourController>().keyHomeDate,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            _buildTabChip('Harian', 0, homeController),
-                            const SizedBox(width: 12),
-                            _buildTabChip('Mingguan', 1, homeController),
-                          ],
-                        ),
+                return Column(
+                  children: [
+                    _buildGamificationHeader(gamificationController),
+                    // Tab Bar
+                    Container(
+                      key: Get.find<TourController>().keyHomeDate,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
                       ),
+                      child: Row(
+                        children: [
+                          _buildTabChip('Harian', 0, homeController),
+                          const SizedBox(width: 12),
+                          _buildTabChip('Mingguan', 1, homeController),
+                        ],
+                      ),
+                    ),
 
-                      // Content Area with PageView
-                      Expanded(
-                        child: PageView(
-                          controller: _pageController,
-                          onPageChanged: _onTabChanged,
-                          children: [
-                            // Today Page
-                            _buildTodayPage(controller),
-                            // Weekly Page
-                            _buildWeeklyList(controller),
-                          ],
-                        ),
+                    // Content Area with PageView
+                    Expanded(
+                      child: PageView(
+                        controller: _pageController,
+                        onPageChanged: _onTabChanged,
+                        children: [
+                          // Today Page
+                          _buildTodayPage(controller),
+                          // Weekly Page
+                          _buildWeeklyList(controller),
+                        ],
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              })(),
         bottomNavigationBar: navBar,
       );
     });

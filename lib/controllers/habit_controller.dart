@@ -368,11 +368,15 @@ class HabitController extends GetxController {
   }
 
   List<Habit> get sortedHabits {
+    // Explicitly read values to ensure GetX tracking registers them
+    final bool isShowCompleted = showCompleted.value;
+    final bool isShowSkipped = showSkipped.value;
+
     // Apply status filters
     final filtered = habitsForToday.where((habit) {
       final status = todayLogs[habit.id];
-      if (status == 'completed' && !showCompleted.value) return false;
-      if (status == 'skipped' && !showSkipped.value) return false;
+      if (status == 'completed' && !isShowCompleted) return false;
+      if (status == 'skipped' && !isShowSkipped) return false;
       return true;
     }).toList();
 
