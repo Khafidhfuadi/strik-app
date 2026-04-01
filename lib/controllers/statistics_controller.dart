@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/repositories/habit_repository.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:strik_app/services/gemini_service.dart';
 import 'package:strik_app/utils/habit_utils.dart';
 
 enum StatsFilter { weekly, monthly, yearly, allTime, custom }
@@ -515,75 +514,70 @@ class StatisticsController extends GetxController {
       - Speak DIRECTLY to the user.
       ''';
 
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-
-      final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent',
-      );
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json', 'x-goog-api-key': apiKey},
-        body: jsonEncode({
-          "contents": [
-            {
-              "role": "user",
-              "parts": [
-                {"text": prompt},
-              ],
-            },
-          ],
-          "generationConfig": {"maxOutputTokens": 2048},
-          "safetySettings": [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {
-              "category": "HARM_CATEGORY_HATE_SPEECH",
-              "threshold": "BLOCK_NONE",
-            },
-            {
-              "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              "threshold": "BLOCK_NONE",
-            },
-            {
-              "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-              "threshold": "BLOCK_NONE",
-            },
-          ],
-        }),
+      final result = await GeminiService.instance.generateText(
+        prompt: prompt,
+        maxOutputTokens: 256,
+        requestTag: 'statistics',
+        generationConfig: const {
+          'thinkingConfig': {'thinkingBudget': 0},
+        },
+        safetySettings: const [
+          {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+          {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+          {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "threshold": "BLOCK_NONE",
+          },
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE",
+          },
+        ],
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String? content;
+      var content = result.text;
 
-        try {
-          content = data['candidates'][0]['content']['parts'][0]['text'];
-        } catch (e) {
-          content = null;
-        }
-
-        if (content != null && content.isNotEmpty) {
-          // Cleanup potential garbage formatting
-          content = content.trim();
-          // Remove wrapping quotes if present
-          if (content.startsWith('"') && content.endsWith('"')) {
-            content = content.substring(1, content.length - 1);
-          }
-          // Remove thinking block if deepseek-r1 outputs it on other platforms, though we're moving to gemini
-          if (content.contains('</think>')) {
-            content = content.split('</think>').last.trim();
-          }
-
-          aiInsight.value = content;
-          _saveAiInsight(content);
-          incrementAiQuota();
-        } else {
-          aiInsight.value = "Coach Strik lagi bengong. Coba lagi ya! 😶";
-        }
-      } else {
-        print("Gemini API Error: ${response.statusCode} - ${response.body}");
-        aiInsight.value =
-            "Coach Strik lagi error nih. Cek koneksi atau kuota API! ⚠️";
+      if (content.isEmpty) {
+        aiInsight.value = "Coach Strik lagi bengong. Coba lagi ya! 😶";
+        return;
       }
+
+      if (content.startsWith('"') && content.endsWith('"')) {
+        content = content.substring(1, content.length - 1);
+      }
+
+      if (content.contains('</think>')) {
+        content = content.split('</think>').last.trim();
+      }
+
+      if (result.isLikelyIncomplete) {
+        debugPrint(
+          'Gemini returned a suspiciously incomplete statistics insight. '
+          'finishReason=${result.finishReason}',
+        );
+        aiInsight.value =
+            "Coach Strik kepotong di tengah. Coba generate lagi ya! ✂️";
+        return;
+      }
+
+      aiInsight.value = content;
+      await _saveAiInsight(content);
+      await incrementAiQuota();
+    } on GeminiIncompleteResponseException catch (e) {
+      debugPrint(
+        'Gemini statistics insight incomplete. '
+        'finishReason=${e.result.finishReason} '
+        'finishMessage=${e.result.finishMessage}',
+      );
+      aiInsight.value =
+          "Jawaban Coach Strik kepotong sebelum selesai. Coba lagi bentar ya! ✂️";
+    } on GeminiApiException catch (e) {
+      debugPrint(
+        'Gemini statistics API error: '
+        'status=${e.statusCode} message=${e.message}',
+      );
+      aiInsight.value =
+          "Coach Strik lagi error nih. Cek koneksi atau kuota API! ⚠️";
     } catch (e) {
       print("Gemini Critical Error: $e");
       aiInsight.value = "Ada masalah teknis di otak Coach Strik. 🤯";

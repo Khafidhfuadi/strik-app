@@ -7,6 +7,7 @@ import 'package:lottie/lottie.dart';
 import 'package:strik_app/controllers/statistics_controller.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
+import 'package:strik_app/widgets/ai_response_loading_state.dart';
 import 'package:strik_app/widgets/custom_loading_indicator.dart';
 import 'package:strik_app/widgets/heatmap_grid.dart';
 import 'package:strik_app/screens/habit_detail_screen.dart';
@@ -1429,18 +1430,17 @@ class _AIAdvisorCardState extends State<AIAdvisorCard>
                   return FadeTransition(opacity: animation, child: child);
                 },
                 child: isGenerating
-                    ? Row(
-                        key: const ValueKey('loading'),
-                        children: [
-                          Text(
-                            "Lagi meracik strategi... 🧠⚡",
-                            style: TextStyle(
-                              fontFamily: 'Plus Jakarta Sans',
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 14,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
+                    ? AiResponseLoadingState(
+                        key: ValueKey('loading'),
+                        title: 'Coach lagi ngebut',
+                        headline:
+                            'Aku lagi bongkar pola konsistensi kamu dulu.',
+                        helperText:
+                            'Dari completion rate, golden hour, sampai habit yang paling sering miss, semuanya lagi diramu jadi insight yang lebih ngena.',
+                        phases: [
+                          'Baca performa terbaru',
+                          'Cari pola yang paling ngaruh',
+                          'Rangkai saran yang singkat tapi ngena',
                         ],
                       )
                     : insight.isEmpty

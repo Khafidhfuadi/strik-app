@@ -18,6 +18,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:strik_app/services/alarm_manager_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:strik_app/widgets/ai_response_loading_state.dart';
 import 'package:strik_app/widgets/user_profile_bottom_sheet.dart';
 
 class HabitDetailScreen extends StatefulWidget {
@@ -2017,7 +2018,20 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Obx(() {
-                  if (journalController.aiInsight.value.isNotEmpty) {
+                  if (journalController.isGeneratingAI.value) {
+                    return AiResponseLoadingState(
+                      title: 'Coach lagi baca jurnal kamu',
+                      headline:
+                          'Insight bulanan lagi dirangkai dari catatan dan progres kamu.',
+                      helperText:
+                          'Aku lagi nyari pola yang sering muncul, momen kamu lagi kuat, dan titik yang paling sering bikin pace kamu turun.',
+                      phases: [
+                        'Nyusun recap jurnal bulan ini',
+                        'Nemuin pola yang paling berulang',
+                        'Ngerapihin insight biar enak dibaca',
+                      ],
+                    );
+                  } else if (journalController.aiInsight.value.isNotEmpty) {
                     return _buildStyledText(journalController.aiInsight.value);
                   } else if (!journalController.isEligibleForAI.value) {
                     return Container(
@@ -2069,21 +2083,43 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                               }
                             : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.black,
+                          backgroundColor:
+                              journalController.isGeneratingAI.value
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : AppTheme.primary,
+                          foregroundColor:
+                              journalController.isGeneratingAI.value
+                              ? AppTheme.textPrimary
+                              : Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: journalController.isGeneratingAI.value
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.black,
-                                ),
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppTheme.textPrimary.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Text(
+                                    'Coach lagi nyusun insight...',
+                                    style: TextStyle(
+                                      fontFamily: 'Space Grotesk',
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                ],
                               )
                             : Text(
                                 journalController.aiInsight.value.isEmpty
@@ -2105,11 +2141,21 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   if (journalController.isEligibleForAI.value) {
                     return Center(
                       child: Text(
-                        "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
-                        style: const TextStyle(
+                        journalController.isGeneratingAI.value
+                            ? "Coach lagi kerja. Begitu selesai, insight langsung nongol di sini."
+                            : "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
-                          color: Colors.white38,
-                          fontSize: 10,
+                          color: journalController.isGeneratingAI.value
+                              ? AppTheme.primary.withValues(alpha: 0.85)
+                              : Colors.white38,
+                          fontSize: journalController.isGeneratingAI.value
+                              ? 11
+                              : 10,
+                          fontWeight: journalController.isGeneratingAI.value
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                     );

@@ -1,9 +1,7 @@
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/data/models/habit_journal.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
@@ -15,6 +13,7 @@ import 'package:strik_app/controllers/gamification_controller.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/controllers/story_controller.dart';
 import 'package:strik_app/controllers/habit_controller.dart';
+import 'package:strik_app/services/gemini_service.dart';
 import 'package:flutter/material.dart'; // For Colors
 
 class HabitJournalController extends GetxController {
@@ -605,78 +604,70 @@ class HabitJournalController extends GetxController {
       - Use **bold** to highlight key points or calls to action.
       ''';
 
-      // 2. Call API
-      final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-
-      final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent',
-      );
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json', 'x-goog-api-key': apiKey},
-        body: jsonEncode({
-          "contents": [
-            {
-              "role": "user",
-              "parts": [
-                {"text": prompt},
-              ],
-            },
-          ],
-          "generationConfig": {"maxOutputTokens": 2048},
-          "safetySettings": [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {
-              "category": "HARM_CATEGORY_HATE_SPEECH",
-              "threshold": "BLOCK_NONE",
-            },
-            {
-              "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              "threshold": "BLOCK_NONE",
-            },
-            {
-              "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-              "threshold": "BLOCK_NONE",
-            },
-          ],
-        }),
+      final result = await GeminiService.instance.generateText(
+        prompt: prompt,
+        maxOutputTokens: 1536,
+        requestTag: 'habit_journal',
+        generationConfig: const {
+          'thinkingConfig': {'thinkingBudget': 0},
+        },
+        safetySettings: const [
+          {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+          {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+          {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "threshold": "BLOCK_NONE",
+          },
+          {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE",
+          },
+        ],
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String? content;
-
-        try {
-          content = data['candidates'][0]['content']['parts'][0]['text'];
-        } catch (e) {
-          content = null;
-        }
-        if (content != null && content.isNotEmpty) {
-          content = content.trim();
-          // Remove thinking block if deepseek-r1 outputs it on other platforms, though we're moving to gemini
-          if (content.contains('</think>')) {
-            content = content.split('</think>').last.trim();
-          }
-          aiInsight.value = content;
-
-          // 3. Save to DB
-          final period =
-              "${month.year}-${month.month.toString().padLeft(2, '0')}";
-          final userId = _supabase.auth.currentUser!.id;
-
-          await _supabase.from('habit_ai_insights').insert({
-            'habit_id': habitId,
-            'user_id': userId,
-            'content': content,
-            'period': period,
-          });
-
-          aiQuotaUsed.value++;
-        }
-      } else {
-        print("AI Error: ${response.statusCode} - ${response.body}");
-        Get.snackbar('Error', 'Gagal menghubungi Coach AI. Coba lagi nanti.');
+      var content = result.text;
+      if (content.isEmpty) {
+        Get.snackbar('Error', 'Coach AI belum ngasih jawaban. Coba lagi ya.');
+        return;
       }
+
+      if (content.contains('</think>')) {
+        content = content.split('</think>').last.trim();
+      }
+
+      if (result.isLikelyIncomplete) {
+        debugPrint(
+          'Gemini returned a suspiciously incomplete habit insight. '
+          'finishReason=${result.finishReason}',
+        );
+        Get.snackbar('Error', 'Jawaban Coach AI kepotong. Coba generate lagi.');
+        return;
+      }
+
+      aiInsight.value = content;
+
+      // 3. Save to DB only after the response is confirmed complete.
+      final period = "${month.year}-${month.month.toString().padLeft(2, '0')}";
+      final userId = _supabase.auth.currentUser!.id;
+
+      await _supabase.from('habit_ai_insights').insert({
+        'habit_id': habitId,
+        'user_id': userId,
+        'content': content,
+        'period': period,
+      });
+
+      aiQuotaUsed.value++;
+    } on GeminiIncompleteResponseException catch (e) {
+      debugPrint(
+        'Gemini habit insight incomplete. '
+        'finishReason=${e.result.finishReason} '
+        'finishMessage=${e.result.finishMessage}',
+      );
+      Get.snackbar('Error', 'Jawaban Coach AI kepotong sebelum selesai.');
+    } on GeminiApiException catch (e) {
+      debugPrint('AI Error: status=${e.statusCode} message=${e.message}');
+      Get.snackbar('Error', 'Gagal menghubungi Coach AI. Coba lagi nanti.');
     } catch (e) {
       Get.snackbar('Error', 'Terjadi kesalahan: $e');
     } finally {
