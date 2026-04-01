@@ -376,9 +376,14 @@ class HabitJournalController extends GetxController {
     String id,
     String content, {
     File? newImageFile,
+    bool removeImage = false,
   }) async {
     try {
       final updates = <String, dynamic>{'content': content};
+
+      if (removeImage) {
+        updates['image_url'] = null;
+      }
 
       if (newImageFile != null) {
         final imageUrl = await uploadJournalImage(newImageFile);

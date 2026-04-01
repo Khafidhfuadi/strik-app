@@ -1444,80 +1444,202 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   }
 
   Widget _buildJournalItem(BuildContext context, HabitJournal journal) {
-    return GestureDetector(
-      onTap: () => _showJournalDialog(context, journal: journal),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  DateFormat(
-                    'EEEE, d MMM yyyy',
-                    'id_ID',
-                  ).format(journal.createdAt),
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  size: 16,
-                  color: AppTheme.textSecondary,
-                ),
+    final heroTag =
+        'journal-image-${journal.id ?? journal.createdAt.toIso8601String()}';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showJournalDialog(context, journal: journal),
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withValues(alpha: 0.03),
+                Colors.transparent,
               ],
             ),
-            if (journal.imageUrl != null) ...[
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: journal.imageUrl!,
-                  width: double.infinity,
-                  height: 150,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    height: 150,
-                    color: Colors.white.withValues(alpha: 0.05),
-                    child: const Center(child: CircularProgressIndicator()),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DateFormat(
+                            'EEEE, d MMM yyyy',
+                            'id_ID',
+                          ).format(journal.createdAt),
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          journal.content.isNotEmpty
+                              ? 'Catatan progres hari itu'
+                              : 'Lampiran foto progres',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary.withValues(alpha: 0.95),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  errorWidget: (context, url, error) {
-                    return Container(
-                      height: 150,
-                      color: Colors.white.withValues(alpha: 0.05),
-                      child: const Center(
-                        child: Icon(Icons.broken_image, color: Colors.white24),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Buka',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            color: AppTheme.textSecondary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 14,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-            const SizedBox(height: 8),
-            if (journal.content.isNotEmpty)
+              if (journal.imageUrl != null) ...[
+                const SizedBox(height: 14),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showJournalImageViewer(
+                      context,
+                      imageUrl: journal.imageUrl,
+                      heroTag: heroTag,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Stack(
+                      children: [
+                        Hero(
+                          tag: heroTag,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: AspectRatio(
+                              aspectRatio: 4 / 3,
+                              child: CachedNetworkImage(
+                                imageUrl: journal.imageUrl!,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) {
+                                  return Container(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        color: Colors.white24,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 12,
+                          bottom: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.55),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.fullscreen,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Lihat penuh',
+                                  style: TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
               Text(
-                journal.content,
-                maxLines: 3,
+                journal.content.isNotEmpty
+                    ? journal.content
+                    : 'Jurnal ini berisi foto progres tanpa catatan teks.',
+                maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 14,
-                  color: AppTheme.textPrimary.withValues(alpha: 0.9),
-                  height: 1.5,
+                  color: journal.content.isNotEmpty
+                      ? AppTheme.textPrimary.withValues(alpha: 0.92)
+                      : AppTheme.textSecondary,
+                  height: 1.6,
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1532,10 +1654,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     final isEditing = journal != null;
     final displayDate =
         date ?? (journal?.createdAt.toLocal() ?? DateTime.now());
+    final originalImageUrl = journal?.imageUrl;
 
     // Mutable state for the dialog
     File? selectedImage;
-    String? existingImageUrl = journal?.imageUrl;
+    String? existingImageUrl = originalImageUrl;
+    bool removeExistingImage = false;
     Timer? debounce;
 
     // Status tracking
@@ -1563,357 +1687,688 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     Get.bottomSheet(
       StatefulBuilder(
         builder: (context, setState) {
-          return Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.background,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(32),
+          final previewHeroTag =
+              'journal-editor-image-${journal?.id ?? displayDate.toIso8601String()}';
+          final hasAttachedImage =
+              selectedImage != null || existingImageUrl != null;
+
+          return SafeArea(
+            top: false,
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
+              child: FractionallySizedBox(
+                heightFactor: 0.84,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+                  decoration: BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(32),
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 52,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
-                                style: const TextStyle(
-                                  fontFamily: 'Space Grotesk',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
-                                ),
-                              ),
-                              // Status Pill (Using ValueListenableBuilder for reactive updates)
-                              ValueListenableBuilder<String>(
-                                valueListenable: saveStatus,
-                                builder: (context, status, _) {
-                                  if (status.isEmpty) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Row(
-                                    children: [
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: status == 'Menyimpan...'
-                                              ? Colors.amber.withValues(
-                                                  alpha: 0.1,
-                                                )
-                                              : Colors.green.withValues(
-                                                  alpha: 0.1,
-                                                ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    Text(
+                                      isEditing
+                                          ? 'Edit Jurnal'
+                                          : 'Tulis Jurnal',
+                                      style: const TextStyle(
+                                        fontFamily: 'Space Grotesk',
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.textPrimary,
+                                      ),
+                                    ),
+                                    ValueListenableBuilder<String>(
+                                      valueListenable: saveStatus,
+                                      builder: (context, status, _) {
+                                        if (status.isEmpty) {
+                                          return const SizedBox.shrink();
+                                        }
+
+                                        final isSaving =
+                                            status == 'Menyimpan...';
+                                        final accent = isSaving
+                                            ? Colors.amber
+                                            : Colors.green;
+
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
                                           ),
-                                          border: Border.all(
-                                            color: status == 'Menyimpan...'
-                                                ? Colors.amber.withValues(
-                                                    alpha: 0.3,
-                                                  )
-                                                : Colors.green.withValues(
-                                                    alpha: 0.3,
-                                                  ),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            if (status == 'Draft')
-                                              const Icon(
-                                                Icons.check,
-                                                size: 10,
-                                                color: Colors.green,
-                                              ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              status,
-                                              style: TextStyle(
-                                                fontFamily: 'Plus Jakarta Sans',
-                                                fontSize: 10,
-                                                color: status == 'Menyimpan...'
-                                                    ? Colors.amber
-                                                    : Colors.green,
-                                                fontWeight: FontWeight.bold,
+                                          decoration: BoxDecoration(
+                                            color: accent.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                            border: Border.all(
+                                              color: accent.withValues(
+                                                alpha: 0.28,
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                isSaving
+                                                    ? Icons.sync
+                                                    : Icons.check_circle,
+                                                size: 12,
+                                                color: accent,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                status,
+                                                style: TextStyle(
+                                                  fontFamily:
+                                                      'Plus Jakarta Sans',
+                                                  fontSize: 11,
+                                                  color: accent,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  DateFormat(
+                                    'EEEE, d MMM yyyy',
+                                    'id_ID',
+                                  ).format(displayDate),
+                                  style: TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 14,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isEditing)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () {
+                                    Get.back();
+                                    _confirmDeleteJournal(journal);
+                                  },
+                                ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: AppTheme.textPrimary,
+                                ),
+                                onPressed: () => Get.back(),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            DateFormat(
-                              'EEEE, d MMM yyyy',
-                              'id_ID',
-                            ).format(displayDate),
-                            style: TextStyle(
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontSize: 14,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
                         ],
                       ),
-                    ),
-                    Row(
-                      children: [
-                        if (isEditing)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.red,
-                            ),
-                            onPressed: () {
-                              Get.back(); // close sheet
-                              _confirmDeleteJournal(journal);
-                            },
-                          ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.close,
-                            color: AppTheme.textPrimary,
-                          ),
-                          onPressed: () => Get.back(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: textController,
-                  maxLines: 6,
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    color: AppTheme.textPrimary,
-                  ),
-                  onChanged: (value) {
-                    // Enable for both Edit and New
-                    saveStatus.value = 'Menyimpan...';
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    TextField(
+                                      controller: textController,
+                                      minLines: 7,
+                                      maxLines: 10,
+                                      style: const TextStyle(
+                                        fontFamily: 'Plus Jakarta Sans',
+                                        fontSize: 15,
+                                        color: AppTheme.textPrimary,
+                                        height: 1.6,
+                                      ),
+                                      onChanged: (value) {
+                                        saveStatus.value = 'Menyimpan...';
 
-                    if (debounce?.isActive ?? false) debounce!.cancel();
-                    debounce = Timer(
-                      const Duration(milliseconds: 1000),
-                      () async {
-                        await journalController.saveDraft(value, displayDate);
-                        if (context.mounted) {
-                          saveStatus.value = 'Draft';
-                        }
-                      },
-                    );
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Gimana habit kamu hari ini?',
-                    hintStyle: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      color: AppTheme.textSecondary,
-                    ),
-                    filled: true,
-                    fillColor: AppTheme.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Image Preview Area
-                if (selectedImage != null || existingImageUrl != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: selectedImage != null
-                              ? Image.file(
-                                  selectedImage!,
-                                  width: double.infinity,
-                                  height: 200,
-                                  fit: BoxFit.cover,
+                                        if (debounce?.isActive ?? false) {
+                                          debounce!.cancel();
+                                        }
+                                        debounce = Timer(
+                                          const Duration(milliseconds: 1000),
+                                          () async {
+                                            await journalController.saveDraft(
+                                              value,
+                                              displayDate,
+                                            );
+                                            if (context.mounted) {
+                                              saveStatus.value = 'Draft';
+                                            }
+                                          },
+                                        );
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            'Tulis jurnal kamu di sini...',
+                                        hintStyle: TextStyle(
+                                          fontFamily: 'Plus Jakarta Sans',
+                                          color: AppTheme.textSecondary,
+                                          height: 1.5,
+                                        ),
+                                        filled: false,
+                                        border: InputBorder.none,
+                                        contentPadding: const EdgeInsets.all(
+                                          18,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        18,
+                                        0,
+                                        18,
+                                        16,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          ValueListenableBuilder<
+                                            TextEditingValue
+                                          >(
+                                            valueListenable: textController,
+                                            builder: (context, value, _) {
+                                              return Text(
+                                                '${value.text.trim().length} karakter',
+                                                style: TextStyle(
+                                                  fontFamily:
+                                                      'Plus Jakarta Sans',
+                                                  fontSize: 12,
+                                                  color: AppTheme.textSecondary,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              if (hasAttachedImage)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surface,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.08,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => _showJournalImageViewer(
+                                          context,
+                                          imageUrl: existingImageUrl,
+                                          imageFile: selectedImage,
+                                          heroTag: previewHeroTag,
+                                        ),
+                                        child: Hero(
+                                          tag: previewHeroTag,
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                            child: AspectRatio(
+                                              aspectRatio: 4 / 3,
+                                              child: Container(
+                                                color: Colors.black,
+                                                child: selectedImage != null
+                                                    ? Image.file(
+                                                        selectedImage!,
+                                                        fit: BoxFit.contain,
+                                                      )
+                                                    : CachedNetworkImage(
+                                                        imageUrl:
+                                                            existingImageUrl!,
+                                                        fit: BoxFit.contain,
+                                                        placeholder:
+                                                            (
+                                                              context,
+                                                              url,
+                                                            ) => const Center(
+                                                              child:
+                                                                  CircularProgressIndicator(),
+                                                            ),
+                                                        errorWidget:
+                                                            (
+                                                              context,
+                                                              url,
+                                                              error,
+                                                            ) {
+                                                              return const Center(
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .broken_image,
+                                                                  color: Colors
+                                                                      .white24,
+                                                                ),
+                                                              );
+                                                            },
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 12,
+                                        left: 12,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.55,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              999,
+                                            ),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.open_in_full,
+                                                size: 14,
+                                                color: Colors.white,
+                                              ),
+                                              SizedBox(width: 6),
+                                              Text(
+                                                'Tap untuk lihat penuh',
+                                                style: TextStyle(
+                                                  fontFamily:
+                                                      'Plus Jakarta Sans',
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 12,
+                                        right: 12,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              if (selectedImage != null) {
+                                                selectedImage = null;
+                                                existingImageUrl =
+                                                    removeExistingImage
+                                                    ? null
+                                                    : originalImageUrl;
+                                              } else if (existingImageUrl !=
+                                                  null) {
+                                                existingImageUrl = null;
+                                                removeExistingImage = true;
+                                              }
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.55,
+                                              ),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 )
-                              : Image.network(
-                                  existingImageUrl!,
+                              else
+                                Container(
                                   width: double.infinity,
-                                  height: 200,
-                                  fit: BoxFit.cover,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.03),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.07,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.image_outlined,
+                                        color: AppTheme.textSecondary
+                                            .withValues(alpha: 0.85),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Belum ada foto',
+                                        style: TextStyle(
+                                          fontFamily: 'Plus Jakarta Sans',
+                                          fontSize: 13,
+                                          color: AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                selectedImage = null;
-                                existingImageUrl = null;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
+                              SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildImagePickerButton(
+                                      context,
+                                      Icons.camera_alt_outlined,
+                                      'Kamera',
+                                      () async {
+                                        final file = await journalController
+                                            .pickImage(
+                                              source: ImageSource.camera,
+                                            );
+                                        if (file != null) {
+                                          setState(() {
+                                            selectedImage = file;
+                                            existingImageUrl = originalImageUrl;
+                                            removeExistingImage = false;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildImagePickerButton(
+                                      context,
+                                      Icons.photo_library_outlined,
+                                      'Galeri',
+                                      () async {
+                                        final file = await journalController
+                                            .pickImage(
+                                              source: ImageSource.gallery,
+                                            );
+                                        if (file != null) {
+                                          setState(() {
+                                            selectedImage = file;
+                                            existingImageUrl = originalImageUrl;
+                                            removeExistingImage = false;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-
-                // Action Buttons (Camera / Gallery)
-                Row(
-                  children: [
-                    _buildImagePickerButton(
-                      context,
-                      Icons.camera_alt_outlined,
-                      'Kamera',
-                      () async {
-                        final file = await journalController.pickImage(
-                          source: ImageSource.camera,
-                        );
-                        if (file != null) {
-                          setState(() {
-                            selectedImage = file;
-                            // Reset existing if new one picked
-                            // existingImageUrl = null;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    _buildImagePickerButton(
-                      context,
-                      Icons.photo_library_outlined,
-                      'Galeri',
-                      () async {
-                        final file = await journalController.pickImage(
-                          source: ImageSource.gallery,
-                        );
-                        if (file != null) {
-                          setState(() {
-                            selectedImage = file;
-                          });
-                        }
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-                ValueListenableBuilder<bool>(
-                  valueListenable: isSubmitting,
-                  builder: (context, submitting, _) {
-                    return SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: submitting
-                            ? null
-                            : () async {
-                                final content = textController.text.trim();
-                                if (content.isEmpty &&
-                                    selectedImage == null &&
-                                    existingImageUrl == null) {
-                                  Get.snackbar(
-                                    'Error',
-                                    'Isi konten atau upload foto dulu ya',
-                                    snackPosition: SnackPosition.BOTTOM,
-                                  );
-                                  return;
-                                }
-
-                                isSubmitting.value = true;
-                                try {
-                                  if (isEditing) {
-                                    await journalController.updateJournal(
-                                      journal.id!,
-                                      content,
-                                      newImageFile: selectedImage,
-                                    );
-                                  } else {
-                                    await journalController.addJournal(
-                                      content,
-                                      date: date,
-                                      imageFile: selectedImage,
-                                    );
-                                  }
-                                } finally {
-                                  isSubmitting.value = false;
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          disabledBackgroundColor: AppTheme.primary.withValues(
-                            alpha: 0.5,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: submitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.black,
-                                ),
-                              )
-                            : Text(
-                                'Simpan',
-                                style: const TextStyle(
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 16),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: isSubmitting,
+                        builder: (context, submitting, _) {
+                          return SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: submitting
+                                  ? null
+                                  : () async {
+                                      FocusScope.of(context).unfocus();
+
+                                      final content = textController.text
+                                          .trim();
+                                      if (content.isEmpty &&
+                                          selectedImage == null &&
+                                          existingImageUrl == null) {
+                                        Get.snackbar(
+                                          'Error',
+                                          'Isi konten atau upload foto dulu ya',
+                                          snackPosition: SnackPosition.BOTTOM,
+                                        );
+                                        return;
+                                      }
+
+                                      isSubmitting.value = true;
+                                      try {
+                                        if (isEditing) {
+                                          await journalController.updateJournal(
+                                            journal.id!,
+                                            content,
+                                            newImageFile: selectedImage,
+                                            removeImage:
+                                                removeExistingImage &&
+                                                selectedImage == null,
+                                          );
+                                        } else {
+                                          await journalController.addJournal(
+                                            content,
+                                            date: displayDate,
+                                            imageFile: selectedImage,
+                                          );
+                                        }
+                                      } finally {
+                                        isSubmitting.value = false;
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                disabledBackgroundColor: AppTheme.primary
+                                    .withValues(alpha: 0.5),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: submitting
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : Text(
+                                      isEditing
+                                          ? 'Simpan Perubahan'
+                                          : 'Simpan Jurnal',
+                                      style: const TextStyle(
+                                        fontFamily: 'Plus Jakarta Sans',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
           );
         },
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      isDismissible: false,
-      enableDrag: false,
+      isDismissible: true,
+      enableDrag: true,
     ).then((_) {
       debounce?.cancel();
     });
+  }
+
+  void _showJournalImageViewer(
+    BuildContext context, {
+    String? imageUrl,
+    File? imageFile,
+    required String heroTag,
+  }) {
+    if (imageUrl == null && imageFile == null) return;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.92),
+      builder: (dialogContext) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(dialogContext).pop(),
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+                Center(
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 4,
+                    child: Hero(
+                      tag: heroTag,
+                      child: imageFile != null
+                          ? Image.file(imageFile, fit: BoxFit.contain)
+                          : CachedNetworkImage(
+                              imageUrl: imageUrl!,
+                              fit: BoxFit.contain,
+                              placeholder: (context, url) => const SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: CircularProgressIndicator(),
+                              ),
+                              errorWidget: (context, url, error) {
+                                return const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.white24,
+                                  size: 48,
+                                );
+                              },
+                            ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 16,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.of(dialogContext).pop(),
+                      borderRadius: BorderRadius.circular(999),
+                      child: Ink(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: 24,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Cubit untuk zoom, geser untuk melihat detail gambar.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildImagePickerButton(
@@ -1924,23 +2379,25 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: AppTheme.textSecondary, size: 20),
+            Icon(icon, color: AppTheme.textPrimary, size: 20),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
                 fontFamily: 'Plus Jakarta Sans',
-                color: AppTheme.textSecondary,
+                color: AppTheme.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
