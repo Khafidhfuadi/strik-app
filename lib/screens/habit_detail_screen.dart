@@ -18,7 +18,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:strik_app/services/alarm_manager_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:strik_app/widgets/ai_response_loading_state.dart';
+import 'package:strik_app/screens/coach_strik_ai_screen.dart';
 import 'package:strik_app/widgets/user_profile_bottom_sheet.dart';
 
 class HabitDetailScreen extends StatefulWidget {
@@ -2408,405 +2408,144 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   }
 
   Widget _buildAICoachCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
+    return Obx(() {
+      final focusedMonth = journalController.focusedMonth.value;
+      final monthlyCount = journalController.monthlyJournalCount.value;
+      final quotaLeft = (3 - journalController.aiQuotaUsed.value).clamp(0, 3);
+
+      String headline;
+      String subline;
+      Color accent;
+      IconData statusIcon;
+
+      if (journalController.isGeneratingAI.value) {
+        headline = 'Coach lagi nyusun insight';
+        subline = 'Insight bakal muncul di halaman Coach begitu selesai.';
+        accent = const Color(0xFF60A5FA);
+        statusIcon = Icons.auto_awesome_rounded;
+      } else if (journalController.aiInsight.value.isNotEmpty) {
+        headline = 'Insight bulan ini sudah siap';
+        subline =
+            'Buka halaman Coach buat baca analisis ${DateFormat('MMMM yyyy', 'id_ID').format(focusedMonth)}.';
+        accent = AppTheme.primary;
+        statusIcon = Icons.menu_book_rounded;
+      } else if (journalController.isEligibleForAI.value) {
+        headline = 'Jurnal bulan ini siap dianalisis';
+        subline = 'Kamu masih punya $quotaLeft kuota generate bulan ini.';
+        accent = const Color(0xFF6EE7B7);
+        statusIcon = Icons.check_circle_outline_rounded;
+      } else {
+        headline = 'Kumpulin jurnal dulu buat unlock Coach';
+        subline = '$monthlyCount/10 jurnal terkumpul di bulan aktif.';
+        accent = const Color(0xFFF59E0B);
+        statusIcon = Icons.lock_outline_rounded;
+      }
+
+      return InkWell(
+        onTap: () {
+          Get.to(
+            () => CoachStrikAiScreen(
+              habit: widget.habit,
+              detailController: controller,
+              journalController: journalController,
+            ),
+          );
+        },
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          initiallyExpanded: journalController.aiInsight.value.isEmpty,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          title: Row(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.psychology, color: AppTheme.primary),
+                child: Icon(statusIcon, color: accent),
               ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Coach Strik AI',
-                    style: const TextStyle(
-                      fontFamily: 'Space Grotesk',
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Coach Strik AI',
+                          style: TextStyle(
+                            fontFamily: 'Space Grotesk',
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            DateFormat(
+                              'MMM yyyy',
+                              'id_ID',
+                            ).format(focusedMonth),
+                            style: TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: accent,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  Obx(
-                    () => Text(
-                      journalController.aiInsight.value.isNotEmpty
-                          ? 'Lihat analisis bulan ${DateFormat('MMMM yyyy', 'id_ID').format(journalController.focusedMonth.value)}!'
-                          : 'Analisis habit bulanan',
+                    const SizedBox(height: 6),
+                    Text(
+                      headline,
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white.withValues(alpha: 0.92),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subline,
                       style: TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 12,
-                        color: journalController.aiInsight.value.isNotEmpty
-                            ? AppTheme.primary
-                            : AppTheme.textSecondary,
+                        height: 1.45,
+                        color: Colors.white.withValues(alpha: 0.55),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Colors.white.withValues(alpha: 0.4),
               ),
             ],
           ),
-          trailing: Obx(
-            () => journalController.isEligibleForAI.value
-                ? const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppTheme.textSecondary,
-                  )
-                : const Icon(Icons.lock, color: Colors.grey, size: 20),
-          ),
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Obx(() {
-                  if (journalController.isGeneratingAI.value) {
-                    return AiResponseLoadingState(
-                      title: 'Coach lagi baca jurnal kamu',
-                      headline:
-                          'Insight bulanan lagi dirangkai dari catatan dan progres kamu.',
-                      helperText:
-                          'Aku lagi nyari pola yang sering muncul, momen kamu lagi kuat, dan titik yang paling sering bikin pace kamu turun.',
-                      phases: [
-                        'Nyusun recap jurnal bulan ini',
-                        'Nemuin pola yang paling berulang',
-                        'Ngerapihin insight biar enak dibaca',
-                      ],
-                    );
-                  } else if (journalController.aiInsight.value.isNotEmpty) {
-                    return _buildStyledText(journalController.aiInsight.value);
-                  } else if (!journalController.isEligibleForAI.value) {
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: AppTheme.textSecondary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Tulis minimal 10 jurnal bulan ini buat dianalisis sama Coach Strik AI!',
-                              style: TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                color: AppTheme.textSecondary,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  } else {
-                    return Text(
-                      'Cari tau insight bulan ini buat tau pola habit kamu dan tips memperbaikinya.',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        color: AppTheme.textSecondary,
-                      ),
-                    );
-                  }
-                }),
-                const SizedBox(height: 20),
-                Obx(() {
-                  if (journalController.isEligibleForAI.value) {
-                    return SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: !journalController.isGeneratingAI.value
-                            ? () {
-                                _confirmGenerateAi(context);
-                              }
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              journalController.isGeneratingAI.value
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : AppTheme.primary,
-                          foregroundColor:
-                              journalController.isGeneratingAI.value
-                              ? AppTheme.textPrimary
-                              : Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: journalController.isGeneratingAI.value
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppTheme.textPrimary.withValues(
-                                        alpha: 0.9,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  const Text(
-                                    'Coach lagi nyusun insight...',
-                                    style: TextStyle(
-                                      fontFamily: 'Space Grotesk',
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Text(
-                                journalController.aiInsight.value.isEmpty
-                                    ? 'Generate Insight ✨'
-                                    : 'Regenerate Insight 🔄',
-                                style: const TextStyle(
-                                  fontFamily: 'Space Grotesk',
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    );
-                  } else {
-                    return const SizedBox.shrink();
-                  }
-                }),
-                const SizedBox(height: 8),
-                Obx(() {
-                  if (journalController.isEligibleForAI.value) {
-                    return Center(
-                      child: Text(
-                        journalController.isGeneratingAI.value
-                            ? "Coach lagi kerja. Begitu selesai, insight langsung nongol di sini."
-                            : "Sisa kuota bulan ini: ${3 - journalController.aiQuotaUsed.value}x",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
-                          color: journalController.isGeneratingAI.value
-                              ? AppTheme.primary.withValues(alpha: 0.85)
-                              : Colors.white38,
-                          fontSize: journalController.isGeneratingAI.value
-                              ? 11
-                              : 10,
-                          fontWeight: journalController.isGeneratingAI.value
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                }),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _confirmGenerateAi(BuildContext context) {
-    if (journalController.aiQuotaUsed.value >= 3) {
-      Get.snackbar(
-        'Limit Habis',
-        'Jatah coach bulan ini udah kepake semua. Tunggu bulan depan ya! 🌚',
-        backgroundColor: Colors.red.withValues(alpha: 0.1),
-        colorText: Colors.redAccent,
-      );
-      return;
-    }
-
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppTheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          "Minta Saran Coach Strik AI?",
-          style: const TextStyle(
-            fontFamily: 'Space Grotesk',
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Tindakan ini bakal pake 1 kuota generate kamu.",
-              style: const TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                color: Colors.white70,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.amber, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Sisa Kuota: ${3 - journalController.aiQuotaUsed.value}x lagi (Bulan ini)",
-                      style: const TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        color: Colors.amber,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              "Batal",
-              style: const TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                color: Colors.white60,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () {
-              Get.back(); // Close dialog
-
-              // Prepare stats logic here since we moved it out of the button
-              final totalLogs = controller.logs.length;
-              final completed = controller.logs
-                  .where((l) => l['status'] == 'completed')
-                  .length;
-              final skipped = controller.logs
-                  .where((l) => l['status'] == 'skipped')
-                  .length;
-
-              final stats = {
-                'total_logs': totalLogs,
-                'completed': completed,
-                'skipped': skipped,
-                'rate': totalLogs > 0
-                    ? (completed / totalLogs * 100).toStringAsFixed(1)
-                    : '0',
-              };
-
-              journalController.generateAiInsight(widget.habit.title, stats);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purpleAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              "Lanjut Gas!",
-              style: const TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStyledText(String text) {
-    if (text.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final List<TextSpan> spans = [];
-    // Regex to match **bold** OR *bold*, allowing newlines
-    final RegExp exp = RegExp(r'(\*{1,2})(.*?)(\1)', dotAll: true);
-    final matches = exp.allMatches(text);
-
-    int lastIndex = 0;
-    for (final match in matches) {
-      // Add text before the match
-      if (match.start > lastIndex) {
-        spans.add(
-          TextSpan(
-            text: text.substring(lastIndex, match.start),
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
-              color: Colors.white.withValues(alpha: 0.95),
-              fontSize: 14,
-              height: 1.6,
-            ),
-          ),
-        );
-      }
-
-      // Add the bold text (without asterisks)
-      spans.add(
-        TextSpan(
-          text: match.group(2), // The content inside the asterisks
-          style: const TextStyle(
-            fontFamily: 'Plus Jakarta Sans',
-            color: Colors.white, // Pure white for bold
-            fontSize: 14,
-            fontWeight: FontWeight.bold, // BOLD
-            height: 1.6,
-          ),
         ),
       );
-
-      lastIndex = match.end;
-    }
-
-    // Add remaining text
-    if (lastIndex < text.length) {
-      spans.add(
-        TextSpan(
-          text: text.substring(lastIndex),
-          style: TextStyle(
-            fontFamily: 'Plus Jakarta Sans',
-            color: Colors.white.withValues(alpha: 0.95),
-            fontSize: 14,
-            height: 1.6,
-          ),
-        ),
-      );
-    }
-
-    return RichText(text: TextSpan(children: spans));
+    });
   }
 
   void _confirmDeleteJournal(HabitJournal journal) {

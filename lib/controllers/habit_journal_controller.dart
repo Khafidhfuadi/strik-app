@@ -39,6 +39,7 @@ class HabitJournalController extends GetxController {
   var aiQuotaUsed = 0.obs;
   var isEligibleForAI = false.obs;
   var isAiCardVisible = true.obs;
+  var monthlyJournalCount = 0.obs;
 
   @override
   void onInit() {
@@ -78,9 +79,11 @@ class HabitJournalController extends GetxController {
           .gte('created_at', startOfMonth)
           .lte('created_at', endOfMonth);
 
+      monthlyJournalCount.value = count;
       isEligibleForAI.value = count >= 10;
     } catch (e) {
       print('Error checking eligibility: $e');
+      monthlyJournalCount.value = 0;
       isEligibleForAI.value = false;
     }
   }
@@ -307,6 +310,7 @@ class HabitJournalController extends GetxController {
       journals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       _checkTodayJournal();
+      await _checkMonthlyEligibility();
       await clearDraft(targetDate);
 
       // 3. Auto-Momentz for Challenge
@@ -405,6 +409,7 @@ class HabitJournalController extends GetxController {
         journals[index] = updatedJournal;
       }
       _checkTodayJournal();
+      await _checkMonthlyEligibility();
       await clearDraft(updatedJournal.createdAt.toLocal());
 
       Get.back();
@@ -422,6 +427,7 @@ class HabitJournalController extends GetxController {
       await _supabase.from('habit_journals').delete().eq('id', id);
       journals.removeWhere((j) => j.id == id);
       _checkTodayJournal();
+      await _checkMonthlyEligibility();
     } catch (e) {
       Get.snackbar(
         'Error',
