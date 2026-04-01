@@ -1,8 +1,9 @@
 import 'dart:io';
-import 'package:flutter/material.dart'; // Added for Colors in ImageCropper settings
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // Added for Realtime
 import 'package:get/get.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:strik_app/data/models/story_model.dart';
@@ -10,8 +11,6 @@ import 'package:strik_app/data/repositories/story_repository.dart';
 import 'package:strik_app/data/repositories/friend_repository.dart'; // Added
 import 'package:strik_app/main.dart';
 import 'package:path/path.dart' as p;
-import 'package:image_cropper/image_cropper.dart'; // Added
-import 'package:strik_app/core/theme.dart'; // Needed for AppTheme
 import 'package:strik_app/controllers/gamification_controller.dart';
 
 class StoryController extends GetxController {
@@ -154,31 +153,49 @@ class StoryController extends GetxController {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image == null) return;
 
-      // 1b. Crop Image (Square 1:1)
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: image.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Crop Story',
-            toolbarColor: AppTheme.primary,
-            toolbarWidgetColor: Colors.black,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true,
-          ),
-          IOSUiSettings(
-            title: 'Crop Story',
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-          ),
-        ],
-      );
-
+      // 1b. Crop image to a centered square locally to avoid native cropper deps.
+      final croppedFile = await _cropImageToSquare(File(image.path));
       if (croppedFile != null) {
-        await createStory(File(croppedFile.path));
+        await createStory(croppedFile);
       }
     } catch (e) {
       Get.snackbar('Error', 'Gagal memilih gambar: $e');
+    }
+  }
+
+  Future<File?> _cropImageToSquare(File file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) {
+        return file;
+      }
+
+      final squareSize =
+          decoded.width < decoded.height ? decoded.width : decoded.height;
+      final offsetX = (decoded.width - squareSize) ~/ 2;
+      final offsetY = (decoded.height - squareSize) ~/ 2;
+
+      final cropped = img.copyCrop(
+        decoded,
+        x: offsetX,
+        y: offsetY,
+        width: squareSize,
+        height: squareSize,
+      );
+
+      final dir = await getTemporaryDirectory();
+      final targetPath = p.join(
+        dir.path,
+        'story_crop_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+      final croppedFile = File(targetPath);
+      await croppedFile.writeAsBytes(img.encodeJpg(cropped, quality: 92));
+
+      return croppedFile;
+    } catch (e) {
+      print('Crop error: $e');
+      return file;
     }
   }
 
