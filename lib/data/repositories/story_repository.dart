@@ -51,7 +51,7 @@ class StoryRepository {
       final userId = _supabase.auth.currentUser!.id;
       final List<dynamic> response = await _supabase
           .from('stories')
-          .select('*, user:profiles(*)')
+          .select('*, user:profiles(*), story_views(viewer_id)')
           .eq('user_id', userId)
           .order('created_at', ascending: false)
           .limit(limit);
@@ -205,14 +205,21 @@ class StoryRepository {
         for (var r in reactionsRes) r['user_id'] as String: r['type'] as String,
       };
 
-      return (response as List).map((view) {
-        final viewerId = view['viewer_id'];
-        return {
+      final latestViewsByUser = <String, Map<String, dynamic>>{};
+      for (final view in (response as List)) {
+        final viewerId = view['viewer_id'] as String?;
+        if (viewerId == null || latestViewsByUser.containsKey(viewerId)) {
+          continue;
+        }
+
+        latestViewsByUser[viewerId] = {
           'user': view['viewer'], // Profile object
           'viewed_at': view['created_at'],
           'reaction': reactionMap[viewerId], // String? (e.g., '❤️')
         };
-      }).toList();
+      }
+
+      return latestViewsByUser.values.toList();
     } catch (e) {
       print('Error fetching viewers: $e');
       return [];

@@ -23,17 +23,19 @@ class StoryModel {
   });
 
   factory StoryModel.fromJson(Map<String, dynamic> json) {
+    final uniqueViewers = ((json['story_views'] as List?) ?? [])
+        .map((e) => e['viewer_id'] as String?)
+        .whereType<String>()
+        .toSet()
+        .toList();
+
     return StoryModel(
       id: json['id'] ?? '',
       userId: json['user_id'] ?? '',
       mediaUrl: json['media_url'] ?? '',
       mediaType: json['media_type'] ?? 'image',
       createdAt: DateTime.parse(json['created_at']).toLocal(),
-      viewers:
-          (json['story_views'] as List?)
-              ?.map((e) => e['viewer_id'] as String)
-              .toList() ??
-          [],
+      viewers: uniqueViewers,
       user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
       caption: json['caption'],
     );
@@ -55,4 +57,6 @@ class StoryModel {
   bool get isExpired {
     return DateTime.now().difference(createdAt).inHours >= 24;
   }
+
+  int get uniqueViewerCount => viewers.toSet().length;
 }

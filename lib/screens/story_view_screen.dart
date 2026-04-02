@@ -668,7 +668,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  "${story.viewers.length} Stalker",
+                                  "${story.uniqueViewerCount} Stalker",
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
