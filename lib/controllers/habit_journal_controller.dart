@@ -40,8 +40,10 @@ class HabitJournalController extends GetxController {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   var journals = <HabitJournal>[].obs;
+  var focusedMonthJournals = <HabitJournal>[].obs;
   var isLoading = true.obs;
   var isLoadingMore = false.obs;
+  var isFocusedMonthLoading = false.obs;
   var hasMore = true.obs;
   int _page = 0;
   final int _limit = 10;
@@ -82,14 +84,60 @@ class HabitJournalController extends GetxController {
   void onInit() {
     super.onInit();
     fetchJournals(refresh: true);
+    fetchFocusedMonthJournals();
     fetchMonthlyInsight();
     _checkMonthlyEligibility();
   }
 
   void updateFocusMonth(DateTime month) {
     focusedMonth.value = month;
+    fetchFocusedMonthJournals();
     fetchMonthlyInsight();
     _checkMonthlyEligibility();
+  }
+
+  Future<void> fetchFocusedMonthJournals() async {
+    try {
+      isFocusedMonthLoading.value = true;
+
+      final month = focusedMonth.value;
+      final startOfMonth = DateTime(
+        month.year,
+        month.month,
+        1,
+      ).toUtc().toIso8601String();
+      final endOfMonth = DateTime(
+        month.year,
+        month.month + 1,
+        0,
+        23,
+        59,
+        59,
+      ).toUtc().toIso8601String();
+
+      final response = await _supabase
+          .from('habit_journals')
+          .select()
+          .eq('habit_id', habitId)
+          .gte('created_at', startOfMonth)
+          .lte('created_at', endOfMonth)
+          .order('created_at', ascending: false)
+          .order('id', ascending: false);
+
+      focusedMonthJournals.assignAll(
+        (response as List).map((data) => HabitJournal.fromJson(data)).toList(),
+      );
+    } catch (e) {
+      print('Error fetching focused month journals: $e');
+      focusedMonthJournals.clear();
+    } finally {
+      isFocusedMonthLoading.value = false;
+    }
+  }
+
+  bool _isInFocusedMonth(DateTime date) {
+    final month = focusedMonth.value;
+    return date.year == month.year && date.month == month.month;
   }
 
   Future<void> _checkMonthlyEligibility() async {
@@ -373,6 +421,10 @@ class HabitJournalController extends GetxController {
       // Insert in correct order or just re-sort? Re-sorting is safer.
       journals.add(newJournal);
       journals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (_isInFocusedMonth(newJournal.createdAt.toLocal())) {
+        focusedMonthJournals.add(newJournal);
+        focusedMonthJournals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      }
 
       _checkTodayJournal();
       await _checkMonthlyEligibility();
@@ -473,6 +525,19 @@ class HabitJournalController extends GetxController {
       if (index != -1) {
         journals[index] = updatedJournal;
       }
+      final focusedMonthIndex = focusedMonthJournals.indexWhere(
+        (j) => j.id == id,
+      );
+      if (_isInFocusedMonth(updatedJournal.createdAt.toLocal())) {
+        if (focusedMonthIndex != -1) {
+          focusedMonthJournals[focusedMonthIndex] = updatedJournal;
+        } else {
+          focusedMonthJournals.add(updatedJournal);
+        }
+        focusedMonthJournals.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      } else if (focusedMonthIndex != -1) {
+        focusedMonthJournals.removeAt(focusedMonthIndex);
+      }
       _checkTodayJournal();
       await _checkMonthlyEligibility();
       await clearDraft(updatedJournal.createdAt.toLocal());
@@ -491,6 +556,7 @@ class HabitJournalController extends GetxController {
     try {
       await _supabase.from('habit_journals').delete().eq('id', id);
       journals.removeWhere((j) => j.id == id);
+      focusedMonthJournals.removeWhere((j) => j.id == id);
       _checkTodayJournal();
       await _checkMonthlyEligibility();
     } catch (e) {
