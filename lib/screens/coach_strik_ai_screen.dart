@@ -101,7 +101,7 @@ class CoachStrikAiScreen extends StatelessWidget {
   }
 
   Widget _buildHeroCard(DateTime focusedMonth) {
-    final hasInsight = journalController.aiInsight.value.isNotEmpty;
+    final hasInsight = journalController.aiInsightHistory.isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -458,7 +458,14 @@ class CoachStrikAiScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
-              child: _buildStyledText(journalController.aiInsight.value),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInsightVersionHeader(),
+                  const SizedBox(height: 16),
+                  _buildStyledText(journalController.aiInsight.value),
+                ],
+              ),
             )
           else if (!journalController.isEligibleForAI.value)
             _buildLockedState()
@@ -488,7 +495,7 @@ class CoachStrikAiScreen extends StatelessWidget {
                     : Colors.white.withValues(alpha: 0.4),
               ),
               child: Text(
-                journalController.aiInsight.value.isEmpty
+                journalController.aiInsightHistory.isEmpty
                     ? 'Generate Insight'
                     : 'Regenerate Insight',
               ),
@@ -753,5 +760,115 @@ class CoachStrikAiScreen extends StatelessWidget {
     }
 
     return RichText(text: TextSpan(children: spans));
+  }
+
+  Widget _buildInsightVersionHeader() {
+    final currentVersion = journalController.currentAiInsightVersion;
+    final totalVersions = journalController.aiInsightHistory.length;
+    final currentIndex = journalController.selectedAiInsightIndex.value;
+    final displayOrder = totalVersions - currentIndex;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                currentIndex == 0
+                    ? 'Versi Terbaru'
+                    : 'Versi $displayOrder dari $totalVersions',
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+            if (totalVersions > 1)
+              Text(
+                '$totalVersions hasil generate',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+          ],
+        ),
+        if (currentVersion != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            'Dibuat ${DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(currentVersion.createdAt)}',
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.58),
+            ),
+          ),
+        ],
+        if (totalVersions > 1) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _buildVersionArrow(
+                icon: Icons.arrow_back_rounded,
+                onTap: journalController.hasOlderAiInsight
+                    ? journalController.showOlderAiInsight
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              _buildVersionArrow(
+                icon: Icons.arrow_forward_rounded,
+                onTap: journalController.hasNewerAiInsight
+                    ? journalController.showNewerAiInsight
+                    : null,
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildVersionArrow({
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    final isDisabled = onTap == null;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isDisabled
+              ? Colors.white.withValues(alpha: 0.03)
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: isDisabled
+              ? Colors.white.withValues(alpha: 0.22)
+              : AppTheme.textPrimary,
+        ),
+      ),
+    );
   }
 }

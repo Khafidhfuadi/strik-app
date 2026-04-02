@@ -1489,18 +1489,18 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                             color: AppTheme.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          journal.content.isNotEmpty
-                              ? 'Catatan progres hari itu'
-                              : 'Lampiran foto progres',
-                          style: TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary.withValues(alpha: 0.95),
-                          ),
-                        ),
+                        // const SizedBox(height: 6),
+                        // Text(
+                        //   journal.content.isNotEmpty
+                        //       ? 'Catatan progres hari itu'
+                        //       : 'Lampiran foto progres',
+                        //   style: TextStyle(
+                        //     fontFamily: 'Plus Jakarta Sans',
+                        //     fontSize: 14,
+                        //     fontWeight: FontWeight.w600,
+                        //     color: AppTheme.textPrimary.withValues(alpha: 0.95),
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),
@@ -1691,19 +1691,23 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               'journal-editor-image-${journal?.id ?? displayDate.toIso8601String()}';
           final hasAttachedImage =
               selectedImage != null || existingImageUrl != null;
+          final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
           return SafeArea(
             top: false,
-            child: AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
+            child: Align(
+              alignment: Alignment.bottomCenter,
               child: FractionallySizedBox(
-                heightFactor: 0.84,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+                heightFactor: keyboardInset > 0 ? 0.9 : 0.84,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    12,
+                    20,
+                    keyboardInset > 0 ? 12 : 18,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.background,
                     borderRadius: const BorderRadius.vertical(
@@ -2171,7 +2175,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: keyboardInset > 0 ? 12 : 16),
                       ValueListenableBuilder<bool>(
                         valueListenable: isSubmitting,
                         builder: (context, submitting, _) {

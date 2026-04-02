@@ -16,6 +16,25 @@ import 'package:strik_app/controllers/habit_controller.dart';
 import 'package:strik_app/services/gemini_service.dart';
 import 'package:flutter/material.dart'; // For Colors
 
+class AiInsightVersion {
+  const AiInsightVersion({required this.content, required this.createdAt});
+
+  final String content;
+  final DateTime createdAt;
+
+  factory AiInsightVersion.fromJson(Map<String, dynamic> json) {
+    final rawCreatedAt = json['created_at']?.toString();
+    final createdAt = rawCreatedAt != null
+        ? DateTime.tryParse(rawCreatedAt)?.toLocal()
+        : null;
+
+    return AiInsightVersion(
+      content: json['content']?.toString() ?? '',
+      createdAt: createdAt ?? DateTime.now(),
+    );
+  }
+}
+
 class HabitJournalController extends GetxController {
   final String habitId;
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -35,11 +54,29 @@ class HabitJournalController extends GetxController {
   HabitJournalController(this.habitId);
 
   var aiInsight = ''.obs;
+  var aiInsightHistory = <AiInsightVersion>[].obs;
+  var selectedAiInsightIndex = 0.obs;
   var isGeneratingAI = false.obs;
   var aiQuotaUsed = 0.obs;
   var isEligibleForAI = false.obs;
   var isAiCardVisible = true.obs;
   var monthlyJournalCount = 0.obs;
+
+  AiInsightVersion? get currentAiInsightVersion {
+    if (aiInsightHistory.isEmpty) return null;
+    final safeIndex = selectedAiInsightIndex.value.clamp(
+      0,
+      aiInsightHistory.length - 1,
+    );
+    return aiInsightHistory[safeIndex];
+  }
+
+  bool get hasOlderAiInsight =>
+      aiInsightHistory.isNotEmpty &&
+      selectedAiInsightIndex.value < aiInsightHistory.length - 1;
+
+  bool get hasNewerAiInsight =>
+      aiInsightHistory.isNotEmpty && selectedAiInsightIndex.value > 0;
 
   @override
   void onInit() {
@@ -90,7 +127,9 @@ class HabitJournalController extends GetxController {
 
   Future<void> fetchMonthlyInsight() async {
     try {
-      aiInsight.value = ''; // Reset first
+      aiInsight.value = '';
+      aiInsightHistory.clear();
+      selectedAiInsightIndex.value = 0;
       final month = focusedMonth.value;
       final period = "${month.year}-${month.month.toString().padLeft(2, '0')}";
 
@@ -107,15 +146,41 @@ class HabitJournalController extends GetxController {
       // The user requested: "selalu tampilkan riwayat... jika sudah pernah ter generate".
 
       // Let's count how many generated for this specific period
-      final count = (response as List).length;
+      final responseList = (response as List).cast<Map<String, dynamic>>();
+      final count = responseList.length;
       aiQuotaUsed.value = count;
 
-      if (response.isNotEmpty) {
-        aiInsight.value = response[0]['content'];
+      if (responseList.isNotEmpty) {
+        aiInsightHistory.assignAll(
+          responseList.map(AiInsightVersion.fromJson).toList(),
+        );
+        _selectAiInsightVersion(0);
       }
     } catch (e) {
       print('Error fetching AI insight: $e');
     }
+  }
+
+  void showOlderAiInsight() {
+    if (!hasOlderAiInsight) return;
+    _selectAiInsightVersion(selectedAiInsightIndex.value + 1);
+  }
+
+  void showNewerAiInsight() {
+    if (!hasNewerAiInsight) return;
+    _selectAiInsightVersion(selectedAiInsightIndex.value - 1);
+  }
+
+  void _selectAiInsightVersion(int index) {
+    if (aiInsightHistory.isEmpty) {
+      selectedAiInsightIndex.value = 0;
+      aiInsight.value = '';
+      return;
+    }
+
+    final safeIndex = index.clamp(0, aiInsightHistory.length - 1);
+    selectedAiInsightIndex.value = safeIndex;
+    aiInsight.value = aiInsightHistory[safeIndex].content;
   }
 
   Future<void> fetchJournals({bool refresh = false}) async {
@@ -600,19 +665,51 @@ class HabitJournalController extends GetxController {
       
       PERSONALITY & TONE (Critical):
       - If Gender is "Perempuan": Make the tone EXCITING, WARM, DEEP, and REFLECTIVE. It should feel like a late-night "deeptalk" with a caring best friend. Focus on emotional support and inner growth. Call her calling name.
-      - If Gender is "Laki-laki" (or Unspecified): Make the tone EXCITING, ENERGETIC, BOLD, and STRAIGHTFORWARD. Push him like a gym coach. Call his calling name.
+      - If Gender is "Laki-laki" (or Unspecified): Make the tone EXCITING, ENERGETIC, BOLD, and STRAIGHTFORWARD. Call his calling name.
+
+      NATURAL JAKSEL STYLE GUIDE (Very Important):
+      - Base language must stay natural Indonesian. English is only a light seasoning, not the main structure.
+      - Use common urban spoken words like "nggak", "kayak", "banget", "pelan-pelan", "lumayan", "kepake", "kebaca", "nempel", "relate".
+      - Insert English only when it sounds organic for Gen Z Jakarta, for example short phrases like "make sense", "on point", "lowkey", "mixed feelings", "burn out", "green flag". Do not turn whole sentences into English.
+      - Avoid sounding like parody Jaksel. Do NOT stack too many English words in one sentence. Maximum 1 short English phrase in a sentence, and not in every sentence.
+      - Prioritize smooth conversational flow over being overly hyped. The tone should feel human, grounded, and affectionate.
+      - Vary sentence rhythm. Mix short punchy lines with calmer reflective lines. Do not start every paragraph with the same pattern like "Aku notice...".
+      - Use the user's name sparingly, maximum 1-2 times in the whole response.
+      - Emojis are optional and should feel natural. Maximum 1 emoji per paragraph, and do not force them.
+      - Avoid exaggerated fan-girl wording unless the journal clearly supports that energy.
+      - Avoid awkward literal mixes like "Aku so excited banget", "Literally aku deep dive", "Itu very touching banget". If using English, blend it naturally inside Indonesian syntax.
+      - Sound like a thoughtful close friend from Jakarta Selatan who is emotionally intelligent, not like marketing copy and not like translated English.
+
+      GOOD MICRO-EXAMPLES:
+      - "Aku nangkep bulan ini kamu lagi banyak mixed feelings, tapi cara kamu tetap balik ke diri sendiri itu bagus."
+      - "Yang aku notice, kamu lagi capek banget sama situasinya, tapi kamu masih berusaha nggak kehilangan arah."
+      - "Ini tipe progress yang pelan tapi real, dan honestly justru ini yang paling sustainable."
+
+      AVOID THIS KIND OF STYLE:
+      - "Aku literally so proud banget sama journey kamu ini."
+      - "This is so deep and beautiful banget."
+      - Overusing italic emphasis, all-caps excitement, or too many exclamation marks.
       
       INSTRUCTION:
       - Analyze the journals and stats to find specific patterns or blockers.
       - Write a FLUID, DYNAMIC response. DO NOT use rigid headers like "Analisis", "Saran", or "Challenge".
       - Start by referencing specific details from their recent journals (context is key!).
+      - When mentioning a journal event, reflection, emotional shift, or pattern, include the specific date so the insight feels grounded and precise.
+      - Mention dates naturally inside the sentence, for example "di 7 Maret", "pas entry 11 Maret", or "waktu jurnal 30 Maret". Do not sound robotic.
+      - Use 2-4 specific date references across the response when relevant, especially for the most important moments or turning points.
       - Weave your analysis and advice into a natural conversation.
       - Only suggest a specific CHALLENGE if strictly relevant (e.g. if they are stuck). Otherwise, focus on support.
-      - Style: Jaksel slang (Gen Z). FOLLOW THE PERSONALITY & TONE GUIDELINES ABOVE. Use emojis.
+      - Style: natural Jaksel slang (Gen Z), but subtle and smooth. FOLLOW THE PERSONALITY & TONE GUIDELINES ABOVE.
       - IMPORTANT: Do NOT use "gue" or "lo". Use "Aku" (as Coach) and "Kamu".
       - Do NOT ask questions or ask for feedback. This is a final insight/wrap-up.
       - Speak DIRECTLY to the user.
-      - Use **bold** to highlight key points or calls to action.
+      - Use **bold** very sparingly.
+      - Bold is optional, not required.
+      - Only bold 1 short phrase or 1 short sentence in the whole response if there is a truly important takeaway.
+      - Never bold scattered words, emotional expressions, fillers, or repeated emphasis.
+      - If the response already feels clear without bold, do not use bold at all.
+      - Keep the response concise but rich. Aim for 4-6 short paragraphs, not a super long essay.
+      - The final result must read like something a real Indonesian Gen Z person would naturally say out loud.
       ''';
 
       final result = await GeminiService.instance.generateText(
@@ -623,15 +720,21 @@ class HabitJournalController extends GetxController {
           'thinkingConfig': {'thinkingBudget': 0},
         },
         safetySettings: const [
-          {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-          {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+          {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "threshold": "BLOCK_ONLY_HIGH",
+          },
+          {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "threshold": "BLOCK_LOW_AND_ABOVE",
+          },
           {
             "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            "threshold": "BLOCK_NONE",
+            "threshold": "BLOCK_ONLY_HIGH",
           },
           {
             "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-            "threshold": "BLOCK_NONE",
+            "threshold": "BLOCK_ONLY_HIGH",
           },
         ],
       );
@@ -668,7 +771,12 @@ class HabitJournalController extends GetxController {
         'period': period,
       });
 
-      aiQuotaUsed.value++;
+      aiInsightHistory.insert(
+        0,
+        AiInsightVersion(content: content, createdAt: DateTime.now()),
+      );
+      _selectAiInsightVersion(0);
+      aiQuotaUsed.value = aiInsightHistory.length;
     } on GeminiIncompleteResponseException catch (e) {
       debugPrint(
         'Gemini habit insight incomplete. '
