@@ -29,6 +29,9 @@ class HabitDetailScreen extends StatefulWidget {
 }
 
 class _HabitDetailScreenState extends State<HabitDetailScreen> {
+  static const double _sectionGap = 24;
+  static const double _titleGap = 16;
+
   late HabitDetailController controller;
   late HabitJournalController journalController;
   final ScrollController _scrollController = ScrollController();
@@ -298,24 +301,25 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: _sectionGap),
 
                 // Stats
                 _buildStats(controller, currentHabit),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: _sectionGap),
 
                 // Challenge Leaderboard
                 if (currentHabit.isChallenge)
                   _buildChallengeLeaderboard(currentHabit),
-                if (currentHabit.isChallenge) const SizedBox(height: 32),
+                if (currentHabit.isChallenge)
+                  const SizedBox(height: _sectionGap),
 
                 // History Calendar
                 _buildCalendarHeader(controller),
-                const SizedBox(height: 16),
+                const SizedBox(height: _titleGap),
                 _buildInteractiveCalendar(controller, currentHabit),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: _sectionGap),
 
                 // Description
                 if (currentHabit.description != null &&
@@ -329,7 +333,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                       color: AppTheme.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: _titleGap),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -350,12 +354,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: _sectionGap),
                 ],
 
                 // Journal Section
                 _buildJournalSection(context, currentHabit),
-                const SizedBox(height: 32),
+                const SizedBox(height: _sectionGap),
               ],
             ),
           ),
@@ -1374,10 +1378,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               }),
           ],
         ),
-        const SizedBox(height: 16),
-        const SizedBox(height: 16),
+        const SizedBox(height: _titleGap),
         _buildAICoachCard(context),
-        const SizedBox(height: 24),
+        const SizedBox(height: _sectionGap),
         Obx(() {
           final monthJournals = journalController.focusedMonthJournals;
           final focusedMonth = journalController.focusedMonth.value;
@@ -1448,7 +1451,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: _titleGap),
               if (monthJournals.isEmpty)
                 Container(
                   width: double.infinity,

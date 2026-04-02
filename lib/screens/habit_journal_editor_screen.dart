@@ -303,14 +303,28 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         titleSpacing: 20,
-        title: Text(
-          _isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
-          style: const TextStyle(
-            fontFamily: 'Space Grotesk',
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textPrimary,
-          ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _isEditing ? 'Edit Jurnal' : 'Tulis Jurnal',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            Text(
+              widget.habit.title,
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
         actions: [
           if (_isEditing)
@@ -545,24 +559,12 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.edit_note_rounded,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Text(
               DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_displayDate),
               style: TextStyle(
                 fontFamily: 'Space Grotesk',
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textPrimary,
               ),
