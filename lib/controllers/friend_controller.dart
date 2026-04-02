@@ -916,7 +916,7 @@ class FriendController extends GetxController {
             recipientId: ownerId,
             type: 'reaction',
             title: 'Strik!',
-            body: '$senderUsername baru nge-strik feed lo, nih! 🔥',
+            body: '$senderUsername baru nge-strik feed kamu, nih! 🔥',
             postId: postId,
             habitLogId: habitLogId,
           );
@@ -969,6 +969,25 @@ class FriendController extends GetxController {
     hasNewSocialActivity.value = false;
   }
 
+  Future<String> _getSenderUsername(User currentUser) async {
+    try {
+      final profile = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+
+      final username = (profile?['username'] as String?)?.trim();
+      if (username != null && username.isNotEmpty) {
+        return username;
+      }
+    } catch (e) {
+      print('Error fetching sender username: $e');
+    }
+
+    return currentUser.email?.split('@')[0] ?? 'Temanmu';
+  }
+
   Future<void> pokeUser(String friendId) async {
     try {
       final currentUser = Supabase.instance.client.auth.currentUser;
@@ -1003,17 +1022,14 @@ class FriendController extends GetxController {
         }
       }
 
-      final senderName =
-          currentUser.userMetadata?['full_name'] ??
-          currentUser.email?.split('@')[0] ??
-          'Temanmu';
+      final senderName = await _getSenderUsername(currentUser);
       // Send poke notification
       await _friendRepository.sendNotification(
         recipientId: friendId,
         type: 'poke',
-        title: '$senderName nyolek lo! 👋',
+        title: '$senderName nyolek kamu! 👋',
         body:
-            'Hi, $senderName nyolek lo nih! Jangan lupa lakuin habit hari ini, ya!',
+            'Hi, $senderName nyolek kamu nih! Jangan lupa lakuin habit hari ini, ya!',
       );
 
       // No need to update friendships table anymore
@@ -1128,17 +1144,14 @@ class FriendController extends GetxController {
         }
       }
 
-      final senderName =
-          currentUser.userMetadata?['full_name'] ??
-          currentUser.email?.split('@')[0] ??
-          'Temanmu';
+      final senderName = await _getSenderUsername(currentUser);
       // Send poke notification
       await _friendRepository.sendNotification(
         recipientId: friendId,
         type: 'poke',
-        title: '$senderName nyolek lo! 👋',
+        title: '$senderName nyolek kamu! 👋',
         body:
-            'Hi, $senderName nyolek lo nih! Jangan lupa lakuin habit hari ini, ya!',
+            'Hi, $senderName nyolek kamu nih! Jangan lupa lakuin habit hari ini, ya!',
       );
 
       // No need to update friendships table anymore

@@ -117,6 +117,54 @@ class _SocialScreenState extends State<SocialScreen> {
     );
   }
 
+  Color _historyAccentColor(int rank) {
+    if (rank == 1) return const Color(0xFFFFC94A);
+    if (rank <= 3) return AppTheme.primary;
+    return const Color(0xFF7C4DFF);
+  }
+
+  String _formatHistoryPoints(num value) {
+    if (value == value.roundToDouble()) {
+      return value.toStringAsFixed(0);
+    }
+
+    if ((value * 10).roundToDouble() == value * 10) {
+      return value.toStringAsFixed(1);
+    }
+
+    return value.toStringAsFixed(2);
+  }
+
+  Widget _buildHistoryMetricChip({
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.textSecondary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              color: AppTheme.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2334,6 +2382,7 @@ class _SocialScreenState extends State<SocialScreen> {
                 }
 
                 return ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 8),
                   itemCount: myHistory.length,
                   itemBuilder: (context, index) {
                     final data = myHistory[index];
@@ -2341,85 +2390,181 @@ class _SocialScreenState extends State<SocialScreen> {
                     final endDate = date.add(const Duration(days: 6));
                     final dateStr =
                         '${DateFormat('d MMM').format(date)} - ${DateFormat('d MMM yyyy').format(endDate)}';
+                    final rank = data['rank'] as int? ?? 0;
+                    final totalParticipants =
+                        data['total_participants'] as int? ?? 0;
+                    final completionRate =
+                        (data['completion_rate'] as num?)?.toDouble() ?? 0;
+                    final totalHabits = data['total_habits'] ?? 0;
+                    final totalPoints = data['total_points'] as num? ?? 0;
+                    final accentColor = _historyAccentColor(rank);
+                    final isTopThree = rank > 0 && rank <= 3;
 
                     return GestureDetector(
                       onTap: () => _showHistoryDetailSheet(data),
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: Colors.grey[900],
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
+                          color: const Color(0xFF232326),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: isTopThree
+                                ? accentColor.withValues(alpha: 0.24)
+                                : Colors.white.withValues(alpha: 0.08),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              blurRadius: 24,
+                              offset: const Offset(0, 12),
+                            ),
+                          ],
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.emoji_events_outlined,
-                                color: AppTheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    dateStr,
-                                    style: const TextStyle(
-                                      fontFamily: 'Plus Jakarta Sans',
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    data['total_participants'] != null
-                                        ? 'Rank #${data['rank']} dari ${data['total_participants']}'
-                                        : 'Rank #${data['rank']}',
-                                    style: const TextStyle(
-                                      fontFamily: 'Space Grotesk',
-                                      color: AppTheme.secondary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  '${data['total_points']} pts',
-                                  style: const TextStyle(
-                                    fontFamily: 'Space Grotesk',
-                                    color: Colors.amber,
-                                    fontWeight: FontWeight.bold,
+                                Container(
+                                  width: 58,
+                                  height: 58,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        accentColor.withValues(alpha: 0.24),
+                                        accentColor.withValues(alpha: 0.1),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: accentColor.withValues(
+                                        alpha: 0.18,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    isTopThree
+                                        ? Icons.workspace_premium_rounded
+                                        : Icons.emoji_events_outlined,
+                                    color: accentColor,
+                                    size: 28,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${(data['completion_rate'] as num).toStringAsFixed(0)}% Rate • ${data['total_habits'] ?? 0} Habits',
-                                  style: const TextStyle(
-                                    fontFamily: 'Plus Jakarta Sans',
-                                    color: Colors.grey,
-                                    fontSize: 12,
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        dateStr,
+                                        style: const TextStyle(
+                                          fontFamily: 'Space Grotesk',
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 22,
+                                          height: 1.15,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: accentColor.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          totalParticipants > 0
+                                              ? 'Rank #$rank dari $totalParticipants'
+                                              : 'Rank #$rank',
+                                          style: TextStyle(
+                                            fontFamily: 'Space Grotesk',
+                                            color: accentColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '${_formatHistoryPoints(totalPoints)} pts',
+                                      style: const TextStyle(
+                                        fontFamily: 'Space Grotesk',
+                                        color: Color(0xFFFFC928),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.04,
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.arrow_forward_ios_rounded,
+                                        color: Colors.white38,
+                                        size: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: Colors.white24,
-                              size: 14,
+                            const SizedBox(height: 16),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.16),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _buildHistoryMetricChip(
+                                    icon: Icons.show_chart_rounded,
+                                    label:
+                                        '${completionRate.toStringAsFixed(0)}% rate',
+                                  ),
+                                  _buildHistoryMetricChip(
+                                    icon: Icons.check_circle_outline_rounded,
+                                    label: '$totalHabits habits',
+                                  ),
+                                  if (isTopThree)
+                                    _buildHistoryMetricChip(
+                                      icon: Icons.auto_awesome_rounded,
+                                      label: rank == 1
+                                          ? 'Juara minggu ini'
+                                          : 'Top 3 circle',
+                                    ),
+                                ],
+                              ),
                             ),
                           ],
                         ),

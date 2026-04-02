@@ -143,13 +143,13 @@ class _RegistrationSuccessScreenState extends State<RegistrationSuccessScreen>
             ),
             const SizedBox(height: 32),
             Text(
-              'Cek Email Lo!',
+              'Cek Email Kamu!',
               style: Theme.of(context).textTheme.displaySmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             Text(
-              'Kita udah kirim link verifikasi ke ${widget.email}.\nKlik linknya biar lo bisa masuk ke Strik.',
+              'Kita udah kirim link verifikasi ke ${widget.email}.\nKlik linknya biar kamu bisa masuk ke Strik.',
               style: Theme.of(
                 context,
               ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),

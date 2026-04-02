@@ -399,7 +399,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 'Kali',
                 AppTheme.primary,
                 description:
-                    'Jumlah total kebiasaan yang udah lo kelarin di periode ini. Makin banyak makin GG!',
+                    'Jumlah total kebiasaan yang udah kamu kelarin di periode ini. Makin banyak makin GG!',
               ),
             ),
             const SizedBox(height: 16),
@@ -409,7 +409,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               _getPercentageLabel(completionRate),
               AppTheme.secondary,
               description:
-                  'Tingkat kedisiplinan lo. Kalo 100% berarti lo ga pernah skip, Gacor Abis!',
+                  'Tingkat kedisiplinan kamu. Kalo 100% berarti kamu ga pernah skip, Gacor Abis!',
             ),
             const SizedBox(height: 16),
 
@@ -425,7 +425,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       '',
                       Colors.purpleAccent,
                       description:
-                          'Jam dimana lo paling sering nyelesain habit. Waktu produktif lo banget nih!',
+                          'Jam dimana kamu paling sering nyelesain habit. Waktu produktif kamu banget nih!',
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -436,7 +436,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       '',
                       Colors.blueAccent,
                       description:
-                          'Hari dimana lo paling rajin sikat habis semua habit.',
+                          'Hari dimana kamu paling rajin sikat habis semua habit.',
                     ),
                   ),
                 ],
@@ -449,7 +449,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
             _buildSectionTitleWithHelp(
               'Jejak Keaktifan',
-              'Visualisasi seberapa rajin lo setiap harinya. Kotak yang berwarna nunjukin kalo lo ada progress di hari itu. Makin terang warnanya, makin rajin lo! 🔥',
+              'Visualisasi seberapa rajin kamu setiap harinya. Kotak yang berwarna nunjukin kalo kamu ada progress di hari itu. Makin terang warnanya, makin rajin kamu! 🔥',
             ),
             const SizedBox(height: 16),
             Container(
@@ -469,7 +469,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             const SizedBox(height: 32),
             _buildSectionTitleWithHelp(
               _getChartTitle(filter),
-              'Grafik batang ini nunjukin performa lo dari waktu ke waktu. Lo bisa liat tren naik turun produktivitas lo disini. 📊',
+              'Grafik batang ini nunjukin performa kamu dari waktu ke waktu. Kamu bisa liat tren naik turun produktivitas kamu disini. 📊',
             ),
             const SizedBox(height: 16),
             Container(
@@ -597,7 +597,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     'Kali',
                     AppTheme.primary,
                     description:
-                        'Berapa kali lo lakuin habit ini di periode ini.',
+                        'Berapa kali kamu lakuin habit ini di periode ini.',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -608,7 +608,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     'Hari',
                     const Color(0xFFFF5757),
                     description:
-                        'Streak lo yang lagi jalan sekarang. Gas terooos! 🔥',
+                        'Streak kamu yang lagi jalan sekarang. Gas terooos! 🔥',
                   ),
                 ),
               ],
@@ -623,7 +623,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     'Hari',
                     Colors.amber,
                     description:
-                        'Streak paling lama yang pernah lo capai. Legend!',
+                        'Streak paling lama yang pernah kamu capai. Legend!',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -634,7 +634,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     'Kali',
                     Colors.grey,
                     description:
-                        'Berapa kali lo skip habit ini. Jangan sering-sering ya!',
+                        'Berapa kali kamu skip habit ini. Jangan sering-sering ya!',
                   ),
                 ),
               ],
@@ -643,7 +643,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             const SizedBox(height: 32),
             _buildSectionTitleWithHelp(
               'Jejak Keaktifan',
-              'Rekam jejak konsistensi lo buat habit ini. Liat seberapa sering lo lakuin habit ini dalam rentang waktu tertentu. 📅',
+              'Rekam jejak konsistensi kamu buat habit ini. Liat seberapa sering kamu lakuin habit ini dalam rentang waktu tertentu. 📅',
             ),
             const SizedBox(height: 16),
             Container(

@@ -53,7 +53,7 @@ class PermissionScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Strik butuh izin Notifikasi & Kamera biar lo bisa dapet update dan share moment seru lo!',
+                'Strik butuh izin Notifikasi & Kamera biar kamu bisa dapet update dan share Momentz seru kamu!',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[400],

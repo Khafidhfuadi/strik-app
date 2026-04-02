@@ -14,19 +14,19 @@ class OnboardingData {
       OnboardingData(
         title: 'Glow Up Bareng Yoks!',
         description:
-            'Track kebiasaan lo tiap hari. Konsisten itu kunci buat jadi versi terbaik diri lo!',
+            'Track kebiasaan kamu tiap hari. Konsisten itu kunci buat jadi versi terbaik diri kamu!',
         lottieAsset: 'assets/src/example-boarding.json',
       ),
       OnboardingData(
         title: 'Colek Circle',
         description:
-            'Gas colek temen lo buat saling ngingetin dan support. Glow up bareng lebih seru kan?',
+            'Gas colek temen kamu buat saling ngingetin dan support. Glow up bareng lebih seru kan?',
         lottieAsset: 'assets/src/example-boarding.json',
       ),
       OnboardingData(
         title: 'Pantau Progress',
         description:
-            'Pantau perkembangan kebiasaan lo. Makin konsisten, makin deket sama goals!',
+            'Pantau perkembangan kebiasaan kamu. Makin konsisten, makin deket sama goals!',
         lottieAsset: 'assets/src/example-boarding.json',
       ),
     ];

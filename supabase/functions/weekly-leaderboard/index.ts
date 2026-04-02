@@ -22,6 +22,10 @@ interface UserScore {
   completionRate: number
 }
 
+function roundToSingleDecimal(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
 serve(async (req: Request) => {
   // 1. Verify Authentication (Service Role only for Cron)
   // Warning: Cron jobs typically don't send auth headers like user sessions.
@@ -173,6 +177,7 @@ serve(async (req: Request) => {
     }
 
     const notificationsToSend = []
+    const leaderboardEntries = []
 
     for (const user of users) {
       const friendIds = friendMap.get(user.id) || []
@@ -187,6 +192,22 @@ serve(async (req: Request) => {
 
       // Sort desc
       circleScores.sort((a, b) => b.hybridScore - a.hybridScore)
+
+      const userRankIndex = circleScores.findIndex(score => score.userId === user.id)
+      const currentUserScore = circleScores[userRankIndex]
+
+      if (userRankIndex >= 0 && currentUserScore) {
+        leaderboardEntries.push({
+          week_start_date: startOfLastWeek.toISOString().split('T')[0],
+          user_id: currentUserScore.userId,
+          rank: userRankIndex + 1,
+          total_points: roundToSingleDecimal(currentUserScore.hybridScore),
+          completion_rate: roundToSingleDecimal(currentUserScore.completionRate),
+          total_completed: currentUserScore.totalCompleted,
+          total_habits: currentUserScore.totalExpected,
+          total_participants: circleScores.length
+        })
+      }
       
       const winner = circleScores[0]
       if (winner.hybridScore > 0 && winner.userId !== user.id) { // Only notify if winner is someone else (or maybe self too?)
@@ -210,30 +231,6 @@ serve(async (req: Request) => {
          })
       }
     }
-
-    // 6. Persist Global Leaderboard
-    // Sort all users by score desc to get global rank
-    userScores.sort((a, b) => b.hybridScore - a.hybridScore)
-
-    const leaderboardEntries = userScores.map((score, index) => {
-        return {
-            week_start_date: startOfLastWeek.toISOString().split('T')[0], // YYYY-MM-DD
-            user_id: score.userId,
-            rank: index + 1,
-            total_points: score.hybridScore,
-            completion_rate: score.completionRate,
-            total_completed: score.totalCompleted,
-            total_habits: score.totalExpected, // Using totalExpected as proxy for total_habits work or actual count? Schema says 'total_habits', implies count of habits. But totalExpected is days. 
-            // Let's use totalExpected for now as it reflects effort, or we could pass habit count if needed.
-            // Schema comment said "total_habits". If it means distinct habits, we need that count. 
-            // In step 4, we have `habits.length`. Let's assume we want 'effort' so totalExpected (days) is better logic but field name is total_habits.
-            // Let's check schema again? No, let's just use 0 for now or update interface again? 
-            // WAIT, I can just use existing vars if I had them. 
-            // I'll stick to score.totalExpected for 'total_habits' column if users understand it as 'total chances'. 
-            // Or I can add `habitCount` to UserScore. Let's add habitCount.
-            total_participants: users.length
-        }
-    })
 
     if (leaderboardEntries.length > 0) {
         const { error: leaderboardError } = await supabase

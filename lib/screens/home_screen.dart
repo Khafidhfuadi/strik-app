@@ -303,9 +303,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               // const SizedBox(width: 4),
               Lottie.asset(
-                'assets/src/kareem-logo.json',
-                width: 50,
-                height: 50,
+                'assets/src/strik-logo.json',
+                width: 28,
+                height: 28,
                 repeat: false,
               ),
             ],

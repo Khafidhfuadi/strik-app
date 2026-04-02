@@ -285,7 +285,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
         child: Column(
           children: [
             const Text(
-              'Yang ngeliat Momentz lo',
+              'Yang ngeliat Momentz kamu',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,

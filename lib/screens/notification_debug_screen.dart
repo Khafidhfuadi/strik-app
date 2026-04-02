@@ -83,7 +83,7 @@ class _AlarmManagementScreenState extends State<AlarmManagementScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Disini lo bisa ngeliat alarm terdekat yang bakal ingetin kalo remindernya di aktifin! Alarm gabisa dihapus kecuali lo edit habitnya atau hapus.',
+                              'Disini kamu bisa ngeliat alarm terdekat yang bakal ingetin kalo remindernya di aktifin! Alarm gabisa dihapus kecuali kamu edit habitnya atau hapus.',
                               style: TextStyle(
                                 fontFamily: 'Plus Jakarta Sans',
                                 color: AppTheme.textSecondary,

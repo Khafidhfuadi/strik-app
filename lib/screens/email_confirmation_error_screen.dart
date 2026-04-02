@@ -32,7 +32,7 @@ class EmailConfirmationErrorScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Biasanya ini karena link verifikasi udah otomatis dicek sama sistem email lo. Jadi kemungkian besar akun lo udah aktif kok!',
+                'Biasanya ini karena link verifikasi udah otomatis dicek sama sistem email kamu. Jadi kemungkian besar akun kamu udah aktif kok!',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),

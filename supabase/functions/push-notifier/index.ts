@@ -302,13 +302,64 @@ serve(async (req: Request) => {
       
       return new Response(JSON.stringify({ message: `Sent ${promises.length} notifications (post)` }), { status: 200 })
     }
-    // CASE B: REACTIONS (Table: reactions) - DEPRECATED/REMOVED to avoid duplicates
-    // Logic moved to 'notifications' table trigger.
-    /*
     else if (table === 'reactions') {
-       // ... (removed to prevent double notifications) ...
+      // Only send push for momentz/story reactions.
+      // Other reaction notifications are handled elsewhere to avoid duplicates.
+      if (!record?.story_id) {
+        return new Response(JSON.stringify({ message: 'Ignored: Non-story reaction' }), { status: 200 })
+      }
+
+      const reactorId = record.user_id
+      const storyId = record.story_id
+      const reactionType = record.type || '❤️'
+
+      const [{ data: story }, { data: reactor }] = await Promise.all([
+        supabaseAdmin
+          .from('stories')
+          .select('id, user_id')
+          .eq('id', storyId)
+          .maybeSingle(),
+        supabaseAdmin
+          .from('profiles')
+          .select('username')
+          .eq('id', reactorId)
+          .maybeSingle(),
+      ])
+
+      if (!story?.user_id) {
+        return new Response(JSON.stringify({ message: 'Story not found' }), { status: 200 })
+      }
+
+      if (story.user_id === reactorId) {
+        return new Response(JSON.stringify({ message: 'Ignored: Self reaction' }), { status: 200 })
+      }
+
+      const { data: ownerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('fcm_token')
+        .eq('id', story.user_id)
+        .maybeSingle()
+
+      if (!ownerProfile?.fcm_token) {
+        return new Response(JSON.stringify({ message: 'Story owner has no FCM token' }), { status: 200 })
+      }
+
+      const reactorName = reactor?.username || 'Seseorang'
+      const result = await sendFCM(
+        ownerProfile.fcm_token,
+        `${reactorName} nge-react momentz kamu`,
+        `React ${reactionType} di momentz kamu`,
+        {
+          type: 'story_reaction',
+          story_id: storyId,
+          reaction_type: reactionType,
+          reactor_id: reactorId,
+          reactor_name: reactorName,
+        }
+      )
+
+      return new Response(JSON.stringify(result), { status: 200 })
     }
-    */
 
     // CASE D: NOTIFICATIONS TABLE (poke, friend request, etc.)
     // Triggered by webhook on INSERT to 'notifications' table
