@@ -439,7 +439,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                             builder: (ctx, child) {
                               return LinearProgressIndicator(
                                 value: _animController.value,
-                                backgroundColor: Colors.white.withOpacity(0.3),
+                                backgroundColor: Colors.white.withValues(alpha: 0.3),
                                 valueColor: const AlwaysStoppedAnimation(
                                   Colors.white,
                                 ),
@@ -448,7 +448,7 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                           )
                         : LinearProgressIndicator(
                             value: idx < _currentIndex ? 1.0 : 0.0,
-                            backgroundColor: Colors.white.withOpacity(0.3),
+                            backgroundColor: Colors.white.withValues(alpha: 0.3),
                             valueColor: const AlwaysStoppedAnimation(
                               Colors.white,
                             ),
@@ -570,10 +570,10 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.1),
+                                color: Colors.white.withValues(alpha: 0.1),
                                 width: 0.5,
                               ),
                             ),
@@ -612,10 +612,10 @@ class _StoryUserPlayerState extends State<StoryUserPlayer>
                                 horizontal: 16,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
+                                color: Colors.white.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(30),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   width: 0.5,
                                 ),
                               ),

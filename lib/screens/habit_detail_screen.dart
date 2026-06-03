@@ -1227,7 +1227,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
 
                   Color? bgColor;
                   Color? textColor = isFuture
-                      ? AppTheme.textSecondary.withOpacity(0.3)
+                      ? AppTheme.textSecondary.withValues(alpha: 0.3)
                       : AppTheme.textSecondary;
                   BoxBorder? border;
 

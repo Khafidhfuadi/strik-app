@@ -357,7 +357,7 @@ class _SocialScreenState extends State<SocialScreen> {
         decoration: BoxDecoration(
           color: Colors.grey[900],
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -399,7 +399,7 @@ class _SocialScreenState extends State<SocialScreen> {
                   color: Colors.grey[600],
                 ),
                 filled: true,
-                fillColor: Colors.black.withOpacity(0.3),
+                fillColor: Colors.black.withValues(alpha: 0.3),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
@@ -764,7 +764,7 @@ class _SocialScreenState extends State<SocialScreen> {
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.grey[900]!.withOpacity(0.5),
+                          color: Colors.grey[900]!.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -991,10 +991,10 @@ class _SocialScreenState extends State<SocialScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
+                                  color: Colors.blue.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Colors.blue.withOpacity(0.3),
+                                    color: Colors.blue.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Row(
@@ -1081,7 +1081,7 @@ class _SocialScreenState extends State<SocialScreen> {
                     vertical: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.grey[900]!.withOpacity(0.5),
+                    color: Colors.grey[900]!.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -1202,7 +1202,7 @@ class _SocialScreenState extends State<SocialScreen> {
             Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: color.withOpacity(0.5), width: 2),
+                border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(4.0),
@@ -1241,7 +1241,7 @@ class _SocialScreenState extends State<SocialScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -1270,7 +1270,7 @@ class _SocialScreenState extends State<SocialScreen> {
                     '${data['completionRate'].toStringAsFixed(0)}%',
                     style: TextStyle(
                       fontFamily: 'Plus Jakarta Sans',
-                      color: color.withOpacity(0.7),
+                      color: color.withValues(alpha: 0.7),
                       fontSize: 9,
                     ),
                   ),
@@ -1369,9 +1369,9 @@ class _SocialScreenState extends State<SocialScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.1),
+                  color: Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1514,10 +1514,10 @@ class _SocialScreenState extends State<SocialScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isWinner ? Colors.green.withOpacity(0.1) : Colors.grey[900],
+        color: isWinner ? Colors.green.withValues(alpha: 0.1) : Colors.grey[900],
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isWinner ? Colors.green.withOpacity(0.3) : Colors.transparent,
+          color: isWinner ? Colors.green.withValues(alpha: 0.3) : Colors.transparent,
           width: 1,
         ),
       ),
@@ -1663,9 +1663,9 @@ class _SocialScreenState extends State<SocialScreen> {
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[900]!.withOpacity(0.6),
+                      color: Colors.grey[900]!.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1813,8 +1813,8 @@ class _SocialScreenState extends State<SocialScreen> {
                                                     horizontal: 16,
                                                   ),
                                               decoration: BoxDecoration(
-                                                color: Colors.red.withOpacity(
-                                                  0.1,
+                                                color: Colors.red.withValues(
+                                                  alpha: 0.1,
                                                 ),
                                                 borderRadius:
                                                     BorderRadius.circular(12),
@@ -1877,7 +1877,7 @@ class _SocialScreenState extends State<SocialScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: hasReacted
-                                      ? const Color(0xFFFF5757).withOpacity(0.2)
+                                      ? const Color(0xFFFF5757).withValues(alpha: 0.2)
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
@@ -1993,7 +1993,7 @@ class _SocialScreenState extends State<SocialScreen> {
             if (_controller.pendingRequests.isNotEmpty) {
               return Container(
                 padding: const EdgeInsets.all(16),
-                color: Colors.amber.withOpacity(0.1),
+                color: Colors.amber.withValues(alpha: 0.1),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2044,7 +2044,7 @@ class _SocialScreenState extends State<SocialScreen> {
             if (_controller.sentRequests.isNotEmpty) {
               return Container(
                 padding: const EdgeInsets.all(16),
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2226,7 +2226,7 @@ class _SocialScreenState extends State<SocialScreen> {
                                         'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
                                         snackPosition: SnackPosition.BOTTOM,
                                         backgroundColor: Colors.orange
-                                            .withOpacity(0.8),
+                                            .withValues(alpha: 0.8),
                                         colorText: Colors.white,
                                       );
                                     }
@@ -2239,7 +2239,7 @@ class _SocialScreenState extends State<SocialScreen> {
                                   fontSize: 24,
                                   color: canPoke
                                       ? null
-                                      : Colors.grey.withOpacity(0.3),
+                                      : Colors.grey.withValues(alpha: 0.3),
                                 ),
                               ),
                               tooltip: canPoke ? 'Colek' : 'Belum bisa colek',
@@ -2657,11 +2657,11 @@ class _SocialScreenState extends State<SocialScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: isTop3
-                            ? Colors.amber.withOpacity(0.05)
-                            : Colors.grey[900]!.withOpacity(0.5),
+                            ? Colors.amber.withValues(alpha: 0.05)
+                            : Colors.grey[900]!.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(16),
                         border: isTop3
-                            ? Border.all(color: Colors.amber.withOpacity(0.2))
+                            ? Border.all(color: Colors.amber.withValues(alpha: 0.2))
                             : null,
                       ),
                       child: Row(
@@ -2756,9 +2756,9 @@ class _SocialScreenState extends State<SocialScreen> {
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey[900]!.withOpacity(0.6),
+          color: Colors.grey[900]!.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2794,7 +2794,7 @@ class _SocialScreenState extends State<SocialScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.2),
+                              color: AppTheme.primary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -2812,7 +2812,7 @@ class _SocialScreenState extends State<SocialScreen> {
                             'Baru saja',
                             style: TextStyle(
                               fontFamily: 'Plus Jakarta Sans',
-                              color: Colors.white.withOpacity(0.4),
+                              color: Colors.white.withValues(alpha: 0.4),
                               fontSize: 12,
                             ),
                           ),
@@ -2842,7 +2842,7 @@ class _SocialScreenState extends State<SocialScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -2853,7 +2853,7 @@ class _SocialScreenState extends State<SocialScreen> {
                         '12',
                         style: TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),

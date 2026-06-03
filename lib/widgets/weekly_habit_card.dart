@@ -67,7 +67,7 @@ class WeeklyHabitCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2), // Subtle dark badge
+                    color: Colors.white.withValues(alpha: 0.2), // Subtle dark badge
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -147,8 +147,8 @@ class WeeklyHabitCard extends StatelessWidget {
                           DateFormat('E').format(date).substring(0, 1),
                           style: TextStyle(
                             fontFamily: 'Plus Jakarta Sans',
-                            color: Colors.white.withOpacity(
-                              isToday ? 1.0 : 0.6,
+                            color: Colors.white.withValues(
+                              alpha: isToday ? 1.0 : 0.6,
                             ),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -160,16 +160,16 @@ class WeeklyHabitCard extends StatelessWidget {
                           height: 32,
                           decoration: BoxDecoration(
                             color: status == 'completed'
-                                ? Colors.white.withOpacity(0.25)
+                                ? Colors.white.withValues(alpha: 0.25)
                                 : (isToday
-                                      ? Colors.white.withOpacity(0.1)
+                                      ? Colors.white.withValues(alpha: 0.1)
                                       : Colors.transparent),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: status == 'completed'
                                   ? Colors.transparent
-                                  : Colors.white.withOpacity(
-                                      0.2,
+                                  : Colors.white.withValues(
+                                      alpha: 0.2,
                                     ), // Subtle border
                               width: 1.5,
                             ),
@@ -186,7 +186,7 @@ class WeeklyHabitCard extends StatelessWidget {
                               ? Icon(
                                   Icons.close,
                                   size: 18,
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withValues(alpha: 0.5),
                                 )
                               : null,
                         ),

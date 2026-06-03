@@ -87,9 +87,9 @@ class PostDetailScreen extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[900]!.withOpacity(0.6),
+              color: Colors.grey[900]!.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +183,7 @@ class PostDetailScreen extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: hasReacted
-                              ? const Color(0xFFFF5757).withOpacity(0.2)
+                              ? const Color(0xFFFF5757).withValues(alpha: 0.2)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
