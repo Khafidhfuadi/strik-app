@@ -550,6 +550,39 @@ class HabitController extends GetxController {
     }
   }
 
+  Future<void> archiveHabit(String id) async {
+    try {
+      // Cancel alarm for archived habit
+      await AlarmManagerService.instance.cancelHabitAlarm(id);
+
+      await _habitRepository.archiveHabit(id, true);
+      await fetchHabitsAndLogs(isRefresh: true);
+      Get.back(); // Back from Detail screen
+      Get.snackbar(
+        'Diarsipkan',
+        'Habit berhasil diarsipkan',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal mengarsipkan habit: $e');
+    }
+  }
+
+  Future<void> unarchiveHabit(String id) async {
+    try {
+      await _habitRepository.archiveHabit(id, false);
+      await fetchHabitsAndLogs(isRefresh: true);
+      Get.back(); // Back from Detail screen
+      Get.snackbar(
+        'Dipulihkan',
+        'Habit berhasil dipulihkan dari arsip',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal memulihkan habit: $e');
+    }
+  }
+
   // Helper to mark habit as completed (called by HabitJournalController)
   Future<void> markHabitAsCompleted(Habit habit) async {
     // Check current status

@@ -49,6 +49,17 @@ class HabitRepository {
     }
   }
 
+  Future<void> archiveHabit(String id, bool archived) async {
+    try {
+      await supabase
+          .from('habits')
+          .update({'is_archived': archived})
+          .eq('id', id);
+    } catch (e) {
+      throw Exception('Failed to archive habit: $e');
+    }
+  }
+
   Future<void> updateHabitOrder(List<Habit> habits) async {
     try {
       for (int i = 0; i < habits.length; i++) {

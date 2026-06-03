@@ -415,22 +415,26 @@ class FriendRepository {
       final user = entry['user'] as UserModel;
 
       try {
-        await _supabase.from('weekly_leaderboards').insert({
-          'week_start_date': dateStr,
-          'user_id': user.id,
-          'rank': i + 1,
-          'total_points': double.parse(
-            (entry['score'] as double).toStringAsFixed(1),
-          ),
-          'completion_rate': double.parse(
-            (entry['completionRate'] as double).toStringAsFixed(1),
-          ),
-          'total_completed': entry['totalCompleted'],
-          'total_participants': totalParticipants,
-          'total_habits':
-              entry['totalExpected'] ??
-              0, // Changed to totalExpected as per user request
-        });
+        // Use upsert to prevent duplicate entries if already snapshotted
+        await _supabase.from('weekly_leaderboards').upsert(
+          {
+            'week_start_date': dateStr,
+            'user_id': user.id,
+            'rank': i + 1,
+            'total_points': double.parse(
+              (entry['score'] as double).toStringAsFixed(1),
+            ),
+            'completion_rate': double.parse(
+              (entry['completionRate'] as double).toStringAsFixed(1),
+            ),
+            'total_completed': entry['totalCompleted'],
+            'total_participants': totalParticipants,
+            'total_habits':
+                entry['totalExpected'] ??
+                0, // Changed to totalExpected as per user request
+          },
+          onConflict: 'week_start_date,user_id',
+        );
       } catch (e) {
         // Ignore duplicate key errors if already snapshotted
         print('Error snapshotting for ${user.username}: $e');
@@ -446,11 +450,22 @@ class FriendRepository {
         .order('week_start_date', ascending: false)
         .order('rank', ascending: true);
 
-    // Group by week
-    // But since we want to display a list of weeks, maybe just return raw for now
-    // Or return unique weeks?
-    // Let's return raw list, controller can process.
-    return List<Map<String, dynamic>>.from(response);
+    final rawList = List<Map<String, dynamic>>.from(response);
+
+    // Deduplicate: keep only ONE entry per (week_start_date, user_id) pair.
+    // If there are duplicates from legacy data, prefer the entry with the
+    // lowest rank (best position) for that user in that week.
+    final seen = <String>{};
+    final deduped = <Map<String, dynamic>>[];
+    for (final entry in rawList) {
+      final key = '${entry['week_start_date']}_${entry['user_id']}';
+      if (!seen.contains(key)) {
+        seen.add(key);
+        deduped.add(entry);
+      }
+    }
+
+    return deduped;
   }
 
   Future<List<Map<String, dynamic>>> getPreviousWeekWinners() async {

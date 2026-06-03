@@ -1428,10 +1428,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       Divider(color: Colors.grey[800], height: 1),
                   itemBuilder: (context, index) {
                     final h = archivedHabits[index];
-                    String dateText = '-';
-                    if (h.endDate != null) {
-                      dateText =
-                          '${h.endDate!.day}/${h.endDate!.month}/${h.endDate!.year}';
+                    String subtitleText;
+                    if (h.isArchivedManual) {
+                      subtitleText = 'Diarsipkan';
+                    } else if (h.endDate != null) {
+                      subtitleText =
+                          'Berakhir: ${h.endDate!.day}/${h.endDate!.month}/${h.endDate!.year}';
+                    } else {
+                      subtitleText = 'Diarsipkan';
                     }
 
                     return ListTile(
@@ -1443,7 +1447,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       leading: Icon(
                         h.isChallenge
                             ? Icons.emoji_events_rounded
-                            : Icons.calendar_today_rounded,
+                            : h.isArchivedManual
+                                ? Icons.archive_outlined
+                                : Icons.calendar_today_rounded,
                         color: Colors.grey,
                         size: 28,
                       ),
@@ -1457,7 +1463,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                       subtitle: Text(
-                        'Berakhir: $dateText',
+                        subtitleText,
                         style: TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
                           fontSize: 12,

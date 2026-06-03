@@ -17,6 +17,7 @@ class Habit {
   final bool reminderEnabled;
   final DateTime? createdAt;
   final bool isPublic;
+  final bool _isArchivedManual;
   final int? sortOrder;
   final String? challengeId;
   final HabitChallenge? challenge; // Reference to the challenge source of truth
@@ -38,6 +39,7 @@ class Habit {
     this.sortOrder,
     this.challengeId,
     this.challenge,
+    bool isArchivedManual = false,
   }) : _title = title,
        _description = description,
        _color = color,
@@ -45,7 +47,8 @@ class Habit {
        _daysOfWeek = daysOfWeek,
        _frequencyCount = frequencyCount,
        _endDate = endDate,
-       _reminderTime = reminderTime;
+       _reminderTime = reminderTime,
+       _isArchivedManual = isArchivedManual;
 
   // Getters that prioritize Challenge data if linked
   String get title => challenge?.habitTitle ?? _title;
@@ -61,7 +64,10 @@ class Habit {
 
   bool get isChallenge => challengeId != null;
 
+  bool get isArchivedManual => _isArchivedManual;
+
   bool get isArchived {
+    if (_isArchivedManual) return true;
     if (challenge != null) {
       return !challenge!.isActive;
     }
@@ -123,6 +129,7 @@ class Habit {
       challenge: json['challenge'] != null
           ? HabitChallenge.fromJson(json['challenge'])
           : null,
+      isArchivedManual: json['is_archived'] ?? false,
     );
   }
 
@@ -156,6 +163,7 @@ class Habit {
       'is_public': isPublic,
       'sort_order': sortOrder,
       'challenge_id': challengeId,
+      'is_archived': _isArchivedManual,
     };
   }
 }
