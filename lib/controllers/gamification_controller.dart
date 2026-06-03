@@ -34,7 +34,7 @@ class GamificationController extends GetxController {
       return const LevelBenefits(
         level: 1, // Represents 1-3
         completeHabit: 2,
-        skipHabit: -1,
+        skipHabit: 0,
         newMomentz: 1,
         react: 0.5,
         newHabit: 5,
@@ -46,7 +46,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 4,
           completeHabit: 2.5,
-          skipHabit: -1,
+          skipHabit: 0,
           newMomentz: 1,
           react: 0.5,
           newHabit: 6,
@@ -56,7 +56,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 5,
           completeHabit: 3,
-          skipHabit: -1,
+          skipHabit: 0,
           newMomentz: 1,
           react: 0.5,
           newHabit: 7,
@@ -66,7 +66,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 6,
           completeHabit: 3.5,
-          skipHabit: -1,
+          skipHabit: 0,
           newMomentz: 1,
           react: 0.5,
           newHabit: 8,
@@ -76,7 +76,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 7,
           completeHabit: 4,
-          skipHabit: -1,
+          skipHabit: 0,
           newMomentz: 2,
           react: 1,
           newHabit: 9,
@@ -86,7 +86,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 8,
           completeHabit: 4.5,
-          skipHabit: -1,
+          skipHabit: 0,
           newMomentz: 2,
           react: 1,
           newHabit: 10,
@@ -96,7 +96,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 9,
           completeHabit: 5,
-          skipHabit: -1,
+          skipHabit: 0,
           newMomentz: 2,
           react: 1,
           newHabit: 11,
@@ -107,7 +107,7 @@ class GamificationController extends GetxController {
         return const LevelBenefits(
           level: 10,
           completeHabit: 5.5,
-          skipHabit: -1,
+          skipHabit: 0,
           newMomentz: 3,
           react: 1.5,
           newHabit: 12,
@@ -411,7 +411,7 @@ class GamificationController extends GetxController {
                     Icons.remove_circle_outline,
                     'Skip / Lupa',
                     '${benefits.skipHabit.toInt()} XP',
-                    Colors.redAccent,
+                    Colors.grey,
                   ),
                 ],
               ),
@@ -525,6 +525,7 @@ class GamificationController extends GetxController {
     String reason = 'Activity',
     String? referenceId,
   }) async {
+    if (amount == 0) return;
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
@@ -601,6 +602,7 @@ class GamificationController extends GetxController {
     String reason = 'Activity',
     String? referenceId,
   }) async {
+    if (amount == 0) return;
     print('DEBUG: awardXPToUser called for userId: $userId, amount: $amount');
     try {
       final response = await _repository.incrementUserXP(
