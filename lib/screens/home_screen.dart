@@ -678,7 +678,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Mantap! Semua habit hari ini udah kelar 🎉',
+                      'Mantap! Semua habit hari ini udah kelar!',
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 16,
@@ -1448,8 +1448,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         h.isChallenge
                             ? Icons.emoji_events_rounded
                             : h.isArchivedManual
-                                ? Icons.archive_outlined
-                                : Icons.calendar_today_rounded,
+                            ? Icons.archive_outlined
+                            : Icons.calendar_today_rounded,
                         color: Colors.grey,
                         size: 28,
                       ),
