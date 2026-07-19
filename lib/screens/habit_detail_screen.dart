@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:strik_app/screens/coach_strik_ai_screen.dart';
 import 'package:strik_app/screens/habit_journal_editor_screen.dart';
 import 'package:strik_app/widgets/user_profile_bottom_sheet.dart';
+import 'package:strik_app/widgets/linkable_text.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   final Habit habit;
@@ -1932,7 +1933,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   ),
               ],
               const SizedBox(height: 12),
-              Text(
+              LinkableText(
                 journal.content.isNotEmpty
                     ? journal.content
                     : 'Jurnal ini berisi foto progres tanpa catatan teks.',

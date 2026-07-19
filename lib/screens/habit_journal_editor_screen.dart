@@ -10,6 +10,7 @@ import 'package:strik_app/controllers/habit_journal_controller.dart';
 import 'package:strik_app/core/theme.dart';
 import 'package:strik_app/data/models/habit.dart';
 import 'package:strik_app/data/models/habit_journal.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HabitJournalEditorScreen extends StatefulWidget {
   const HabitJournalEditorScreen({
@@ -532,6 +533,16 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
   }
 
   Widget _buildEditorCard() {
+    final RegExp urlRegex = RegExp(
+      r'((https?:\/\/|www\.)[^\s\n]+)',
+      caseSensitive: false,
+    );
+    final String currentText = _textController.text;
+    final List<String> detectedLinks = urlRegex
+        .allMatches(currentText)
+        .map((m) => m.group(0)!)
+        .toList();
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
@@ -551,7 +562,10 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
               color: AppTheme.textPrimary,
               height: 1.7,
             ),
-            onChanged: _handleTextChanged,
+            onChanged: (value) {
+              _handleTextChanged(value);
+              setState(() {});
+            },
             decoration: InputDecoration(
               hintText: 'Tulis jurnal kamu di sini...',
               hintStyle: TextStyle(
@@ -564,6 +578,82 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
               contentPadding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
             ),
           ),
+          if (detectedLinks.isNotEmpty) ...[
+            const Divider(color: Colors.white10, height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Link Terdeteksi (Ketuk untuk membuka):',
+                    style: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: detectedLinks.map((link) {
+                      final cleanUrl = link.toLowerCase().startsWith('www.')
+                          ? 'https://$link'
+                          : link;
+                      return ActionChip(
+                        backgroundColor: AppTheme.surfaceLight,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        avatar: const Icon(
+                          Icons.open_in_new,
+                          size: 14,
+                          color: Colors.cyanAccent,
+                        ),
+                        label: Text(
+                          link,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 12,
+                            color: Colors.cyanAccent,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                        onPressed: () async {
+                          try {
+                            final Uri uri = Uri.parse(cleanUrl);
+                            final launched = await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                            if (!launched) {
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.platformDefault,
+                              );
+                            }
+                          } catch (e) {
+                            Get.snackbar(
+                              'Error',
+                              'Gagal membuka link: $link',
+                              snackPosition: SnackPosition.BOTTOM,
+                            );
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
