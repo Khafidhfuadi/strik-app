@@ -18,6 +18,17 @@ class AlarmManagerService {
     await _instance!._startListening();
   }
 
+  /// Generate a safe 32-bit even base ID from a habit ID string.
+  /// Centralizes the hashCode logic to avoid overflow on native platforms.
+  static int _generateBaseId(String habitId) {
+    int baseId = habitId.hashCode;
+    if (baseId < 0) baseId = -baseId;
+    // Modulo to keep within safe 32-bit int range for native alarm APIs
+    baseId = baseId % 100000000;
+    baseId = baseId & ~1; // Force even number
+    return baseId;
+  }
+
   Future<void> _startListening() async {
     _ringSubscription = Alarm.ringStream.stream.listen((alarmSettings) async {
       final alarmId = alarmSettings.id;
@@ -27,6 +38,16 @@ class AlarmManagerService {
       // Get metadata using baseId
       final metadata = await _getAlarmMetadata(baseId);
       if (metadata == null) {
+        // No metadata means alarm was cancelled (e.g. archived habit)
+        // Do NOT reschedule
+        return;
+      }
+
+      // Check if metadata is marked as cancelled (race condition protection)
+      if (metadata['cancelled'] == true) {
+        // Alarm was cancelled but rang before cancel completed.
+        // Clean up metadata and do NOT reschedule.
+        await _deleteAlarmMetadata(baseId);
         return;
       }
 
@@ -52,7 +73,7 @@ class AlarmManagerService {
           volumeSettings: VolumeSettings.fixed(volume: 0.8),
           notificationSettings: NotificationSettings(
             title: metadata['habitTitle'],
-            body: 'Yuk semangat kerjain habit kamu! 🔥',
+            body: 'Yuk semangat kerjain habit kamu!',
             stopButton: 'Stop',
             icon: '@mipmap/ic_launcher',
           ),
@@ -149,10 +170,12 @@ class AlarmManagerService {
     required List<int>? daysOfWeek,
     required TimeOfDay reminderTime,
   }) async {
-    // Generate base alarm ID from habit ID (ensure it's even)
-    int baseId = habitId.hashCode;
-    if (baseId < 0) baseId = -baseId;
-    baseId = baseId & ~1; // Force even number
+    // Generate safe base alarm ID
+    final baseId = _generateBaseId(habitId);
+
+    // Cancel any existing alarms for this habit first (prevents stale alarms on edit)
+    await Alarm.stop(baseId);
+    await Alarm.stop(baseId + 1);
 
     // Calculate first occurrence
     final firstDateTime = _calculateNextOccurrence(
@@ -186,7 +209,7 @@ class AlarmManagerService {
       volumeSettings: VolumeSettings.fixed(volume: 0.8),
       notificationSettings: NotificationSettings(
         title: 'Waktunya $habitTitle!',
-        body: 'Yuk semangat kerjain habit kamu! 🔥',
+        body: 'Yuk semangat kerjain habit kamu!',
         stopButton: 'Stop',
         icon: '@mipmap/ic_launcher',
       ),
@@ -196,14 +219,22 @@ class AlarmManagerService {
   }
 
   Future<void> cancelHabitAlarm(String habitId) async {
-    int baseId = habitId.hashCode;
-    if (baseId < 0) baseId = -baseId;
-    baseId = baseId & ~1; // Force even number
+    final baseId = _generateBaseId(habitId);
+
+    // Mark metadata as cancelled first (race condition protection)
+    // If the alarm rings between now and Alarm.stop(), the ring listener
+    // will see the 'cancelled' flag and skip rescheduling.
+    final metadata = await _getAlarmMetadata(baseId);
+    if (metadata != null) {
+      metadata['cancelled'] = true;
+      await _saveAlarmMetadata(baseId, metadata);
+    }
 
     // Cancel both potential IDs (base and base+1)
     await Alarm.stop(baseId);
     await Alarm.stop(baseId + 1);
 
+    // Now safe to delete metadata
     await _deleteAlarmMetadata(baseId);
     print('Alarm cancelled for habit $habitId');
   }
@@ -211,9 +242,7 @@ class AlarmManagerService {
   /// Call this when a habit is completed EARLY.
   /// It cancels the current pending alarm (if any) and schedules the NEXT one.
   Future<void> completeHabit(String habitId) async {
-    int baseId = habitId.hashCode;
-    if (baseId < 0) baseId = -baseId;
-    baseId = baseId & ~1;
+    final baseId = _generateBaseId(habitId);
 
     // 1. Get metadata
     final metadata = await _getAlarmMetadata(baseId);
@@ -239,12 +268,6 @@ class AlarmManagerService {
 
     DateTime referenceDate;
     if (frequency == 'weekly') {
-      // For weekly, we just add 7 days from now?
-      // Actually, if I complete it today (Monday), and it's a Weekly habit for Monday,
-      // the next one is next Monday.
-      // If I complete it today (Tuesday), and it's a Weekly habit for Monday (overdue?),
-      // the logic is tricky.
-      // Let's use the standard "Next Occurrence" logic but starting from TOMORROW.
       referenceDate = DateTime.now().add(const Duration(days: 1));
     } else {
       // Daily/Monthly: Start searching from tomorrow
@@ -260,10 +283,6 @@ class AlarmManagerService {
 
     if (nextDateTime != null) {
       // 4. Schedule the next one
-      // Toggle ID mechanism isn't strictly needed here since we stopped both,
-      // but let's stick to baseId for simplicity or toggle if we want to be fancy.
-      // Since we stopped both, we can just use baseId.
-
       final newAlarmSettings = AlarmSettings(
         id: baseId,
         dateTime: nextDateTime,
@@ -271,7 +290,7 @@ class AlarmManagerService {
         volumeSettings: VolumeSettings.fixed(volume: 0.8),
         notificationSettings: NotificationSettings(
           title: metadata['habitTitle'] ?? 'Habit Reminder',
-          body: 'Yuk semangat kerjain habit kamu! 🔥',
+          body: 'Yuk semangat kerjain habit kamu!',
           stopButton: 'Stop',
           icon: '@mipmap/ic_launcher',
         ),
@@ -315,6 +334,14 @@ class AlarmManagerService {
         final bool reminderEnabled = habit.reminderEnabled;
 
         if (!reminderEnabled || habit.isArchived) {
+          // If archived but has alarm metadata, clean it up
+          if (habit.isArchived && habit.id != null) {
+            final baseId = _generateBaseId(habit.id!);
+            final existingMetadata = await _getAlarmMetadata(baseId);
+            if (existingMetadata != null) {
+              await cancelHabitAlarm(habit.id!);
+            }
+          }
           continue;
         }
 
@@ -328,9 +355,7 @@ class AlarmManagerService {
         }
 
         // Check if metadata already exists (already migrated)
-        int baseId = habitId.hashCode;
-        if (baseId < 0) baseId = -baseId;
-        baseId = baseId & ~1;
+        final baseId = _generateBaseId(habitId);
 
         final existingMetadata = await _getAlarmMetadata(baseId);
 
@@ -365,9 +390,7 @@ class AlarmManagerService {
         continue;
       }
 
-      int baseId = habit.id.hashCode;
-      if (baseId < 0) baseId = -baseId;
-      baseId = baseId & ~1; // Even number
+      final baseId = _generateBaseId(habit.id!);
 
       // Calculate when the alarm SHOULD be
       final expectedTime = _calculateNextOccurrence(
@@ -377,12 +400,6 @@ class AlarmManagerService {
       );
 
       if (expectedTime == null) continue;
-
-      // Check if either ID exists and is valid
-      // Valid means:
-      // 1. Logic ID matches (baseId or baseId+1)
-      // 2. Scheduled time is AFTER now given a small margin (or matches expected)
-      // Actually, simplest check: Do we have ANY future alarm for this habit?
 
       bool hasValidAlarm = false;
       bool hasBadAlarm = false;
@@ -415,6 +432,25 @@ class AlarmManagerService {
           daysOfWeek: habit.daysOfWeek,
           reminderTime: habit.reminderTime!,
         );
+      }
+    }
+  }
+
+  /// Cancel alarms for habits that have been archived.
+  /// Should be called alongside ensureAlarmsAreScheduled to clean up stale alarms.
+  Future<void> cancelAlarmsForArchivedHabits(List<Habit> archivedHabits) async {
+    for (var habit in archivedHabits) {
+      if (habit.id == null) continue;
+
+      final baseId = _generateBaseId(habit.id!);
+
+      // Check if there's still metadata (meaning alarm wasn't properly cancelled)
+      final metadata = await _getAlarmMetadata(baseId);
+      if (metadata != null) {
+        print(
+          'Found stale alarm for archived habit "${habit.title}". Cancelling...',
+        );
+        await cancelHabitAlarm(habit.id!);
       }
     }
   }

@@ -453,6 +453,10 @@ class CreateHabitController extends GetxController {
 
       /* Recurring Alarm Support */
       if (isReminder.value && reminderTime.value != null) {
+        // Cancel old alarm first when editing (prevents stale alarm from previous config)
+        if (isEdit) {
+          await AlarmManagerService.instance.cancelHabitAlarm(createdHabitId);
+        }
         await AlarmManagerService.instance.scheduleRecurringAlarm(
           habitId: createdHabitId,
           habitTitle: titleController.text,

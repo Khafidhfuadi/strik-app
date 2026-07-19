@@ -122,6 +122,12 @@ class HabitController extends GetxController {
     if (habits.isNotEmpty) {
       await AlarmManagerService.instance.ensureAlarmsAreScheduled(habits);
     }
+    // Also cancel any stale alarms from archived habits
+    if (archivedHabits.isNotEmpty) {
+      await AlarmManagerService.instance.cancelAlarmsForArchivedHabits(
+        archivedHabits,
+      );
+    }
   }
 
   Future<void> toggleHabitStatus(
@@ -572,6 +578,21 @@ class HabitController extends GetxController {
     try {
       await _habitRepository.archiveHabit(id, false);
       await fetchHabitsAndLogs(isRefresh: true);
+
+      // Restore alarm if habit has reminder enabled
+      final restoredHabit = habits.firstWhereOrNull((h) => h.id == id);
+      if (restoredHabit != null &&
+          restoredHabit.reminderEnabled &&
+          restoredHabit.reminderTime != null) {
+        await AlarmManagerService.instance.scheduleRecurringAlarm(
+          habitId: id,
+          habitTitle: restoredHabit.title,
+          frequency: restoredHabit.frequency,
+          daysOfWeek: restoredHabit.daysOfWeek,
+          reminderTime: restoredHabit.reminderTime!,
+        );
+      }
+
       Get.back(); // Back from Detail screen
       Get.snackbar(
         'Dipulihkan',
