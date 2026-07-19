@@ -314,7 +314,7 @@ class AlarmManagerService {
         final String title = habit.title;
         final bool reminderEnabled = habit.reminderEnabled;
 
-        if (!reminderEnabled) {
+        if (!reminderEnabled || habit.isArchived) {
           continue;
         }
 
@@ -360,7 +360,8 @@ class AlarmManagerService {
     for (var habit in habits) {
       if (!habit.reminderEnabled ||
           habit.id == null ||
-          habit.reminderTime == null) {
+          habit.reminderTime == null ||
+          habit.isArchived) {
         continue;
       }
 

@@ -404,18 +404,14 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             ),
             onPressed: () => _showChallengeHelp(context),
           ),
-        if (isCreator) ...[
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
-            onPressed: () {
-              Get.to(() => CreateHabitScreen(habit: currentHabit));
-            },
+        IconButton(
+          icon: const Icon(Icons.more_vert, color: AppTheme.textPrimary),
+          onPressed: () => _showOptionsBottomSheet(
+            context,
+            currentHabit,
+            isCreator,
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: AppTheme.textPrimary),
-            onPressed: () => _showDeleteConfirmation(context),
-          ),
-        ],
+        ),
       ],
     );
   }
@@ -1014,6 +1010,150 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showOptionsBottomSheet(
+    BuildContext context,
+    Habit currentHabit,
+    bool isCreator,
+  ) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Pilihan Habit',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (isCreator)
+              ListTile(
+                leading: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
+                title: const Text(
+                  'Edit',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Get.back(); // close bottom sheet
+                  Get.to(() => CreateHabitScreen(habit: currentHabit));
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.archive_outlined, color: AppTheme.textPrimary),
+              title: const Text(
+                'Archive',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () {
+                Get.back(); // close bottom sheet
+                _showArchiveConfirmation(context, currentHabit);
+              },
+            ),
+            if (isCreator)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text(
+                  'Delete',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Get.back(); // close bottom sheet
+                  _showDeleteConfirmation(context);
+                },
+              ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+    );
+  }
+
+  void _showArchiveConfirmation(BuildContext context, Habit currentHabit) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text(
+          'Arsipkan Habit?',
+          style: TextStyle(
+            fontFamily: 'Space Grotesk',
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Beneran mau mengarsipkan "${currentHabit.title}"? Kamu tidak akan mendapatkan reminder dan habit ini akan dipindahkan ke arsip.',
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            color: Colors.white70,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text(
+              'Batal',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white54,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back(); // Close dialog
+              final habitController = Get.find<HabitController>();
+              await habitController.archiveHabit(currentHabit.id!);
+            },
+            child: const Text(
+              'Arsipkan',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: AppTheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
   }
