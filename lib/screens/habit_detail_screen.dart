@@ -1331,8 +1331,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     Habit currentHabit,
   ) {
     return Obx(() {
-      // dependence on journals to trigger rebuild
+      // dependence on journals and focusedMonthJournals to trigger rebuild
       journalController.journals.length;
+      journalController.focusedMonthJournals.length;
 
       final focusedDate = controller.focusedMonth.value;
       final daysInMonth = DateUtils.getDaysInMonth(
@@ -1355,7 +1356,6 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             // User swiped Left -> Go to Previous Month
             controller.changeMonth(-1);
             journalController.updateFocusMonth(controller.focusedMonth.value);
-          } else if (details.primaryVelocity! < 0) {
           } else if (details.primaryVelocity! < 0) {
             // User swiped Right -> Go to Next Month
             controller.changeMonth(1);
@@ -1418,13 +1418,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   final isToday = DateUtils.isSameDay(date, DateTime.now());
                   final isFuture = date.isAfter(DateTime.now());
 
-                  // Check for journal on this date
-                  final hasJournal = journalController.journals.any((j) {
-                    final jDate = j.createdAt.toLocal();
-                    return jDate.year == date.year &&
-                        jDate.month == date.month &&
-                        jDate.day == date.day;
-                  });
+                  // Check for journal on this date from focused month journals
+                  final existingJournal = journalController.getJournalForDate(date);
+                  final hasJournal = existingJournal != null;
 
                   Color? bgColor;
                   Color? textColor = isFuture
@@ -1456,15 +1452,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     onLongPress: (currentHabit.isArchived || isFuture)
                         ? null
                         : () {
-                            // Find existing journal to edit, or null to create new
-                            final journal = journalController.journals
-                                .firstWhereOrNull((j) {
-                                  final jDate = j.createdAt.toLocal();
-                                  return jDate.year == date.year &&
-                                      jDate.month == date.month &&
-                                      jDate.day == date.day;
-                                });
-                            _openJournalEditor(journal: journal, date: date);
+                            _openJournalEditor(journal: existingJournal, date: date);
                           },
                     onTap: (currentHabit.isArchived || isFuture)
                         ? null

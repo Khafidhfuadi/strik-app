@@ -303,18 +303,28 @@ class HabitJournalController extends GetxController {
     }
   }
 
-  void _checkTodayJournal() {
-    final now = DateTime.now();
-    try {
-      todayJournal.value = journals.firstWhere((journal) {
-        final journalDate = journal.createdAt.toLocal();
-        return journalDate.year == now.year &&
-            journalDate.month == now.month &&
-            journalDate.day == now.day;
-      });
-    } catch (e) {
-      todayJournal.value = null; // No journal for today
+  HabitJournal? getJournalForDate(DateTime date) {
+    for (final j in focusedMonthJournals) {
+      final jDate = j.createdAt.toLocal();
+      if (jDate.year == date.year &&
+          jDate.month == date.month &&
+          jDate.day == date.day) {
+        return j;
+      }
     }
+    for (final j in journals) {
+      final jDate = j.createdAt.toLocal();
+      if (jDate.year == date.year &&
+          jDate.month == date.month &&
+          jDate.day == date.day) {
+        return j;
+      }
+    }
+    return null;
+  }
+
+  void _checkTodayJournal() {
+    todayJournal.value = getJournalForDate(DateTime.now());
   }
 
   Future<void> addJournal(
