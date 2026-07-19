@@ -36,7 +36,9 @@ class PushNotificationService {
       }
 
       // Listen for token refreshes
-      _fcm.onTokenRefresh.listen(saveTokenToDatabase);
+      _fcm.onTokenRefresh.listen((token) {
+        saveTokenToDatabase(token);
+      });
 
       // Handle message when app is launched from terminated state
       RemoteMessage? initialMessage = await _fcm.getInitialMessage();
@@ -63,12 +65,12 @@ class PushNotificationService {
     }
 
     final data = message.data;
-    String? postId = data['post_id'];
-    String? habitLogId = data['habit_log_id'];
+    String? postId = data['post_id']?.toString();
+    String? habitLogId = data['habit_log_id']?.toString();
 
     // Normalize empty strings to null
-    if (postId != null && postId.isEmpty) postId = null;
-    if (habitLogId != null && habitLogId.isEmpty) habitLogId = null;
+    if (postId?.isEmpty ?? false) postId = null;
+    if (habitLogId?.isEmpty ?? false) habitLogId = null;
 
     if (postId != null || habitLogId != null) {
       Get.to(() => PostDetailScreen(postId: postId, habitLogId: habitLogId));

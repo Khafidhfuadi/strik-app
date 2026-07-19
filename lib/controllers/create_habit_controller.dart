@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -395,8 +396,13 @@ class CreateHabitController extends GetxController {
         } catch (_) {}
       }
 
+      if (createdHabitId == null) {
+        Get.back();
+        return;
+      }
+
       // Create challenge if enabled
-      if (!isEdit && isChallengeEnabled.value && createdHabitId != null) {
+      if (!isEdit && isChallengeEnabled.value) {
         try {
           if (Get.isRegistered<HabitChallengeController>()) {
             final challengeCtrl = Get.find<HabitChallengeController>();
@@ -424,7 +430,9 @@ class CreateHabitController extends GetxController {
             }
           }
         } catch (e) {
-          print('Failed to create challenge: $e');
+          if (kDebugMode) {
+            print('Failed to create challenge: $e');
+          }
         }
       }
 
@@ -436,26 +444,25 @@ class CreateHabitController extends GetxController {
             'gue baru aja buat habit "${titleController.text}", nih! 😎',
           );
         } catch (e) {
-          print('Failed to create auto-post: $e');
+          if (kDebugMode) {
+            print('Failed to create auto-post: $e');
+          }
           // Don't block habit creation if post fails
         }
       }
 
       /* Recurring Alarm Support */
-      /* Recurring Alarm Support */
-      if (createdHabitId != null) {
-        if (isReminder.value && reminderTime.value != null) {
-          await AlarmManagerService.instance.scheduleRecurringAlarm(
-            habitId: createdHabitId,
-            habitTitle: titleController.text,
-            frequency: frequency,
-            daysOfWeek: daysOfWeek,
-            reminderTime: reminderTime.value!,
-          );
-        } else {
-          // If reminder is disabled (or removed during edit), cancel the alarm
-          await AlarmManagerService.instance.cancelHabitAlarm(createdHabitId);
-        }
+      if (isReminder.value && reminderTime.value != null) {
+        await AlarmManagerService.instance.scheduleRecurringAlarm(
+          habitId: createdHabitId,
+          habitTitle: titleController.text,
+          frequency: frequency,
+          daysOfWeek: daysOfWeek,
+          reminderTime: reminderTime.value!,
+        );
+      } else {
+        // If reminder is disabled (or removed during edit), cancel the alarm
+        await AlarmManagerService.instance.cancelHabitAlarm(createdHabitId);
       }
 
       Get.back(); // Navigate back
@@ -465,7 +472,9 @@ class CreateHabitController extends GetxController {
         'Yah error: $e',
         snackPosition: SnackPosition.BOTTOM,
       );
-      print(e);
+      if (kDebugMode) {
+        print(e);
+      }
     } finally {
       isLoading.value = false;
     }

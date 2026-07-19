@@ -101,7 +101,7 @@ class PostDetailScreen extends StatelessWidget {
                       radius: 20,
                       backgroundColor: Colors.grey[800],
                       backgroundImage: avatarUrl != null
-                          ? NetworkImage(avatarUrl)
+                          ? NetworkImage(avatarUrl!)
                           : null,
                       child: avatarUrl == null
                           ? Text(

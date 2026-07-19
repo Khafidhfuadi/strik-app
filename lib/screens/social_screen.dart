@@ -357,7 +357,9 @@ class _SocialScreenState extends State<SocialScreen> {
         decoration: BoxDecoration(
           color: Colors.grey[900],
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+          border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -420,6 +422,7 @@ class _SocialScreenState extends State<SocialScreen> {
                           if (await _controller.createPost(
                             _postController.text,
                           )) {
+                            if (!context.mounted) return;
                             _postController.clear();
                             Navigator.of(
                               context,
@@ -1202,7 +1205,10 @@ class _SocialScreenState extends State<SocialScreen> {
             Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
+                border: Border.all(
+                  color: color.withValues(alpha: 0.5),
+                  width: 2,
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(4.0),
@@ -1371,7 +1377,9 @@ class _SocialScreenState extends State<SocialScreen> {
                 decoration: BoxDecoration(
                   color: Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1514,10 +1522,14 @@ class _SocialScreenState extends State<SocialScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isWinner ? Colors.green.withValues(alpha: 0.1) : Colors.grey[900],
+        color: isWinner
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.grey[900],
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isWinner ? Colors.green.withValues(alpha: 0.3) : Colors.transparent,
+          color: isWinner
+              ? Colors.green.withValues(alpha: 0.3)
+              : Colors.transparent,
           width: 1,
         ),
       ),
@@ -1665,7 +1677,9 @@ class _SocialScreenState extends State<SocialScreen> {
                     decoration: BoxDecoration(
                       color: Colors.grey[900]!.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1877,7 +1891,9 @@ class _SocialScreenState extends State<SocialScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: hasReacted
-                                      ? const Color(0xFFFF5757).withValues(alpha: 0.2)
+                                      ? const Color(
+                                          0xFFFF5757,
+                                        ).withValues(alpha: 0.2)
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
@@ -2661,7 +2677,9 @@ class _SocialScreenState extends State<SocialScreen> {
                             : Colors.grey[900]!.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(16),
                         border: isTop3
-                            ? Border.all(color: Colors.amber.withValues(alpha: 0.2))
+                            ? Border.all(
+                                color: Colors.amber.withValues(alpha: 0.2),
+                              )
                             : null,
                       ),
                       child: Row(

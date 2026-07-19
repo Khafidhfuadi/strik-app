@@ -87,18 +87,19 @@ class UserProfileController extends GetxController {
         friendshipId = res?['id'];
       }
 
-      if (friendshipId != null) {
-        if (Get.isRegistered<FriendController>()) {
-          await Get.find<FriendController>().acceptRequest(friendshipId);
-        } else {
-          await _friendRepository.acceptRequest(friendshipId);
-        }
-        friendshipStatus.value = 'accepted';
-        // Snackbars handled by FriendController or we do it here if using repo directly
-        // If using FriendController, it shows snackbar.
-      } else {
-        Get.snackbar('Error', 'Data request tidak ditemukan');
+      if (friendshipId == null) {
+        Get.snackbar('Error', 'Permintaan pertemanan tidak ditemukan');
+        return;
       }
+
+      if (Get.isRegistered<FriendController>()) {
+        await Get.find<FriendController>().acceptRequest(friendshipId);
+      } else {
+        await _friendRepository.acceptRequest(friendshipId);
+      }
+      friendshipStatus.value = 'accepted';
+      // Snackbars handled by FriendController or we do it here if using repo directly
+      // If using FriendController, it shows snackbar.
     } catch (e) {
       Get.snackbar('Error', 'Gagal menerima: $e');
     }
@@ -119,14 +120,17 @@ class UserProfileController extends GetxController {
           .maybeSingle();
       friendshipId = res?['id'];
 
-      if (friendshipId != null) {
-        if (Get.isRegistered<FriendController>()) {
-          await Get.find<FriendController>().rejectRequest(friendshipId);
-        } else {
-          await _friendRepository.rejectRequest(friendshipId);
-        }
-        friendshipStatus.value = 'none';
+      if (friendshipId == null) {
+        Get.snackbar('Error', 'Permintaan pertemanan tidak ditemukan');
+        return;
       }
+
+      if (Get.isRegistered<FriendController>()) {
+        await Get.find<FriendController>().rejectRequest(friendshipId);
+      } else {
+        await _friendRepository.rejectRequest(friendshipId);
+      }
+      friendshipStatus.value = 'none';
     } catch (e) {
       Get.snackbar('Error', 'Gagal menolak: $e');
     }
