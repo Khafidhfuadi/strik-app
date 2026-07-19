@@ -1069,6 +1069,57 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
+  void _showUnarchiveConfirmation(BuildContext context, Habit currentHabit) {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: const Text(
+          'Batalkan Arsip Habit?',
+          style: TextStyle(
+            fontFamily: 'Space Grotesk',
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Beneran mau membatalkan arsip "${currentHabit.title}"? Habit ini akan dikembalikan ke daftar habit aktif.',
+          style: const TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            color: Colors.white70,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text(
+              'Batal',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: Colors.white54,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back(); // Close dialog
+              final habitController = Get.find<HabitController>();
+              await habitController.unarchiveHabit(currentHabit.id!);
+            },
+            child: const Text(
+              'Batalkan Arsip',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                color: AppTheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+    );
+  }
+
   void _showDeleteConfirmation(BuildContext context) {
     Get.dialog(
       AlertDialog(
@@ -1142,7 +1193,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   }
 
   void _showActionsBottomSheet(BuildContext context, Habit currentHabit) {
-    final isArchived = currentHabit.isArchivedManual;
+    final isArchived = currentHabit.isArchived;
 
     Get.bottomSheet(
       Container(
@@ -1243,7 +1294,11 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               ),
               onTap: () {
                 Get.back(); // Close bottom sheet
-                _showArchiveConfirmation(context, currentHabit);
+                if (isArchived) {
+                  _showUnarchiveConfirmation(context, currentHabit);
+                } else {
+                  _showArchiveConfirmation(context, currentHabit);
+                }
               },
             ),
             Divider(color: Colors.grey[800], height: 1),
