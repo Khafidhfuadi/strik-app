@@ -320,7 +320,7 @@ class HabitJournalController extends GetxController {
   Future<void> addJournal(
     String content, {
     DateTime? date,
-    File? imageFile,
+    List<File>? imageFiles,
   }) async {
     try {
       final targetDate = date ?? DateTime.now();
@@ -382,13 +382,14 @@ class HabitJournalController extends GetxController {
           .single();
       final habit = Habit.fromJson(habitResponse);
 
-      // 2. Validation: Challenge requires image
-      // Check if linked to a challenge
+      final hasImages = imageFiles != null && imageFiles.isNotEmpty;
+
+      // 2. Validation: Challenge requires at least one image
       if (habit.challengeId != null) {
-        if (imageFile == null) {
+        if (!hasImages) {
           Get.snackbar(
             'Challenge Requirement',
-            'Habit Challenge wajib menyertakan foto bukti! 📸',
+            'Habit Challenge wajib menyertakan foto bukti!',
             backgroundColor: Colors.red,
             colorText: Colors.white,
             snackPosition: SnackPosition.TOP,
@@ -398,10 +399,13 @@ class HabitJournalController extends GetxController {
       }
 
       final userId = _supabase.auth.currentUser!.id;
-      String? imageUrl;
+      List<String> imageUrls = [];
 
-      if (imageFile != null) {
-        imageUrl = await uploadJournalImage(imageFile);
+      if (hasImages) {
+        final uploadResults = await Future.wait(
+          imageFiles.map((f) => uploadJournalImage(f)),
+        );
+        imageUrls = uploadResults.whereType<String>().toList();
       }
 
       final response = await _supabase
@@ -410,7 +414,8 @@ class HabitJournalController extends GetxController {
             'habit_id': habitId,
             'user_id': userId,
             'content': content,
-            'image_url': imageUrl,
+            'image_urls': imageUrls,
+            'image_url': imageUrls.isNotEmpty ? imageUrls.first : null,
             'created_at': targetDate.toUtc().toIso8601String(),
           })
           .select()
@@ -430,8 +435,8 @@ class HabitJournalController extends GetxController {
       await _checkMonthlyEligibility();
       await clearDraft(targetDate);
 
-      // 3. Auto-Momentz for Challenge
-      if (habit.challengeId != null && imageFile != null) {
+      // 3. Auto-Momentz for Challenge (use first image)
+      if (habit.challengeId != null && hasImages) {
         print(
           '[Journal] challengeId=${habit.challengeId}, StoryController registered=${Get.isRegistered<StoryController>()}',
         );
@@ -441,7 +446,7 @@ class HabitJournalController extends GetxController {
             final caption =
                 "Progres Habit Challenge '${habit.title}'\n$content";
             print('[Journal] Memanggil createStory...');
-            await storyCtrl.createStory(imageFile, caption: caption);
+            await storyCtrl.createStory(imageFiles.first, caption: caption);
             print('[Journal] createStory selesai.');
           } else {
             print(
@@ -478,7 +483,7 @@ class HabitJournalController extends GetxController {
         print('Error awarding XP: $e');
       }
 
-      if (habit.challengeId != null && imageFile != null) {
+      if (habit.challengeId != null && hasImages) {
         // Jika ini post challenge -> otomatis close detail habit dan balik ke Feed utama
         Get.until((route) => route.settings.name == '/home' || route.isFirst);
       } else {
@@ -496,22 +501,29 @@ class HabitJournalController extends GetxController {
   Future<void> updateJournal(
     String id,
     String content, {
-    File? newImageFile,
-    bool removeImage = false,
+    List<File>? newImageFiles,
+    List<String>? removeImageUrls,
+    List<String>? existingImageUrls,
   }) async {
     try {
       final updates = <String, dynamic>{'content': content};
 
-      if (removeImage) {
-        updates['image_url'] = null;
+      // Start with existing URLs that weren't removed
+      List<String> finalUrls = List<String>.from(existingImageUrls ?? []);
+      if (removeImageUrls != null && removeImageUrls.isNotEmpty) {
+        finalUrls.removeWhere((url) => removeImageUrls.contains(url));
       }
 
-      if (newImageFile != null) {
-        final imageUrl = await uploadJournalImage(newImageFile);
-        if (imageUrl != null) {
-          updates['image_url'] = imageUrl;
-        }
+      // Upload new images in parallel
+      if (newImageFiles != null && newImageFiles.isNotEmpty) {
+        final uploadResults = await Future.wait(
+          newImageFiles.map((f) => uploadJournalImage(f)),
+        );
+        finalUrls.addAll(uploadResults.whereType<String>());
       }
+
+      updates['image_urls'] = finalUrls;
+      updates['image_url'] = finalUrls.isNotEmpty ? finalUrls.first : null;
 
       final response = await _supabase
           .from('habit_journals')

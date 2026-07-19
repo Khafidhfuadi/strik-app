@@ -1799,88 +1799,149 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   ),
                 ],
               ),
-              if (journal.imageUrl != null) ...[
+              if (journal.hasImages) ...[
                 const SizedBox(height: 14),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _showJournalImageViewer(
-                      context,
-                      imageUrl: journal.imageUrl,
-                      heroTag: heroTag,
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    child: Stack(
-                      children: [
-                        Hero(
-                          tag: heroTag,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: AspectRatio(
-                              aspectRatio: 4 / 3,
-                              child: CachedNetworkImage(
-                                imageUrl: journal.imageUrl!,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  child: const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                ),
-                                errorWidget: (context, url, error) {
-                                  return Container(
+                if (journal.imageUrls.length == 1)
+                  // Single image: show full-width like before
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _showJournalImageViewer(
+                        context,
+                        imageUrl: journal.imageUrls.first,
+                        heroTag: '$heroTag-0',
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      child: Stack(
+                        children: [
+                          Hero(
+                            tag: '$heroTag-0',
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: AspectRatio(
+                                aspectRatio: 4 / 3,
+                                child: CachedNetworkImage(
+                                  imageUrl: journal.imageUrls.first,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
                                     color: Colors.white.withValues(alpha: 0.05),
                                     child: const Center(
-                                      child: Icon(
-                                        Icons.broken_image,
-                                        color: Colors.white24,
-                                      ),
+                                      child: CircularProgressIndicator(),
                                     ),
-                                  );
-                                },
+                                  ),
+                                  errorWidget: (context, url, error) {
+                                    return Container(
+                                      color: Colors.white.withValues(alpha: 0.05),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          color: Colors.white24,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          right: 12,
-                          bottom: 12,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.fullscreen,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Lihat penuh',
-                                  style: TextStyle(
-                                    fontFamily: 'Plus Jakarta Sans',
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
+                          Positioned(
+                            right: 12,
+                            bottom: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.fullscreen,
                                     color: Colors.white,
+                                    size: 14,
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Lihat penuh',
+                                    style: TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  // Multiple images: horizontal scroll thumbnails
+                  SizedBox(
+                    height: 110,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: journal.imageUrls.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, imgIndex) {
+                        final url = journal.imageUrls[imgIndex];
+                        final imgHeroTag = '$heroTag-$imgIndex';
+                        return GestureDetector(
+                          onTap: () => _showJournalImageViewer(
+                            context,
+                            imageUrl: url,
+                            heroTag: imgHeroTag,
+                          ),
+                          child: Hero(
+                            tag: imgHeroTag,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: SizedBox(
+                                width: 110,
+                                height: 110,
+                                child: CachedNetworkImage(
+                                  imageUrl: url,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) {
+                                    return Container(
+                                      color: Colors.white.withValues(alpha: 0.05),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          color: Colors.white24,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ),
               ],
               const SizedBox(height: 12),
               Text(

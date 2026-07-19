@@ -35,16 +35,29 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
   late final DateTime _displayDate;
   Timer? _debounce;
 
-  File? _selectedImage;
-  String? _existingImageUrl;
-  String? _originalImageUrl;
-  bool _removeExistingImage = false;
+  /// Newly picked images (not yet uploaded)
+  final List<File> _selectedImages = [];
+
+  /// Existing image URLs from the database (for edit mode)
+  List<String> _existingImageUrls = [];
+
+  /// Original image URLs snapshot (to detect removals)
+  List<String> _originalImageUrls = [];
+
+  /// URLs that the user explicitly removed
+  final Set<String> _removedImageUrls = {};
+
   String _saveStatus = '';
   bool _isSubmitting = false;
 
+  static const int _maxAttachments = 5;
+
   bool get _isEditing => widget.journal != null;
-  bool get _hasAttachedImage =>
-      _selectedImage != null || _existingImageUrl != null;
+  bool get _hasAttachedImages =>
+      _selectedImages.isNotEmpty || _existingImageUrls.isNotEmpty;
+  int get _totalAttachments =>
+      _selectedImages.length + _existingImageUrls.length;
+  bool get _canAddMore => _totalAttachments < _maxAttachments;
   bool get _isChallengeHabit => widget.habit.challengeId != null;
 
   @override
@@ -55,8 +68,8 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
     _textController = TextEditingController(
       text: widget.journal?.content ?? '',
     );
-    _originalImageUrl = widget.journal?.imageUrl;
-    _existingImageUrl = _originalImageUrl;
+    _originalImageUrls = List<String>.from(widget.journal?.imageUrls ?? []);
+    _existingImageUrls = List<String>.from(_originalImageUrls);
 
     if (!_isEditing) {
       _loadDraft();
@@ -96,25 +109,33 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    if (!_canAddMore) {
+      Get.snackbar(
+        'Batas Tercapai',
+        'Maksimal $_maxAttachments foto per jurnal',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     final file = await widget.journalController.pickImage(source: source);
     if (!mounted || file == null) return;
 
     setState(() {
-      _selectedImage = file;
-      _existingImageUrl = _originalImageUrl;
-      _removeExistingImage = false;
+      _selectedImages.add(file);
     });
   }
 
-  void _removeImage() {
+  void _removeSelectedImage(int index) {
     setState(() {
-      if (_selectedImage != null) {
-        _selectedImage = null;
-        _existingImageUrl = _removeExistingImage ? null : _originalImageUrl;
-      } else if (_existingImageUrl != null) {
-        _existingImageUrl = null;
-        _removeExistingImage = true;
-      }
+      _selectedImages.removeAt(index);
+    });
+  }
+
+  void _removeExistingImage(int index) {
+    setState(() {
+      final url = _existingImageUrls.removeAt(index);
+      _removedImageUrls.add(url);
     });
   }
 
@@ -123,8 +144,8 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
 
     final content = _textController.text.trim();
     if (content.isEmpty &&
-        _selectedImage == null &&
-        _existingImageUrl == null) {
+        _selectedImages.isEmpty &&
+        _existingImageUrls.isEmpty) {
       Get.snackbar(
         'Error',
         'Isi konten atau upload foto dulu ya',
@@ -142,14 +163,18 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
         await widget.journalController.updateJournal(
           widget.journal!.id!,
           content,
-          newImageFile: _selectedImage,
-          removeImage: _removeExistingImage && _selectedImage == null,
+          newImageFiles:
+              _selectedImages.isNotEmpty ? _selectedImages : null,
+          removeImageUrls:
+              _removedImageUrls.isNotEmpty ? _removedImageUrls.toList() : null,
+          existingImageUrls: _existingImageUrls,
         );
       } else {
         await widget.journalController.addJournal(
           content,
           date: _displayDate,
-          imageFile: _selectedImage,
+          imageFiles:
+              _selectedImages.isNotEmpty ? _selectedImages : null,
         );
       }
     } finally {
@@ -296,8 +321,6 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    final previewHeroTag =
-        'journal-editor-image-${widget.journal?.id ?? _displayDate.toIso8601String()}';
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -373,7 +396,7 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
                   children: [
                     _buildEditorCard(),
                     const SizedBox(height: 16),
-                    _buildAttachmentCard(previewHeroTag),
+                    _buildAttachmentCard(),
                   ],
                 ),
               ),
@@ -604,7 +627,7 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
     );
   }
 
-  Widget _buildAttachmentCard(String previewHeroTag) {
+  Widget _buildAttachmentCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -630,15 +653,29 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Lampiran Foto',
-                  style: TextStyle(
-                    fontFamily: 'Space Grotesk',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Lampiran Foto',
+                      style: TextStyle(
+                        fontFamily: 'Space Grotesk',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    if (_hasAttachedImages)
+                      Text(
+                        '$_totalAttachments/$_maxAttachments foto',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               if (_isChallengeHabit)
@@ -667,89 +704,8 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          if (_hasAttachedImage)
-            Stack(
-              children: [
-                GestureDetector(
-                  onTap: () => _showImageViewer(
-                    imageUrl: _existingImageUrl,
-                    imageFile: _selectedImage,
-                    heroTag: previewHeroTag,
-                  ),
-                  child: Hero(
-                    tag: previewHeroTag,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: AspectRatio(
-                        aspectRatio: 4 / 3,
-                        child: Container(
-                          color: Colors.black,
-                          child: _selectedImage != null
-                              ? Image.file(_selectedImage!, fit: BoxFit.contain)
-                              : CachedNetworkImage(
-                                  imageUrl: _existingImageUrl!,
-                                  fit: BoxFit.contain,
-                                  placeholder: (context, url) => const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                  errorWidget: (context, url, error) {
-                                    return const Center(
-                                      child: Icon(
-                                        Icons.broken_image,
-                                        color: Colors.white24,
-                                      ),
-                                    );
-                                  },
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Text(
-                      'Tap untuk lihat penuh',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: GestureDetector(
-                    onTap: _removeImage,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            )
+          if (_hasAttachedImages)
+            _buildImageGrid()
           else
             Container(
               width: double.infinity,
@@ -781,6 +737,194 @@ class _HabitJournalEditorScreenState extends State<HabitJournalEditorScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildImageGrid() {
+    final journalId = widget.journal?.id ?? _displayDate.toIso8601String();
+
+    return SizedBox(
+      height: 140,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _existingImageUrls.length +
+            _selectedImages.length +
+            (_canAddMore ? 1 : 0),
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          // Existing images first
+          if (index < _existingImageUrls.length) {
+            final url = _existingImageUrls[index];
+            final heroTag = 'editor-existing-$journalId-$index';
+            return _buildImageThumbnail(
+              heroTag: heroTag,
+              onTap: () => _showImageViewer(
+                imageUrl: url,
+                heroTag: heroTag,
+              ),
+              onRemove: () => _removeExistingImage(index),
+              child: CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  child: const Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      color: Colors.white24,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          // Newly selected images
+          final selectedIndex = index - _existingImageUrls.length;
+          if (selectedIndex < _selectedImages.length) {
+            final file = _selectedImages[selectedIndex];
+            final heroTag = 'editor-new-$journalId-$selectedIndex';
+            return _buildImageThumbnail(
+              heroTag: heroTag,
+              onTap: () => _showImageViewer(
+                imageFile: file,
+                heroTag: heroTag,
+              ),
+              onRemove: () => _removeSelectedImage(selectedIndex),
+              isNew: true,
+              child: Image.file(file, fit: BoxFit.cover),
+            );
+          }
+
+          // "Add more" button
+          return _buildAddMoreButton();
+        },
+      ),
+    );
+  }
+
+  Widget _buildImageThumbnail({
+    required String heroTag,
+    required VoidCallback onTap,
+    required VoidCallback onRemove,
+    required Widget child,
+    bool isNew = false,
+  }) {
+    return SizedBox(
+      width: 140,
+      height: 140,
+      child: Stack(
+        children: [
+          GestureDetector(
+            onTap: onTap,
+            child: Hero(
+              tag: heroTag,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: SizedBox(
+                  width: 140,
+                  height: 140,
+                  child: child,
+                ),
+              ),
+            ),
+          ),
+          // Remove button
+          Positioned(
+            top: 6,
+            right: 6,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+            ),
+          ),
+          // "New" badge for newly picked images
+          if (isNew)
+            Positioned(
+              bottom: 6,
+              left: 6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  'Baru',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddMoreButton() {
+    return GestureDetector(
+      onTap: () => _pickImage(ImageSource.gallery),
+      child: Container(
+        width: 140,
+        height: 140,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_photo_alternate_outlined,
+              size: 28,
+              color: Colors.white.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Tambah',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
