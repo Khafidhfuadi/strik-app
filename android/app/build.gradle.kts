@@ -6,7 +6,7 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-android {
+android {   
     namespace = "com.strik.strik_app"
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
@@ -27,7 +27,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -47,4 +47,11 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("androidx.glance:glance-appwidget:1.1.0")
+        force("androidx.glance:glance:1.1.0")
+    }
 }

@@ -1015,7 +1015,7 @@ class FriendController extends GetxController {
             'Sabar dulu!',
             'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.orange.withOpacity(0.8),
+            backgroundColor: Colors.orange.withValues(alpha: 0.8),
             colorText: Colors.white,
           );
           return;
@@ -1137,7 +1137,7 @@ class FriendController extends GetxController {
             'Sabar dulu!',
             'Lo baru bisa colek lagi dalam $hoursRemaining jam. Kasih jeda dong! 😅',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.orange.withOpacity(0.8),
+            backgroundColor: Colors.orange.withValues(alpha: 0.8),
             colorText: Colors.white,
           );
           return;

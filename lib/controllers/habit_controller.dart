@@ -552,57 +552,34 @@ class HabitController extends GetxController {
 
   Future<void> archiveHabit(String id) async {
     try {
-      // Cancel alarm and remove metadata
+      // Cancel alarm for archived habit
       await AlarmManagerService.instance.cancelHabitAlarm(id);
 
-      // Find the habit to update
-      final habitIndex = habits.indexWhere((h) => h.id == id);
-      if (habitIndex != -1) {
-        final habit = habits[habitIndex];
-
-        // Update in Supabase
-        await Supabase.instance.client
-            .from('habits')
-            .update({'is_archived': true})
-            .eq('id', id);
-
-        // Update local lists
-        final updatedHabit = Habit(
-          id: habit.id,
-          userId: habit.userId,
-          title: habit.title,
-          description: habit.description,
-          color: habit.color,
-          frequency: habit.frequency,
-          daysOfWeek: habit.daysOfWeek,
-          frequencyCount: habit.frequencyCount,
-          reminderTime: habit.reminderTime,
-          reminderEnabled: habit.reminderEnabled,
-          createdAt: habit.createdAt,
-          endDate: habit.endDate,
-          isPublic: habit.isPublic,
-          sortOrder: habit.sortOrder,
-          challengeId: habit.challengeId,
-          challenge: habit.challenge,
-          isArchived: true,
-        );
-
-        habits.removeAt(habitIndex);
-        archivedHabits.add(updatedHabit);
-
-        todayLogs.remove(id);
-        weeklyLogs.remove(id);
-
-        Get.back(); // Back from Detail screen
-
-        Get.snackbar(
-          'Habit Diarsipkan',
-          'Habit "${habit.title}" berhasil diarsipkan',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-      }
+      await _habitRepository.archiveHabit(id, true);
+      await fetchHabitsAndLogs(isRefresh: true);
+      Get.back(); // Back from Detail screen
+      Get.snackbar(
+        'Diarsipkan',
+        'Habit berhasil diarsipkan',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar('Error', 'Gagal mengarsipkan habit: $e');
+    }
+  }
+
+  Future<void> unarchiveHabit(String id) async {
+    try {
+      await _habitRepository.archiveHabit(id, false);
+      await fetchHabitsAndLogs(isRefresh: true);
+      Get.back(); // Back from Detail screen
+      Get.snackbar(
+        'Dipulihkan',
+        'Habit berhasil dipulihkan dari arsip',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Gagal memulihkan habit: $e');
     }
   }
 

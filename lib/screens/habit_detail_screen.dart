@@ -97,7 +97,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         final habitController = Get.find<HabitController>();
         final currentHabit = habitController.habits.firstWhere(
           (h) => h.id == widget.habit.id,
-          orElse: () => widget.habit,
+          orElse: () => habitController.archivedHabits.firstWhere(
+            (h) => h.id == widget.habit.id,
+            orElse: () => widget.habit,
+          ),
         );
 
         return RefreshIndicator(
@@ -376,7 +379,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     final habitController = Get.find<HabitController>();
     final currentHabit = habitController.habits.firstWhere(
       (h) => h.id == widget.habit.id,
-      orElse: () => widget.habit,
+      orElse: () => habitController.archivedHabits.firstWhere(
+        (h) => h.id == widget.habit.id,
+        orElse: () => widget.habit,
+      ),
     );
 
     final isChallenge = currentHabit.isChallenge;
@@ -404,14 +410,11 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             ),
             onPressed: () => _showChallengeHelp(context),
           ),
-        IconButton(
-          icon: const Icon(Icons.more_vert, color: AppTheme.textPrimary),
-          onPressed: () => _showOptionsBottomSheet(
-            context,
-            currentHabit,
-            isCreator,
+        if (isCreator)
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: AppTheme.textPrimary),
+            onPressed: () => _showActionsBottomSheet(context, currentHabit),
           ),
-        ),
       ],
     );
   }
@@ -1053,7 +1056,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             const SizedBox(height: 16),
             if (isCreator)
               ListTile(
-                leading: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
+                leading: const Icon(
+                  Icons.edit_outlined,
+                  color: AppTheme.textPrimary,
+                ),
                 title: const Text(
                   'Edit',
                   style: TextStyle(
@@ -1068,7 +1074,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.archive_outlined, color: AppTheme.textPrimary),
+              leading: const Icon(
+                Icons.archive_outlined,
+                color: AppTheme.textPrimary,
+              ),
               title: const Text(
                 'Archive',
                 style: TextStyle(
@@ -1230,6 +1239,157 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
+  void _showActionsBottomSheet(BuildContext context, Habit currentHabit) {
+    final isArchived = currentHabit.isArchivedManual;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Edit
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.edit_outlined,
+                  color: AppTheme.textPrimary,
+                  size: 20,
+                ),
+              ),
+              title: const Text(
+                'Edit Habit',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              subtitle: Text(
+                'Ubah nama, frekuensi, atau detail lainnya',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+              onTap: () {
+                Get.back(); // Close bottom sheet
+                Get.to(() => CreateHabitScreen(habit: currentHabit));
+              },
+            ),
+            Divider(color: Colors.grey[800], height: 1),
+            // Archive / Unarchive
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color:
+                      (isArchived ? AppTheme.primary : const Color(0xFFF59E0B))
+                          .withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isArchived
+                      ? Icons.unarchive_outlined
+                      : Icons.archive_outlined,
+                  color: isArchived
+                      ? AppTheme.primary
+                      : const Color(0xFFF59E0B),
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                isArchived ? 'Batalkan Arsip' : 'Arsipkan Habit',
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              subtitle: Text(
+                isArchived
+                    ? 'Kembalikan habit ke daftar aktif'
+                    : 'Simpan habit ke arsip tanpa menghapus data',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+              onTap: () {
+                Get.back(); // Close bottom sheet
+                _showArchiveConfirmation(context, currentHabit);
+              },
+            ),
+            Divider(color: Colors.grey[800], height: 1),
+            // Delete
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 20,
+                ),
+              ),
+              title: const Text(
+                'Hapus Habit',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              subtitle: Text(
+                'Hapus habit beserta semua progress-nya',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+              onTap: () {
+                Get.back(); // Close bottom sheet
+                _showDeleteConfirmation(context);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
   Widget _buildStatItem(String label, String value) {
     // ... same
     return Column(
@@ -1367,7 +1527,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
 
                   Color? bgColor;
                   Color? textColor = isFuture
-                      ? AppTheme.textSecondary.withOpacity(0.3)
+                      ? AppTheme.textSecondary.withValues(alpha: 0.3)
                       : AppTheme.textSecondary;
                   BoxBorder? border;
 
